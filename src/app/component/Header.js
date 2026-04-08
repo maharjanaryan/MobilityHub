@@ -11,18 +11,18 @@ const Header = () => {
       <h1 className='text-xl font-bold m-2'>Mobility hub</h1>
 
       <ul className='flex space-x-6 text-gray-400 mt-4'>
-      <li className=' hover:text-green-600 cursor-pointer'>Home</li>
-      <li className=' hover:text-green-600 cursor-pointer'>Maps</li>
-      <li className=' hover:text-green-600 cursor-pointer'>Vehicles</li>
-      <li className=' hover:text-green-600 cursor-pointer'>Gallery</li>
-      <li className=' hover:text-green-600 cursor-pointer' onClick={()=>router.push("/about")}>About Us</li>
+        <li className=' hover:text-green-600 cursor-pointer' onClick={() => router.push("/")}>Home</li>
+        <li className=' hover:text-green-600 cursor-pointer' onClick={() => router.push("/maps")}>Maps</li>
+        <li className=' hover:text-green-600 cursor-pointer'>Vehicles</li>
+        <li className=' hover:text-green-600 cursor-pointer'>Gallery</li>
+        <li className=' hover:text-green-600 cursor-pointer' onClick={() => router.push("/about")}>About Us</li>
       </ul>
 
       <div className='flex space-x-2 px-2 m-2'>
         <button className='bg-gray-200 rounded-2xl px-4 py-2'>Sign in</button>
         <button className='border rounded-2xl p-2 bg-green-700 text-white'>Rent Now</button>
       </div>
-      
+
     </nav>
   )
 }

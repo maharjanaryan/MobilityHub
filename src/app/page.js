@@ -4,6 +4,7 @@ import Header from "./component/Header";
 import HeroBg from "./component/HeroBg";
 import ElectricCategories from "./landing/ElectricCategories.js";
 import Details from "./landing/Details";
+import Footer from "./component/Footer";
 
 
 export default function Home() {
@@ -19,6 +20,7 @@ export default function Home() {
     <HeroBg />
     <ElectricCategories />
     <Details />
+    <Footer />
 
 
 
