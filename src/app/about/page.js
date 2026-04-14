@@ -11,7 +11,7 @@ export default function AboutPage() {
       {/* Hero Section – same as HeroBg but with vehicle-rental text */}
       <div className="relative">
         <img
-          src="/about.png"          // Replace with a hero image showing EVs / nature
+          src="/aboutbg.png"
           alt="Electric vehicle rental"
           className="h-150 w-full object-cover"
         />

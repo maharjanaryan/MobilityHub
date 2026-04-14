@@ -8,14 +8,14 @@ const categories = [
     title: "Electric Cars",
     available: "24 available",
     range: "300–500 km",
-    image: "/Car.jpg",
+    image: "/electriccar.jpg",
     highlight: true,
   },
   {
     title: "Electric Bikes",
     available: "48 available",
     range: "80–150 km",
-    image: "/bike.jpg",
+    image: "/bikes.jpg",
   },
   {
     title: "Electric Scooters",
@@ -45,9 +45,8 @@ export default function ElectricCategories() {
               delay: index * 0.1, // 👈 makes them appear one by one
               ease: "easeOut",
             }}
-            className={`rounded-2xl border border-gray-400 p-6 shadow-sm hover:shadow-lg transition-all duration-300 bg-white hover:scale-110 transition-transform ${
-              item.highlight ? "bg-green-50" : ""
-            }`}
+            className={`rounded-2xl border border-gray-400 p-6 shadow-sm hover:shadow-lg transition-all duration-300 bg-white hover:scale-110 transition-transform ${item.highlight ? "bg-green-50" : ""
+              }`}
           >
             <div className="relative h-48 w-full mb-6">
               <Image
