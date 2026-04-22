@@ -1,9 +1,9 @@
 "use client"
 
 import Footer from "../component/Footer";
-import Carousel from "./carousel";
 import HomeHeader from "./HomeHeader";
 import HomeHero from "./HomeHero";
+
 
 const page = () => {
   return (
