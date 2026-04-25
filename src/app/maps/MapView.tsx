@@ -1,21 +1,40 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from "react-leaflet";
+import React, { useEffect } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  Polyline,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import type { Vehicle } from "./vehicleData";
 
 // Fix default marker icon issue in Leaflet + webpack
-delete L.Icon.Default.prototype._getIconUrl;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
+type VehicleType = "car" | "bike" | "scooter" | "cycle";
+
+interface UserLocation {
+  lat: number;
+  lng: number;
+}
+
 // Custom icon creator using emoji
-function createVehicleIcon(type, isSelected) {
-  const emojis = {
+function createVehicleIcon(type: VehicleType, isSelected: boolean): L.DivIcon {
+  const emojis: Record<VehicleType, string> = {
     car: "🚗",
     bike: "🏍️",
     scooter: "🛵",
@@ -49,7 +68,7 @@ function createVehicleIcon(type, isSelected) {
 }
 
 // User location icon
-function createUserIcon() {
+function createUserIcon(): L.DivIcon {
   return L.divIcon({
     html: `<div style="
       width: 20px;
@@ -65,20 +84,34 @@ function createUserIcon() {
   });
 }
 
+type RouteCoords = [number, number][] | null;
+
+interface FlyToProps {
+  selectedVehicle: Vehicle | null;
+  userLocation: UserLocation | null;
+  onRouteFound: (
+    coords: RouteCoords,
+    distance: string | null,
+    duration: number | null
+  ) => void;
+}
+
 // Component to fly to selected vehicle and fetch route
-function FlyToVehicleAndRoute({ selectedVehicle, userLocation, onRouteFound }) {
+function FlyToVehicleAndRoute({
+  selectedVehicle,
+  userLocation,
+  onRouteFound,
+}: FlyToProps) {
   const map = useMap();
 
   useEffect(() => {
     if (selectedVehicle && userLocation) {
-      // Fit map to show both user and vehicle
       const bounds = L.latLngBounds(
         [userLocation.lat, userLocation.lng],
         [selectedVehicle.lat, selectedVehicle.lng]
       );
       map.flyToBounds(bounds.pad(0.3), { duration: 0.8 });
 
-      // Fetch route from OSRM
       const fetchRoute = async () => {
         try {
           const url = `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${selectedVehicle.lng},${selectedVehicle.lat}?overview=full&geometries=geojson`;
@@ -86,16 +119,15 @@ function FlyToVehicleAndRoute({ selectedVehicle, userLocation, onRouteFound }) {
           const data = await res.json();
 
           if (data.routes && data.routes.length > 0) {
-            const coords = data.routes[0].geometry.coordinates.map(
-              ([lng, lat]) => [lat, lng]
+            const coords: [number, number][] = data.routes[0].geometry.coordinates.map(
+              ([lng, lat]: [number, number]) => [lat, lng]
             );
-            const distance = (data.routes[0].distance / 1000).toFixed(1); // km
-            const duration = Math.ceil(data.routes[0].duration / 60); // minutes
+            const distance: string = (data.routes[0].distance / 1000).toFixed(1);
+            const duration: number = Math.ceil(data.routes[0].duration / 60);
             onRouteFound(coords, distance, duration);
           }
         } catch (err) {
           console.error("Failed to fetch route:", err);
-          // Fallback: draw a straight line
           onRouteFound(
             [
               [userLocation.lat, userLocation.lng],
@@ -121,24 +153,37 @@ function FlyToVehicleAndRoute({ selectedVehicle, userLocation, onRouteFound }) {
   return null;
 }
 
+interface MapViewProps {
+  vehicles: Vehicle[];
+  selectedVehicle: Vehicle | null;
+  onSelectVehicle: (vehicle: Vehicle) => void;
+  userLocation: UserLocation | null;
+}
+
 export default function MapView({
   vehicles,
   selectedVehicle,
   onSelectVehicle,
   userLocation,
-}) {
-  const defaultCenter = [27.7172, 85.324];
-  const center = userLocation
+}: MapViewProps) {
+  const defaultCenter: [number, number] = [27.7172, 85.324];
+  const center: [number, number] = userLocation
     ? [userLocation.lat, userLocation.lng]
     : defaultCenter;
 
-  const [routeCoords, setRouteCoords] = React.useState(null);
-  const [routeInfo, setRouteInfo] = React.useState({ distance: null, duration: null });
+  const [routeCoords, setRouteCoords] = React.useState<RouteCoords>(null);
+  const [routeInfo, setRouteInfo] = React.useState<{
+    distance: string | null;
+    duration: number | null;
+  }>({ distance: null, duration: null });
 
-  const handleRouteFound = React.useCallback((coords, distance, duration) => {
-    setRouteCoords(coords);
-    setRouteInfo({ distance, duration });
-  }, []);
+  const handleRouteFound = React.useCallback(
+    (coords: RouteCoords, distance: string | null, duration: number | null) => {
+      setRouteCoords(coords);
+      setRouteInfo({ distance, duration });
+    },
+    []
+  );
 
   return (
     <MapContainer
@@ -165,11 +210,7 @@ export default function MapView({
           {/* Shadow line */}
           <Polyline
             positions={routeCoords}
-            pathOptions={{
-              color: "#000000",
-              weight: 7,
-              opacity: 0.15,
-            }}
+            pathOptions={{ color: "#000000", weight: 7, opacity: 0.15 }}
           />
           {/* Main route line */}
           <Polyline
@@ -188,7 +229,10 @@ export default function MapView({
 
       {/* Route info badge */}
       {routeCoords && routeInfo.distance && (
-        <RouteInfoBadge distance={routeInfo.distance} duration={routeInfo.duration} />
+        <RouteInfoBadge
+          distance={routeInfo.distance}
+          duration={routeInfo.duration}
+        />
       )}
 
       {/* User location marker */}
@@ -213,21 +257,20 @@ export default function MapView({
             key={vehicle.id}
             position={[vehicle.lat, vehicle.lng]}
             icon={createVehicleIcon(vehicle.type, isSelected)}
-            eventHandlers={{
-              click: () => onSelectVehicle(vehicle),
-            }}
+            eventHandlers={{ click: () => onSelectVehicle(vehicle) }}
           >
             <Popup className="custom-popup" maxWidth={280}>
-              <div style={{
-                background: "#ffffff",
-                color: "#1f2937",
-                borderRadius: "12px",
-                overflow: "hidden",
-                minWidth: "240px",
-                fontFamily: "system-ui, sans-serif",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
-              }}>
-                {/* Image */}
+              <div
+                style={{
+                  background: "#ffffff",
+                  color: "#1f2937",
+                  borderRadius: "12px",
+                  overflow: "hidden",
+                  minWidth: "240px",
+                  fontFamily: "system-ui, sans-serif",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.12)",
+                }}
+              >
                 <div style={{ width: "100%", height: "120px", overflow: "hidden" }}>
                   <img
                     src={vehicle.image}
@@ -235,45 +278,46 @@ export default function MapView({
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   />
                 </div>
-
-                {/* Info */}
                 <div style={{ padding: "12px 16px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                     <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#111827" }}>
                       {vehicle.name}
                     </h3>
-                    <span style={{
-                      fontSize: "11px",
-                      padding: "2px 8px",
-                      borderRadius: "999px",
-                      background: "rgba(22, 163, 74, 0.1)",
-                      color: "#16a34a",
-                      border: "1px solid rgba(22, 163, 74, 0.25)",
-                      textTransform: "capitalize",
-                    }}>
+                    <span
+                      style={{
+                        fontSize: "11px",
+                        padding: "2px 8px",
+                        borderRadius: "999px",
+                        background: "rgba(22, 163, 74, 0.1)",
+                        color: "#16a34a",
+                        border: "1px solid rgba(22, 163, 74, 0.25)",
+                        textTransform: "capitalize",
+                      }}
+                    >
                       {vehicle.type}
                     </span>
                   </div>
-
                   <div style={{ display: "flex", gap: "16px", fontSize: "12px", color: "#6b7280", marginBottom: "12px" }}>
                     <span>🔋 {vehicle.battery}%</span>
                     <span>📏 {vehicle.range} km</span>
                   </div>
-
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ color: "#16a34a", fontWeight: 700, fontSize: "15px" }}>
-                      Rs. {vehicle.pricePerHour}<span style={{ color: "#9ca3af", fontWeight: 400, fontSize: "12px" }}> /hr</span>
+                      Rs. {vehicle.pricePerHour}
+                      <span style={{ color: "#9ca3af", fontWeight: 400, fontSize: "12px" }}> /hr</span>
                     </span>
-                    <button style={{
-                      background: "#16a34a",
-                      color: "#fff",
-                      border: "none",
-                      padding: "6px 14px",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}>
+                    <button
+                      style={{
+                        background: "#16a34a",
+                        color: "#fff",
+                        border: "none",
+                        padding: "6px 14px",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                      }}
+                    >
                       Rent Now →
                     </button>
                   </div>
@@ -287,12 +331,17 @@ export default function MapView({
   );
 }
 
+interface RouteInfoBadgeProps {
+  distance: string;
+  duration: number | null;
+}
+
 // Route info badge displayed on the map
-function RouteInfoBadge({ distance, duration }) {
+function RouteInfoBadge({ distance, duration }: RouteInfoBadgeProps) {
   const map = useMap();
 
   useEffect(() => {
-    const control = L.control({ position: "topright" });
+    const control = new L.Control({ position: "topright" });
 
     control.onAdd = function () {
       const div = L.DomUtil.create("div");

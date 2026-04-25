@@ -3,7 +3,15 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 
-const categories = [
+interface Category {
+  title: string;
+  available: string;
+  range: string;
+  image: string;
+  highlight?: boolean;
+}
+
+const categories: Category[] = [
   {
     title: "Electric Cars",
     available: "24 available",
@@ -42,11 +50,12 @@ export default function ElectricCategories() {
             animate={{ opacity: 1, y: 0 }}
             transition={{
               duration: 0.4,
-              delay: index * 0.1, // 👈 makes them appear one by one
+              delay: index * 0.1,
               ease: "easeOut",
             }}
-            className={`rounded-2xl border border-gray-400 p-6 shadow-sm hover:shadow-lg transition-all duration-300 bg-white hover:scale-110 transition-transform ${item.highlight ? "bg-green-50" : ""
-              }`}
+            className={`rounded-2xl border border-gray-400 p-6 shadow-sm hover:shadow-lg transition-all duration-300 bg-white hover:scale-110 transition-transform ${
+              item.highlight ? "bg-green-50" : ""
+            }`}
           >
             <div className="relative h-48 w-full mb-6">
               <Image
@@ -57,9 +66,7 @@ export default function ElectricCategories() {
               />
             </div>
 
-            <h3 className="text-xl font-semibold mb-2">
-              {item.title}
-            </h3>
+            <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
 
             <div className="flex justify-between text-gray-500 text-sm mb-4">
               <span>{item.available}</span>

@@ -1,6 +1,6 @@
-import React from 'react'
+import React from "react";
 
-const Footer = () => {
+const Footer: React.FC = () => {
   return (
     <footer className="bg-green-950 text-gray-300">
       {/* Main Footer Content */}
@@ -48,31 +48,11 @@ const Footer = () => {
               <span className="block w-8 h-0.5 bg-green-500 mt-2 rounded-full"></span>
             </h3>
             <ul className="space-y-3 text-sm">
-              <li>
-                <a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2">
-                  <span className="text-green-500">›</span> Home
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2">
-                  <span className="text-green-500">›</span> About Us
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2">
-                  <span className="text-green-500">›</span> Explore Map
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2">
-                  <span className="text-green-500">›</span> Gallery
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2">
-                  <span className="text-green-500">›</span> Contact
-                </a>
-              </li>
+              <li><a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2"><span className="text-green-500">›</span> Home</a></li>
+              <li><a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2"><span className="text-green-500">›</span> About Us</a></li>
+              <li><a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2"><span className="text-green-500">›</span> Explore Map</a></li>
+              <li><a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2"><span className="text-green-500">›</span> Gallery</a></li>
+              <li><a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2"><span className="text-green-500">›</span> Contact</a></li>
             </ul>
           </div>
 
@@ -83,26 +63,10 @@ const Footer = () => {
               <span className="block w-8 h-0.5 bg-green-500 mt-2 rounded-full"></span>
             </h3>
             <ul className="space-y-3 text-sm">
-              <li>
-                <a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2">
-                  <span className="text-green-500">›</span> Electric Cars
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2">
-                  <span className="text-green-500">›</span> Electric Bikes
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2">
-                  <span className="text-green-500">›</span> E-Scooters
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2">
-                  <span className="text-green-500">›</span> E-Cycles
-                </a>
-              </li>
+              <li><a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2"><span className="text-green-500">›</span> Electric Cars</a></li>
+              <li><a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2"><span className="text-green-500">›</span> Electric Bikes</a></li>
+              <li><a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2"><span className="text-green-500">›</span> E-Scooters</a></li>
+              <li><a href="#" className="hover:text-green-400 transition-colors duration-300 flex items-center gap-2"><span className="text-green-500">›</span> E-Cycles</a></li>
             </ul>
           </div>
 
@@ -167,7 +131,7 @@ const Footer = () => {
         </div>
       </div>
     </footer>
-  )
-}
+  );
+};
 
-export default Footer
+export default Footer;

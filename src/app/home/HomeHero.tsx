@@ -4,7 +4,14 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Leaf, Map } from "lucide-react";
 
-const slides = [
+interface Slide {
+  image: string;
+  title1: string;
+  title2: string;
+  desc: string;
+}
+
+const slides: Slide[] = [
   {
     image: "herobg.jpg",
     title1: "Ride Green.",
@@ -25,9 +32,9 @@ const slides = [
   },
 ];
 
-const HomeHero = () => {
-  const [current, setCurrent] = useState(0);
-  const [typedText, setTypedText] = useState("");
+const HomeHero: React.FC = () => {
+  const [current, setCurrent] = useState<number>(0);
+  const [typedText, setTypedText] = useState<string>("");
 
   // Typewriter effect
   useEffect(() => {
@@ -112,8 +119,9 @@ const HomeHero = () => {
             <button
               key={i}
               onClick={() => setCurrent(i)}
-              className={`h-2 rounded-full transition-all duration-500 ${i === current ? "w-8 bg-green-400" : "w-2 bg-white/60"
-                }`}
+              className={`h-2 rounded-full transition-all duration-500 ${
+                i === current ? "w-8 bg-green-400" : "w-2 bg-white/60"
+              }`}
             />
           ))}
         </div>

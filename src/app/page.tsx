@@ -2,29 +2,24 @@
 import { useRouter } from "next/navigation";
 import Header from "./component/Header";
 import HeroBg from "./component/HeroBg";
-import ElectricCategories from "./landing/ElectricCategories.js";
+import ElectricCategories from "./landing/ElectricCategories";
 import Details from "./landing/Details";
 import Footer from "./component/Footer";
-
 
 export default function Home() {
   const router = useRouter();
 
-  const handleClick =()=>{
+  const handleClick = () => {
     router.push("/about");
-  }
+  };
 
   return (
     <>
-    <Header />
-    <HeroBg />
-    <ElectricCategories />
-    <Details />
-    <Footer />
-
-
-
-    
+      <Header />
+      <HeroBg />
+      <ElectricCategories />
+      <Details />
+      <Footer />
     </>
   );
 }
