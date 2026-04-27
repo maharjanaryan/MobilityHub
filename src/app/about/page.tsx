@@ -36,23 +36,7 @@ export default function AboutPage() {
     <main className="bg-white">
       <Header />
 
-      {/* Hero Section */}
-      <div className="relative">
-        <img src="/aboutbg.png" alt="Electric vehicle rental" className="h-150 w-full object-cover" />
-        <div className="absolute inset-0 bg-black/50" />
-        <h1 className="absolute top-1/2 ml-10 -translate-y-40 text-7xl font-bold text-white">
-          Ride Green. <br />
-          <span className="text-green-200">Explore Green.</span>
-        </h1>
-        <p className="absolute top-1/2 ml-11 text-white">
-          Rent electric vehicles for eco‑friendly exploration. <br />
-          Cars, bikes, scooters &amp; cycles — all at your fingertips with smart maps and local recommendations.
-        </p>
-        <div className="absolute top-1/2 flex translate-x-10 translate-y-30 gap-2 text-white">
-          <Link href="/vehicles" className="rounded-lg border-none bg-green-700 px-5 py-3">Rent Now</Link>
-          <Link href="/map" className="rounded-lg border-none bg-gray-400/30 px-5 py-3 text-white backdrop-blur-sm">Explore Map</Link>
-        </div>
-      </div>
+
 
       {/* Choose Your Ride */}
       <div className="mt-20 px-4 text-center">

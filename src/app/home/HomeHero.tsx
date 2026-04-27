@@ -19,7 +19,7 @@ const slides: Slide[] = [
     desc: "Rent electric vehicles for eco-friendly exploration. Cars, bikes, scooters & cycles — all at your fingertips with smart maps and local recommendations.",
   },
   {
-    image: "herobg.jpg",
+    image: "aboutbg.png",
     title1: "Zero Emissions.",
     title2: "Pure Adventure.",
     desc: "Choose from our fleet of premium EVs and discover the city the sustainable way — clean, quiet, and completely effortless.",
@@ -119,9 +119,8 @@ const HomeHero: React.FC = () => {
             <button
               key={i}
               onClick={() => setCurrent(i)}
-              className={`h-2 rounded-full transition-all duration-500 ${
-                i === current ? "w-8 bg-green-400" : "w-2 bg-white/60"
-              }`}
+              className={`h-2 rounded-full transition-all duration-500 ${i === current ? "w-8 bg-green-400" : "w-2 bg-white/60"
+                }`}
             />
           ))}
         </div>
