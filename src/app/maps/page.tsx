@@ -70,9 +70,14 @@ export default function MapsPage() {
   }, []);
 
   return (
-    <div className="flex flex-col h-screen bg-white">
-      <Header />
-      <div className="flex flex-1 overflow-hidden relative">
+    <div className="flex flex-col h-screen overflow-hidden">
+      {/* Header - fixed height, no squeezing */}
+      <div className="flex-shrink-0">
+        <Header />
+      </div>
+
+      {/* Main content - takes remaining space */}
+      <div className="flex-1 flex overflow-hidden relative min-h-0">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="absolute top-4 left-4 z-[1000] md:hidden bg-white border border-gray-200 text-gray-700 p-2.5 rounded-xl shadow-lg"
@@ -88,8 +93,9 @@ export default function MapsPage() {
           )}
         </button>
 
+        {/* Sidebar */}
         <div className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 absolute md:relative z-[999] w-80 md:w-[420px] h-full bg-white border-r border-gray-200 flex flex-col shadow-xl md:shadow-none`}>
-          <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+          <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-gray-100">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2.5">
                 <span className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
@@ -118,7 +124,8 @@ export default function MapsPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          {/* Scrollable vehicle list */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
             {filteredVehicles.map((vehicle) => {
               const isSelected = selectedVehicle?.id === vehicle.id;
               return (
@@ -167,7 +174,8 @@ export default function MapsPage() {
             })}
           </div>
 
-          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+          {/* Footer - fixed at bottom */}
+          <div className="flex-shrink-0 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
             <div className="flex items-center justify-between text-xs text-gray-400">
               <span>Powered by OpenStreetMap</span>
               <span className="flex items-center gap-1">
@@ -177,7 +185,8 @@ export default function MapsPage() {
           </div>
         </div>
 
-        <div className="flex-1 relative">
+        {/* Map container */}
+        <div className="flex-1 relative min-h-0">
           <MapView vehicles={filteredVehicles} selectedVehicle={selectedVehicle} onSelectVehicle={handleSelectVehicle} userLocation={userLocation} />
         </div>
       </div>

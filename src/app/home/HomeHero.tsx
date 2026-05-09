@@ -25,7 +25,7 @@ const slides: Slide[] = [
     desc: "Choose from our fleet of premium EVs and discover the city the sustainable way — clean, quiet, and completely effortless.",
   },
   {
-    image: "herobg.jpg",
+    image: "homehero3.png",
     title1: "Smart Maps.",
     title2: "Smarter Rides.",
     desc: "Navigate charging stations, scenic routes, and local hotspots with our integrated smart map — built for the eco-conscious explorer.",
@@ -58,6 +58,7 @@ const HomeHero: React.FC = () => {
 
   return (
     <div className="w-full mb-10">
+      {/* Hero container - full width background with centered content */}
       <div className="relative overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.img
@@ -74,38 +75,43 @@ const HomeHero: React.FC = () => {
 
         <div className="absolute inset-0 bg-black/50"></div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={current}
-            className="absolute inset-0"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h1 className="absolute top-1/2 -translate-y-40 text-white text-7xl font-bold ml-10">
-              {slides[current].title1} <br />
-              <span className="text-green-200">{slides[current].title2}</span>
-            </h1>
+        {/* Content wrapper - aligned with footer's max-w-7xl and px-6 */}
+        <div className="absolute inset-0">
+          <div className="max-w-7xl mx-auto px-6 h-full relative">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={current}
+                className="absolute inset-0"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+              >
+                <h1 className="absolute top-1/2 -translate-y-40 text-white text-7xl font-bold">
+                  {slides[current].title1} <br />
+                  <span className="text-green-200">{slides[current].title2}</span>
+                </h1>
 
-            <p className="absolute top-1/2 text-white ml-11 min-h-[80px]">
-              {typedText}
-              <span className="animate-pulse">|</span>
-            </p>
+                <p className="absolute top-1/2 text-white min-h-[80px] max-w-2xl">
+                  {typedText}
+                  <span className="animate-pulse">|</span>
+                </p>
 
-            <div className="absolute top-1/2 text-white translate-y-30 translate-x-10 gap-2 flex">
-              <button className="border-none bg-green-700 py-3 px-5 rounded-lg hover:bg-green-600 transition hover:scale-105">
-                Rent Now
-              </button>
-              <button className="border-none py-3 px-5 rounded-lg bg-gray-400/30 backdrop-blur-sm text-white hover:bg-gray-400/50 transition flex items-center gap-2">
-                <Map size={16} />
-                Explore Map
-              </button>
-            </div>
-          </motion.div>
-        </AnimatePresence>
+                <div className="absolute top-1/2 translate-y-30 gap-4 flex">
+                  <button className="border-none bg-green-700 py-3 px-5 rounded-lg hover:bg-green-600 transition hover:scale-105">
+                    Rent Now
+                  </button>
+                  <button className="border-none py-3 px-5 rounded-lg bg-gray-400/30 backdrop-blur-sm text-white hover:bg-gray-400/50 transition flex items-center gap-2">
+                    <Map size={16} />
+                    Explore Map
+                  </button>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
 
-        {/* Eco-friendly badge */}
+        {/* Eco-friendly badge - positioned relative to container */}
         <div className="absolute top-6 left-6 z-20">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-700/60 backdrop-blur-sm text-white text-xs font-semibold">
             <Leaf size={12} />

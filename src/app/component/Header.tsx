@@ -6,7 +6,7 @@ const Header: React.FC = () => {
   const router = useRouter();
 
   return (
-    <nav className="bg-gray-100 flex align-center justify-between p-2">
+    <nav className="bg-gray-100 flex align-center justify-between p-2 max-w-7xl mx-auto">
       <div className="flex items-center space-x-2 m-2">
         <img
           src="/logo.png"
