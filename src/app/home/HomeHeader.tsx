@@ -82,7 +82,7 @@ const HomeHeader: React.FC = () => {
           >
             Maps
           </li>
-          <li className="hover:text-green-600 cursor-pointer transition-colors">Vehicles</li>
+          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => router.push("/vehicles")}>Vehicles</li>
           <li className="hover:text-green-600 cursor-pointer transition-colors">Gallery</li>
           <li
             className="hover:text-green-600 cursor-pointer transition-colors"
