@@ -127,11 +127,11 @@ export default function VehiclesPage() {
                 </button>
               ))}
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3 w-full sm:w-auto">
               <select
                 value={selectedLocation}
                 onChange={e => setSelectedLocation(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white outline-none cursor-pointer"
+                className="min-w-0 flex-1 sm:flex-none bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white outline-none cursor-pointer"
               >
                 {locations.map(loc => (
                   <option key={loc} value={loc} className="text-gray-900">{loc}</option>
@@ -139,14 +139,14 @@ export default function VehiclesPage() {
               </select>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-sm font-medium hover:bg-white/20 transition"
+                className="flex items-center justify-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-sm font-medium hover:bg-white/20 transition"
               >
                 <SlidersHorizontal className="w-4 h-4" /> Filters
               </button>
               <div className="relative">
                 <button
                   onClick={() => setShowSort(!showSort)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-sm font-medium hover:bg-white/20 transition"
+                  className="flex items-center justify-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-sm font-medium hover:bg-white/20 transition max-w-full"
                 >
                   <ChevronDown className="w-4 h-4" /> {sortBy}
                 </button>

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import Header from '../component/Header';
 
 export default function SignInPage() {
   const [email, setEmail] = useState<string>('');
@@ -20,9 +19,9 @@ export default function SignInPage() {
 
   return (
     <main className="min-h-screen bg-green-200">
-      <div className="flex items-center justify-center px-4 py-12">
+      <div className="flex items-center justify-center px-4 py-8 sm:py-12">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-8">
+          <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-5 sm:p-8">
             <div className="flex justify-center mb-6">
               <img src="/logo.png" alt="Logo" className="rounded-full w-10 h-10 object-cover" />
             </div>

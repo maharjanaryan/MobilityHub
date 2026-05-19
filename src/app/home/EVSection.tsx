@@ -238,10 +238,24 @@ export default function EVSection() {
         }
 
         @media (max-width: 768px) {
+          .evs2-wrap { padding: 0 16px; }
+          .evs2-header-row { align-items: flex-start; flex-direction: column; }
+          .evs2-available-pill { margin-left: 0; }
           .evs2-grid { grid-template-columns: 1fr; }
           .evs2-featured { grid-row: auto; min-height: 380px; }
           .evs2-routes-grid { grid-template-columns: 1fr; }
           .evs2-route-img { width: 110px; }
+        }
+
+        @media (max-width: 520px) {
+          .evs2-section-title { font-size: 1.55rem; }
+          .evs2-featured { min-height: 340px; border-radius: 14px; }
+          .evs2-featured-body { padding: 20px; }
+          .evs2-side-card,
+          .evs2-route-card { flex-direction: column; }
+          .evs2-side-img-wrap,
+          .evs2-route-img { width: 100%; height: 170px; }
+          .evs2-route-footer { align-items: flex-start; flex-direction: column; gap: 12px; }
         }
       `}</style>
 
@@ -354,7 +368,7 @@ export default function EVSection() {
                 Your Sustainability<br />Impact for July
               </h3>
               <p style={{ color: "#6ee7b7", fontSize: "0.78rem", lineHeight: 1.55, margin: "0 0 16px" }}>
-                By choosing electric for 80% of your trips, you've saved approximately{" "}
+                By choosing electric for 80% of your trips, you&apos;ve saved approximately{" "}
                 <strong style={{ color: "#4ade80" }}>450kg of CO₂</strong> this month.
               </p>
 

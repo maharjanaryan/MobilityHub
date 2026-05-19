@@ -59,12 +59,12 @@ const HomeHero: React.FC = () => {
   return (
     <div className="w-full mb-10">
       {/* Hero container - full width background with centered content */}
-      <div className="relative overflow-hidden">
+      <div className="relative min-h-[520px] sm:min-h-[600px] overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.img
             key={current}
             src={slides[current].image}
-            className="w-full h-150 object-cover"
+            className="absolute inset-0 w-full h-full object-cover"
             alt="hero background"
             initial={{ opacity: 0, scale: 1.1 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -77,31 +77,31 @@ const HomeHero: React.FC = () => {
 
         {/* Content wrapper - aligned with footer's max-w-7xl and px-6 */}
         <div className="absolute inset-0">
-          <div className="max-w-7xl mx-auto px-6 h-full relative">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full relative">
             <AnimatePresence mode="wait">
               <motion.div
                 key={current}
-                className="absolute inset-0"
+                className="h-full flex flex-col justify-center pt-16 pb-24"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5 }}
               >
-                <h1 className="absolute top-1/2 -translate-y-40 text-white text-7xl font-bold">
+                <h1 className="text-white text-4xl sm:text-5xl lg:text-7xl font-bold leading-tight max-w-4xl">
                   {slides[current].title1} <br />
                   <span className="text-green-200">{slides[current].title2}</span>
                 </h1>
 
-                <p className="absolute top-1/2 text-white min-h-[80px] max-w-2xl">
+                <p className="mt-6 text-white min-h-[112px] sm:min-h-[80px] max-w-2xl text-sm sm:text-base leading-7">
                   {typedText}
                   <span className="animate-pulse">|</span>
                 </p>
 
-                <div className="absolute top-1/2 translate-y-30 gap-4 flex">
-                  <button className="border-none bg-green-700 py-3 px-5 rounded-lg hover:bg-green-600 transition hover:scale-105">
+                <div className="mt-8 gap-3 sm:gap-4 flex flex-col sm:flex-row sm:items-center">
+                  <button className="border-none bg-green-700 py-3 px-5 rounded-lg hover:bg-green-600 transition hover:scale-105 text-white font-semibold">
                     Rent Now
                   </button>
-                  <button className="border-none py-3 px-5 rounded-lg bg-gray-400/30 backdrop-blur-sm text-white hover:bg-gray-400/50 transition flex items-center gap-2">
+                  <button className="border-none py-3 px-5 rounded-lg bg-gray-400/30 backdrop-blur-sm text-white hover:bg-gray-400/50 transition flex items-center justify-center gap-2">
                     <Map size={16} />
                     Explore Map
                   </button>
