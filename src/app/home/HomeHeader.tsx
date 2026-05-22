@@ -4,24 +4,25 @@ import { useRouter } from "next/navigation";
 import { User, Settings, FileText, LogOut, Bell, Menu, X, Shield, IdCard, Briefcase } from "lucide-react";
 
 interface HomeHeaderProps {
-  userType?: "user" | "owner" | null; // Pass this from parent/auth context
+  userType?: "user" | "owner" | null;
   kycStatus?: {
     user: "pending" | "verified" | "rejected" | "not_submitted";
     owner: "pending" | "verified" | "rejected" | "not_submitted";
   };
 }
 
-const HomeHeader: React.FC<HomeHeaderProps> = ({ 
-  userType = "user", // This would come from your auth context
-  kycStatus = { 
-    user: "not_submitted", 
-    owner: "not_submitted" 
-  } 
+const HomeHeader: React.FC<HomeHeaderProps> = ({
+  userType = "user",
+  kycStatus = {
+    user: "not_submitted",
+    owner: "not_submitted"
+  }
 }) => {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -30,7 +31,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     name: "John Doe",
     email: "john.doe@example.com",
     avatar: "/logo.png",
-    role: userType // "user" or "owner"
+    role: userType
   };
 
   // Sample notifications data
@@ -62,9 +63,46 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     setIsMobileMenuOpen(false);
   };
 
-  const handleLogout = () => {
-    console.log("Logging out...");
-    navigateTo("/signin");
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+
+      const response = await fetch('http://localhost:8080/api/auth/signout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Logout failed on server');
+      }
+
+      // Clear all local storage data
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('tokenExpiry');
+      localStorage.removeItem('savedEmail');
+
+      // Clear session storage if used
+      sessionStorage.clear();
+
+      // Navigate to signin page
+      router.push('/signin');
+
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still clear local storage and redirect even if API call fails
+      localStorage.clear();
+      router.push('/signin');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const getKYCStatusBadge = (type: "user" | "owner") => {
@@ -79,27 +117,25 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   };
 
   const menuItems = [
-    { label: "Profile", icon: User, onClick: () => router.push("/profile"), divider: false },
-    { label: "Settings", icon: Settings, onClick: () => router.push("/settings"), divider: false },
-    // KYC Section for User
-    { 
-      label: "User KYC", 
-      icon: IdCard, 
-      onClick: () => router.push("/kyc"), 
+    { label: "Profile", icon: User, onClick: () => navigateTo("/profile"), divider: false },
+    { label: "Settings", icon: Settings, onClick: () => navigateTo("/settings"), divider: false },
+    {
+      label: "User KYC",
+      icon: IdCard,
+      onClick: () => navigateTo("/kyc/user"),
       divider: false,
       badge: getKYCStatusBadge("user"),
       type: "user-kyc"
     },
-    // KYC Section for Owner
-    { 
-      label: "Owner KYC", 
-      icon: Briefcase, 
-      onClick: () => router.push("/kyc/owner"), 
+    {
+      label: "Owner KYC",
+      icon: Briefcase,
+      onClick: () => navigateTo("/kyc/owner"),
       divider: true,
       badge: getKYCStatusBadge("owner"),
       type: "owner-kyc"
     },
-    { label: "My Reports", icon: FileText, onClick: () => router.push("/reports"), divider: false },
+    { label: "My Reports", icon: FileText, onClick: () => navigateTo("/reports"), divider: false },
     { label: "Logout", icon: LogOut, onClick: handleLogout, divider: false, danger: true },
   ];
 
@@ -196,7 +232,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                 </div>
                 <div className="px-4 py-2 border-t border-gray-200 text-center">
                   <button
-                    onClick={() => router.push("/notifications")}
+                    onClick={() => navigateTo("/notifications")}
                     className="text-sm text-green-600 hover:text-green-700"
                   >
                     View all notifications
@@ -266,15 +302,17 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                           item.onClick();
                           setIsDropdownOpen(false);
                         }}
-                        className={`w-full px-4 py-2.5 flex items-center justify-between transition-colors ${
-                          item.danger
-                            ? "text-red-600 hover:bg-red-50"
-                            : "text-gray-700 hover:bg-gray-100"
-                        }`}
+                        disabled={item.label === "Logout" && isLoggingOut}
+                        className={`w-full px-4 py-2.5 flex items-center justify-between transition-colors ${item.danger
+                          ? "text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          : "text-gray-700 hover:bg-gray-100"
+                          }`}
                       >
                         <div className="flex items-center space-x-3">
                           <item.icon size={18} />
-                          <span className="text-sm font-medium">{item.label}</span>
+                          <span className="text-sm font-medium">
+                            {item.label === "Logout" && isLoggingOut ? "Logging out..." : item.label}
+                          </span>
                         </div>
                         {item.badge && (
                           <span className={`text-xs px-2 py-0.5 rounded-full ${item.badge.color}`}>

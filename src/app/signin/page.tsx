@@ -1,22 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function SignInPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
+
+  // Load saved email and check for verification success
+  useEffect(() => {
+    // Check for email verification success
+    const verified = searchParams.get('verified');
+    const verifiedEmail = searchParams.get('email');
+    if (verified === 'true' && verifiedEmail) {
+      setSuccessMessage(`Email verified successfully! You can now sign in.`);
+      setEmail(verifiedEmail);
+    }
+
+    // Load saved email if remember me was checked
+    const savedEmail = localStorage.getItem('savedEmail');
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberMe(true);
+    }
+  }, [searchParams]);
 
   // Handle regular email/password sign in
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
       const response = await fetch('http://localhost:8080/api/auth/signin', {
@@ -25,7 +46,7 @@ export default function SignInPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: email,
+          email: email.trim(),
           password: password,
         }),
       });
@@ -33,7 +54,18 @@ export default function SignInPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Handle email verification required
+        if (response.status === 403 && data.message?.toLowerCase().includes('verify')) {
+          throw new Error('Please verify your email before signing in.');
+        }
         throw new Error(data.message || 'Authentication failed');
+      }
+
+      // Store remember me preference
+      if (rememberMe) {
+        localStorage.setItem('savedEmail', email);
+      } else {
+        localStorage.removeItem('savedEmail');
       }
 
       // Store tokens and user data
@@ -46,6 +78,7 @@ export default function SignInPage() {
         fullName: data.fullName,
         role: data.role,
       }));
+      localStorage.setItem('isAuthenticated', 'true');
 
       // Role-based redirect
       if (data.role === 'ADMIN') {
@@ -61,10 +94,44 @@ export default function SignInPage() {
     }
   };
 
-  // Handle Google Sign In - Redirect to backend OAuth2 endpoint
-  const handleGoogleSignIn = () => {
+  // Resend verification email
+  const handleResendVerification = async () => {
+    if (!email.trim()) {
+      setError('Please enter your email address first');
+      return;
+    }
+
     setLoading(true);
-    // Redirect to backend OAuth2 authorization endpoint
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/resend-verification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to resend verification code');
+      }
+
+      setError('');
+      setSuccessMessage('Verification code sent! Please check your email.');
+
+      setTimeout(() => {
+        router.push(`/verify-otp?email=${encodeURIComponent(email)}`);
+      }, 2000);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Google Sign In
+  const handleGoogleSignIn = () => {
     window.location.href = 'http://localhost:8080/oauth2/authorization/google';
   };
 
@@ -78,10 +145,26 @@ export default function SignInPage() {
             </div>
             <p className="text-sm text-center text-gray-500 mb-6">Sign in to your account</p>
 
+            {/* Success Message */}
+            {successMessage && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-600 text-sm rounded-lg">
+                {successMessage}
+              </div>
+            )}
+
             {/* Error Message */}
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
-                {error}
+                <div className="mb-2">{error}</div>
+                {error.includes('verify your email') && (
+                  <button
+                    onClick={handleResendVerification}
+                    disabled={loading}
+                    className="text-green-600 hover:underline font-medium text-xs disabled:opacity-50"
+                  >
+                    Resend verification email →
+                  </button>
+                )}
               </div>
             )}
 
@@ -109,7 +192,7 @@ export default function SignInPage() {
                 />
               </div>
               <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={rememberMe}
@@ -118,7 +201,9 @@ export default function SignInPage() {
                   />
                   <span className="text-gray-600">Remember me</span>
                 </label>
-                <Link href="/forgot-password" className="text-green-600 hover:underline">Forgot password?</Link>
+                <Link href="/forgot-password" className="text-green-600 hover:underline">
+                  Forgot password?
+                </Link>
               </div>
               <button
                 type="submit"
@@ -146,12 +231,14 @@ export default function SignInPage() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              {loading ? 'Redirecting...' : 'Sign in with Google'}
+              Sign in with Google
             </button>
 
             <p className="text-center text-xs text-gray-500 mt-6">
               Don&apos;t have an account?{' '}
-              <Link href="/signup" className="text-green-600 font-medium hover:underline">Sign up</Link>
+              <Link href="/signup" className="text-green-600 font-medium hover:underline">
+                Sign up
+              </Link>
             </p>
           </div>
         </div>
