@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import HomeHeader from "../home/HomeHeader";
 import Footer from "../component/Footer";
@@ -53,7 +52,6 @@ const settingsItems = [
 type TabKey = "overview" | "rides" | "achievements" | "settings";
 
 export default function ProfilePage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
   const tabs: { key: TabKey; label: string }[] = [
