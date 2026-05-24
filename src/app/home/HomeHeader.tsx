@@ -1,57 +1,147 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, Settings, FileText, LogOut, Bell, Menu, X, Shield, IdCard, Briefcase } from "lucide-react";
+import { User, Settings, FileText, LogOut, Menu, X, Shield, IdCard, Briefcase } from "lucide-react";
+import NotificationBell from "../component/NotificationBell";
+
+interface KYCStatusResponse {
+  success: boolean;
+  message: string;
+  kycStatus: string;
+  kycLevel: string;
+  kycType: string;
+  renterKycStatus: string;
+  ownerKycStatus: string;
+  canBook: boolean;
+  canList: boolean;
+  userId: number;
+  userFullName: string;
+  userEmail: string;
+  dailyLimit: number;
+  monthlyLimit: number;
+  perTransactionLimit: number;
+  kycVerifiedAt: string | null;
+  kycSubmittedAt: string | null;
+  rejectionReason: string | null;
+}
 
 interface HomeHeaderProps {
   userType?: "user" | "owner" | null;
-  kycStatus?: {
-    user: "pending" | "verified" | "rejected" | "not_submitted";
-    owner: "pending" | "verified" | "rejected" | "not_submitted";
-  };
 }
 
 const HomeHeader: React.FC<HomeHeaderProps> = ({
   userType = "user",
-  kycStatus = {
-    user: "not_submitted",
-    owner: "not_submitted"
-  }
 }) => {
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const notificationRef = useRef<HTMLDivElement>(null);
-
-  // Sample user data (replace with actual user data from auth)
-  const user = {
-    name: "John Doe",
-    email: "john.doe@example.com",
+  const [kycStatus, setKycStatus] = useState<{
+    user: "pending" | "verified" | "rejected" | "not_submitted";
+    owner: "pending" | "verified" | "rejected" | "not_submitted";
+  }>({
+    user: "not_submitted",
+    owner: "not_submitted"
+  });
+  const [userData, setUserData] = useState({
+    name: "",
+    email: "",
     avatar: "/logo.png",
-    role: userType
+    role: "user"
+  });
+  const [loading, setLoading] = useState(true);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Get access token
+  const getAccessToken = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('accessToken');
+    }
+    return null;
   };
 
-  // Sample notifications data
-  const notifications = [
-    { id: 1, message: "Your ride is confirmed!", time: "5 min ago", read: false },
-    { id: 2, message: "New eco-friendly route available", time: "1 hour ago", read: false },
-    { id: 3, message: "Special discount for this weekend", time: "3 hours ago", read: true },
-    { id: 4, message: "Rate your recent ride", time: "1 day ago", read: true },
-  ];
+  // Fetch KYC status from API
+  const fetchKYCStatus = async () => {
+    const token = getAccessToken();
+    if (!token) return;
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+    try {
+      const response = await fetch('http://localhost:8080/api/kyc/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.status === 401) {
+        router.push('/signin');
+        return;
+      }
+
+      if (response.ok) {
+        const data: KYCStatusResponse = await response.json();
+
+        // Map API response to KYC status format
+        const renterStatus = mapKYCStatus(data.renterKycStatus);
+        const ownerStatus = mapKYCStatus(data.ownerKycStatus);
+
+        setKycStatus({
+          user: renterStatus,
+          owner: ownerStatus
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching KYC status:', error);
+    }
+  };
+
+  // Fetch user data from localStorage and API
+  const fetchUserData = async () => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUserData({
+          name: parsedUser.fullName || parsedUser.username || "User",
+          email: parsedUser.email || "",
+          avatar: "/logo.png",
+          role: parsedUser.role?.toLowerCase() || userType || "user"
+        });
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+    setLoading(false);
+  };
+
+  // Map API status to badge status
+  const mapKYCStatus = (status: string): "pending" | "verified" | "rejected" | "not_submitted" => {
+    switch (status?.toUpperCase()) {
+      case 'VERIFIED':
+        return 'verified';
+      case 'SUBMITTED':
+        return 'pending';
+      case 'REJECTED':
+        return 'rejected';
+      default:
+        return 'not_submitted';
+    }
+  };
+
+  useEffect(() => {
+    fetchUserData();
+    fetchKYCStatus();
+
+    // Poll every 30 seconds for KYC status updates
+    const interval = setInterval(fetchKYCStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
-      }
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -61,6 +151,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const navigateTo = (path: string) => {
     router.push(path);
     setIsMobileMenuOpen(false);
+    setIsDropdownOpen(false);
   };
 
   const handleLogout = async () => {
@@ -97,7 +188,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 
     } catch (error) {
       console.error('Logout error:', error);
-      // Still clear local storage and redirect even if API call fails
       localStorage.clear();
       router.push('/signin');
     } finally {
@@ -108,10 +198,10 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const getKYCStatusBadge = (type: "user" | "owner") => {
     const status = type === "user" ? kycStatus.user : kycStatus.owner;
     const statusConfig = {
-      verified: { color: "bg-green-100 text-green-800", label: "Verified" },
-      pending: { color: "bg-yellow-100 text-yellow-800", label: "Pending" },
-      rejected: { color: "bg-red-100 text-red-800", label: "Rejected" },
-      not_submitted: { color: "bg-gray-100 text-gray-600", label: "Not Submitted" }
+      verified: { color: "bg-green-100 text-green-800", label: "Verified", icon: "✅" },
+      pending: { color: "bg-yellow-100 text-yellow-800", label: "Pending", icon: "⏳" },
+      rejected: { color: "bg-red-100 text-red-800", label: "Rejected", icon: "❌" },
+      not_submitted: { color: "bg-gray-100 text-gray-600", label: "Not Submitted", icon: "📋" }
     };
     return statusConfig[status];
   };
@@ -139,6 +229,20 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     { label: "Logout", icon: LogOut, onClick: handleLogout, divider: false, danger: true },
   ];
 
+  if (loading) {
+    return (
+      <nav className="bg-gray-100 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <img src="/logo.png" alt="Logo" className="w-10 h-10 rounded-full object-cover" />
+            <h1 className="text-xl font-bold">Mobility Hub</h1>
+          </div>
+          <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <nav className="bg-gray-100 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
@@ -155,101 +259,24 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 
         {/* CENTER: Menu */}
         <ul className="hidden lg:flex space-x-6 text-gray-500">
-          <li
-            className="hover:text-green-600 cursor-pointer transition-colors"
-            onClick={() => navigateTo("/home")}
-          >
-            Home
-          </li>
-          <li
-            className="hover:text-green-600 cursor-pointer transition-colors"
-            onClick={() => navigateTo("/maps")}
-          >
-            Maps
-          </li>
+          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/home")}>Home</li>
+          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/maps")}>Maps</li>
           <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/vehicles")}>Vehicles</li>
           <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/gallery")}>Gallery</li>
-          <li
-            className="hover:text-green-600 cursor-pointer transition-colors"
-            onClick={() => navigateTo("/about")}
-          >
-            About Us
-          </li>
+          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/about")}>About Us</li>
         </ul>
 
         {/* RIGHT: Notification and Profile */}
         <div className="flex items-center space-x-2 sm:space-x-4">
 
-          {/* Notification Bell */}
-          <div className="relative" ref={notificationRef}>
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-full hover:bg-gray-200 transition-colors"
-            >
-              <Bell size={20} className="text-gray-600" />
-              {unreadCount > 0 && (
-                <span className="absolute top-0 right-0 min-w-4 h-4 px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {/* Notifications Dropdown */}
-            {showNotifications && (
-              <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
-                <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-gray-50 border-b border-gray-200 flex justify-between items-center">
-                  <h3 className="font-semibold text-gray-800">Notifications</h3>
-                  <button
-                    onClick={() => console.log("Mark all as read")}
-                    className="text-xs text-green-600 hover:text-green-700"
-                  >
-                    Mark all as read
-                  </button>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-gray-500">
-                      No notifications
-                    </div>
-                  ) : (
-                    notifications.map((notification) => (
-                      <div
-                        key={notification.id}
-                        className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${!notification.read ? "bg-green-50" : ""
-                          }`}
-                        onClick={() => {
-                          console.log("Notification clicked:", notification.id);
-                          setShowNotifications(false);
-                        }}
-                      >
-                        <p className={`text-sm ${!notification.read ? "font-semibold text-gray-800" : "text-gray-600"}`}>
-                          {notification.message}
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">{notification.time}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="px-4 py-2 border-t border-gray-200 text-center">
-                  <button
-                    onClick={() => navigateTo("/notifications")}
-                    className="text-sm text-green-600 hover:text-green-700"
-                  >
-                    View all notifications
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          {/* Notification Bell Component */}
+          <NotificationBell />
 
           {/* Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>
-            <div
-              className="cursor-pointer"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            >
+            <div className="cursor-pointer" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
               <img
-                src={user.avatar}
+                src={userData.avatar}
                 alt="Profile"
                 className="w-10 h-10 rounded-full cursor-pointer border-2 border-gray-300 hover:border-green-500 transition-colors"
               />
@@ -262,14 +289,14 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                 <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-gray-50 border-b border-gray-200">
                   <div className="flex items-center space-x-3">
                     <img
-                      src={user.avatar}
+                      src={userData.avatar}
                       alt="Profile"
                       className="w-12 h-12 rounded-full border-2 border-green-500 object-cover"
                     />
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-800">{user.name}</p>
-                      <p className="text-sm text-gray-500">{user.email}</p>
-                      <p className="text-xs text-green-600 mt-1 capitalize">{user.role}</p>
+                      <p className="font-semibold text-gray-800">{userData.name}</p>
+                      <p className="text-sm text-gray-500">{userData.email}</p>
+                      <p className="text-xs text-green-600 mt-1 capitalize">{userData.role}</p>
                     </div>
                   </div>
                 </div>
@@ -279,14 +306,20 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                   <p className="text-xs font-semibold text-gray-600 mb-2">KYC Status</p>
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <div className="text-xs text-gray-500 mb-1">User KYC</div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("user").color}`}>
+                      <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                        <IdCard size={12} /> User KYC
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("user").color} inline-flex items-center gap-1`}>
+                        <span>{getKYCStatusBadge("user").icon}</span>
                         {getKYCStatusBadge("user").label}
                       </span>
                     </div>
                     <div className="flex-1">
-                      <div className="text-xs text-gray-500 mb-1">Owner KYC</div>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("owner").color}`}>
+                      <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                        <Briefcase size={12} /> Owner KYC
+                      </div>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("owner").color} inline-flex items-center gap-1`}>
+                        <span>{getKYCStatusBadge("owner").icon}</span>
                         {getKYCStatusBadge("owner").label}
                       </span>
                     </div>
@@ -315,7 +348,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                           </span>
                         </div>
                         {item.badge && (
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${item.badge.color}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${item.badge.color} inline-flex items-center gap-1`}>
+                            <span>{item.badge.icon}</span>
                             {item.badge.label}
                           </span>
                         )}
@@ -370,7 +404,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                   <IdCard size={18} />
                   <span>User KYC</span>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("user").color}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("user").color} inline-flex items-center gap-1`}>
+                  <span>{getKYCStatusBadge("user").icon}</span>
                   {getKYCStatusBadge("user").label}
                 </span>
               </button>
@@ -382,7 +417,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                   <Briefcase size={18} />
                   <span>Owner KYC</span>
                 </div>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("owner").color}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("owner").color} inline-flex items-center gap-1`}>
+                  <span>{getKYCStatusBadge("owner").icon}</span>
                   {getKYCStatusBadge("owner").label}
                 </span>
               </button>

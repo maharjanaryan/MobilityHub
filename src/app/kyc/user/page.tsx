@@ -1,9 +1,10 @@
 // app/kyc/page.tsx
 'use client';
 
+import Footer from '@/app/component/Footer';
+import HomeHeader from '@/app/home/HomeHeader';
 import React, { useState, useCallback, useMemo } from 'react';
-import Footer from '../component/Footer';
-import HomeHeader from '../home/HomeHeader';
+import { useRouter } from 'next/navigation';
 
 // Types
 interface KYCFormData {
@@ -59,6 +60,7 @@ interface FileUploadProps {
 }
 
 export default function MultiStepKYCForm() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<KYCFormData>({
     fullName: '', dateOfBirth: '', gender: 'MALE', phoneNumber: '', email: '',
@@ -72,6 +74,14 @@ export default function MultiStepKYCForm() {
   const [previewUrls, setPreviewUrls] = useState({ citizenshipFront: '', citizenshipBack: '', drivingLicense: '' });
 
   const totalSteps = 3;
+
+  // Get access token from localStorage
+  const getAccessToken = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('accessToken');
+    }
+    return null;
+  };
 
   const validateStep = useCallback((step: number): boolean => {
     const newErrors: FormErrors = {};
@@ -103,13 +113,13 @@ export default function MultiStepKYCForm() {
     if (step === 3) {
       if (!formData.drivingLicenseNumber.trim()) newErrors.drivingLicenseNumber = 'License number is required';
       if (!formData.drivingLicenseIssueDate) newErrors.drivingLicenseIssueDate = 'Issue date is required';
-      
+
       if (!formData.drivingLicenseExpiryDate) {
         newErrors.drivingLicenseExpiryDate = 'Expiry date is required';
       } else if (new Date(formData.drivingLicenseExpiryDate) <= today) {
         newErrors.drivingLicenseExpiryDate = 'Expiry date must be in the future';
       }
-      
+
       if (!formData.drivingLicenseImage) newErrors.drivingLicenseImage = 'License image is required';
     }
 
@@ -131,14 +141,14 @@ export default function MultiStepKYCForm() {
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === 'phoneNumber') {
       const digitsOnly = value.replace(/\D/g, '').slice(0, 10);
       setFormData(prev => ({ ...prev, [name]: digitsOnly }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
-    
+
     // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -161,13 +171,31 @@ export default function MultiStepKYCForm() {
 
     setFormData(prev => ({ ...prev, [field]: file }));
     const url = URL.createObjectURL(file);
-    
+
     if (field === 'citizenshipFrontImage') setPreviewUrls(prev => ({ ...prev, citizenshipFront: url }));
     else if (field === 'citizenshipBackImage') setPreviewUrls(prev => ({ ...prev, citizenshipBack: url }));
     else if (field === 'drivingLicenseImage') setPreviewUrls(prev => ({ ...prev, drivingLicense: url }));
-    
+
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
   }, [errors]);
+
+  // Convert file to base64 or upload to server
+  const fileToBase64 = (file: File | string | null): Promise<string | null> => {
+    return new Promise((resolve, reject) => {
+      if (!file) {
+        resolve(null);
+        return;
+      }
+      if (typeof file === 'string') {
+        resolve(file);
+        return;
+      }
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,35 +206,65 @@ export default function MultiStepKYCForm() {
     }
 
     setIsSubmitting(true);
-    const submitData = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        submitData.append(key, value instanceof File ? value : value.toString());
-      }
-    });
+    setSubmitStatus(null);
 
     try {
-      const response = await fetch('/api/kyc/submit', { method: 'POST', body: submitData });
-      if (response.ok) {
-        setSubmitStatus({ type: 'success', message: 'KYC submitted successfully!' });
-        setTimeout(() => {
-          setCurrentStep(1);
-          setFormData({
-            fullName: '', dateOfBirth: '', gender: 'MALE', phoneNumber: '', email: '',
-            permanentAddress: '', temporaryAddress: '', citizenshipNumber: '',
-            citizenshipFrontImage: null, citizenshipBackImage: null, drivingLicenseNumber: '',
-            drivingLicenseIssueDate: '', drivingLicenseExpiryDate: '', drivingLicenseImage: null,
-          });
-          setPreviewUrls({ citizenshipFront: '', citizenshipBack: '', drivingLicense: '' });
-        }, 2000);
-      } else throw new Error('Submission failed');
-    } catch (error) {
-      setSubmitStatus({ type: 'error', message: 'Failed to submit. Please try again.' });
+      const token = getAccessToken();
+      if (!token) {
+        throw new Error('Please login again');
+      }
+
+      // Convert files to base64 strings for JSON payload
+      const citizenshipFrontBase64 = await fileToBase64(formData.citizenshipFrontImage);
+      const citizenshipBackBase64 = await fileToBase64(formData.citizenshipBackImage);
+      const drivingLicenseBase64 = await fileToBase64(formData.drivingLicenseImage);
+
+      const payload = {
+        fullName: formData.fullName,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        phoneNumber: formData.phoneNumber,
+        permanentAddress: formData.permanentAddress,
+        temporaryAddress: formData.temporaryAddress,
+        citizenshipNumber: formData.citizenshipNumber,
+        citizenshipFrontImage: citizenshipFrontBase64,
+        citizenshipBackImage: citizenshipBackBase64,
+        drivingLicenseNumber: formData.drivingLicenseNumber,
+        drivingLicenseIssueDate: formData.drivingLicenseIssueDate,
+        drivingLicenseExpiryDate: formData.drivingLicenseExpiryDate,
+        drivingLicenseImage: drivingLicenseBase64,
+      };
+
+      const response = await fetch('http://localhost:8080/api/kyc/renter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'KYC submission failed');
+      }
+
+      setSubmitStatus({ type: 'success', message: data.message || 'KYC submitted successfully! Our team will review your documents.' });
+
+      // Reset form after successful submission
+      setTimeout(() => {
+        router.push('/home');
+      }, 3000);
+
+    } catch (error: any) {
+      console.error('Submission error:', error);
+      setSubmitStatus({ type: 'error', message: error.message || 'Failed to submit. Please try again.' });
     } finally {
       setIsSubmitting(false);
       setTimeout(() => setSubmitStatus(null), 5000);
     }
-  }, [validateStep, formData]);
+  }, [validateStep, formData, router]);
 
   const stepIndicator = useMemo(() => (
     <div className="mb-8 overflow-x-auto pb-2">
@@ -233,24 +291,24 @@ export default function MultiStepKYCForm() {
     <div>
       <label className="block text-sm font-semibold text-gray-700 mb-2">{label} {required && '*'}</label>
       {type === 'textarea' ? (
-        <textarea 
-          name={name} 
-          value={formData[name]} 
-          onChange={handleInputChange} 
+        <textarea
+          name={name}
+          value={formData[name] as string}
+          onChange={handleInputChange}
           rows={2}
           className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${errors[name] ? 'border-red-500' : 'border-gray-300'}`}
-          placeholder={placeholder} 
-          {...props} 
+          placeholder={placeholder}
+          {...props}
         />
       ) : (
-        <input 
-          type={type} 
-          name={name} 
-          value={formData[name]} 
+        <input
+          type={type}
+          name={name}
+          value={formData[name] as string}
           onChange={handleInputChange}
           className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${errors[name] ? 'border-red-500' : 'border-gray-300'}`}
-          placeholder={placeholder} 
-          {...props} 
+          placeholder={placeholder}
+          {...props}
         />
       )}
       {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
@@ -261,11 +319,11 @@ export default function MultiStepKYCForm() {
     <div>
       <label className="block text-sm font-semibold text-gray-700 mb-2">{label} *</label>
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-green-500 transition-colors">
-        <input 
-          type="file" 
-          accept="image/*" 
+        <input
+          type="file"
+          accept="image/*"
           onChange={(e) => handleFileChange(e, field)}
-          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" 
+          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
         />
         {previewUrl && <div className="mt-3"><img src={previewUrl} alt={label} className="max-h-32 w-full object-contain mx-auto rounded border" /></div>}
       </div>

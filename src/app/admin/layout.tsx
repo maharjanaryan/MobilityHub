@@ -10,7 +10,6 @@ import {
   Settings,
   LogOut,
   Home,
-  Bell,
   Search,
   ChevronDown,
   FileText,
@@ -18,11 +17,12 @@ import {
   Calendar,
   RefreshCw,
   Car,
-  UserCheck,
   TrendingUp,
   Menu,
   X
 } from 'lucide-react';
+import NotificationBell from '../component/NotificationBell';
+
 
 interface User {
   id: string;
@@ -43,6 +43,7 @@ export default function AdminLayout({
   const [user, setUser] = useState<User | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [pendingKycCount, setPendingKycCount] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -62,19 +63,62 @@ export default function AdminLayout({
       setUser(parsedUser);
     }
 
+    // Fetch pending KYC count
+    fetchPendingKycCount();
+
     setLoading(false);
   }, [router]);
 
-  const handleLogout = () => {
-    // Remove all specified items from localStorage
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('theme');
-    localStorage.removeItem('user');
+  const fetchPendingKycCount = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return;
 
-    // Redirect to signin page
-    router.push('/signin');
+    try {
+      // Fetch pending renter KYC
+      const renterResponse = await fetch('http://localhost:8080/api/admin/kyc/pending/renters', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const pendingRenters = await renterResponse.json();
+
+      // Fetch pending owner KYC
+      const ownerResponse = await fetch('http://localhost:8080/api/admin/kyc/pending/owners', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const pendingOwners = await ownerResponse.json();
+
+      const totalPending = (pendingRenters?.length || 0) + (pendingOwners?.length || 0);
+      setPendingKycCount(totalPending);
+    } catch (error) {
+      console.error('Error fetching pending KYC count:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      await fetch('http://localhost:8080/api/auth/signout', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Remove all items from localStorage
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('theme');
+      localStorage.removeItem('user');
+
+      // Redirect to signin page
+      router.push('/signin');
+    }
   };
 
   // Helper function to check if a path is active
@@ -157,8 +201,8 @@ export default function AdminLayout({
               href="/admin/dashboard"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/dashboard')
-                  ? 'text-emerald-700 bg-emerald-50'
-                  : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 bg-emerald-50'
+                : 'text-gray-600 hover:bg-gray-50'
                 }`}
             >
               <Home className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -169,8 +213,8 @@ export default function AdminLayout({
               href="/admin/users"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/users')
-                  ? 'text-emerald-700 bg-emerald-50'
-                  : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 bg-emerald-50'
+                : 'text-gray-600 hover:bg-gray-50'
                 }`}
             >
               <Users className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -181,23 +225,25 @@ export default function AdminLayout({
               href="/admin/kyc"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/kyc')
-                  ? 'text-emerald-700 bg-emerald-50'
-                  : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 bg-emerald-50'
+                : 'text-gray-600 hover:bg-gray-50'
                 }`}
             >
               <Shield className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
               <span>KYC Verification</span>
-              <span className="ml-auto bg-amber-100 text-amber-600 text-xs px-2 py-1 rounded-full">
-                Pending: 12
-              </span>
+              {pendingKycCount > 0 && (
+                <span className="ml-auto bg-amber-100 text-amber-600 text-xs px-2 py-1 rounded-full animate-pulse">
+                  Pending: {pendingKycCount}
+                </span>
+              )}
             </Link>
 
             <Link
               href="/admin/vehicles"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/vehicles')
-                  ? 'text-emerald-700 bg-emerald-50'
-                  : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 bg-emerald-50'
+                : 'text-gray-600 hover:bg-gray-50'
                 }`}
             >
               <Car className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -208,8 +254,8 @@ export default function AdminLayout({
               href="/admin/bookings"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/bookings')
-                  ? 'text-emerald-700 bg-emerald-50'
-                  : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 bg-emerald-50'
+                : 'text-gray-600 hover:bg-gray-50'
                 }`}
             >
               <Calendar className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -220,8 +266,8 @@ export default function AdminLayout({
               href="/admin/analytics"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/analytics')
-                  ? 'text-emerald-700 bg-emerald-50'
-                  : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 bg-emerald-50'
+                : 'text-gray-600 hover:bg-gray-50'
                 }`}
             >
               <TrendingUp className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -232,8 +278,8 @@ export default function AdminLayout({
               href="/admin/reports"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/reports')
-                  ? 'text-emerald-700 bg-emerald-50'
-                  : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 bg-emerald-50'
+                : 'text-gray-600 hover:bg-gray-50'
                 }`}
             >
               <FileText className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -244,8 +290,8 @@ export default function AdminLayout({
               href="/admin/settings"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/settings')
-                  ? 'text-emerald-700 bg-emerald-50'
-                  : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 bg-emerald-50'
+                : 'text-gray-600 hover:bg-gray-50'
                 }`}
             >
               <Settings className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -285,14 +331,10 @@ export default function AdminLayout({
             </div>
 
             <div className="flex items-center space-x-4 ml-auto md:ml-0">
-              <button className="relative text-gray-600 hover:text-emerald-600 transition-colors">
-                <Bell className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
-                  3
-                </span>
-              </button>
+              {/* Notification Bell Component */}
+              <NotificationBell />
 
-              <button className="text-gray-600 hover:text-emerald-600 transition-colors">
+              <button className="text-gray-600 hover:text-emerald-600 transition-colors" onClick={fetchPendingKycCount}>
                 <RefreshCw className="w-5 h-5" />
               </button>
 
