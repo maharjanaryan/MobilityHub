@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { User, Settings, FileText, LogOut, Menu, X, Shield, IdCard, Briefcase } from "lucide-react";
+import { User, Settings, FileText, LogOut, Menu, X, Shield, IdCard, Briefcase, HelpCircle, MapPin } from "lucide-react";
 import NotificationBell from "../component/NotificationBell";
 
 interface KYCStatusResponse {
@@ -221,11 +221,13 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       label: "Owner KYC",
       icon: Briefcase,
       onClick: () => navigateTo("/kyc/owner"),
-      divider: true,
+      divider: false,
       badge: getKYCStatusBadge("owner"),
       type: "owner-kyc"
     },
     { label: "My Reports", icon: FileText, onClick: () => navigateTo("/reports"), divider: false },
+    { label: "Track My Ride", icon: MapPin, onClick: () => navigateTo("/tracking"), divider: false },
+    { label: "Help & Support", icon: HelpCircle, onClick: () => navigateTo("/help"), divider: true },
     { label: "Logout", icon: LogOut, onClick: handleLogout, divider: false, danger: true },
   ];
 
@@ -421,6 +423,22 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                   <span>{getKYCStatusBadge("owner").icon}</span>
                   {getKYCStatusBadge("owner").label}
                 </span>
+              </button>
+
+              {/* Mobile Additional Links */}
+              <button
+                onClick={() => navigateTo("/tracking")}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center space-x-2 mt-1"
+              >
+                <MapPin size={18} />
+                <span>Track My Ride</span>
+              </button>
+              <button
+                onClick={() => navigateTo("/help")}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center space-x-2"
+              >
+                <HelpCircle size={18} />
+                <span>Help & Support</span>
               </button>
             </div>
           </div>
