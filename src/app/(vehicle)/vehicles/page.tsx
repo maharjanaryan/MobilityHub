@@ -11,8 +11,8 @@ import {
   Star, X, ChevronDown,
 } from "lucide-react";
 import Link from "next/link";           // ← add this import
-import HomeHeader from "../home/HomeHeader";
-import Footer from "../component/Footer";
+import HomeHeader from "../../home/HomeHeader";
+import Footer from "../../component/Footer";
 
 interface Vehicle {
   id: number;
@@ -119,8 +119,8 @@ export default function VehiclesPage() {
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${activeCategory === cat
-                      ? "bg-emerald-500 text-white shadow-lg"
-                      : "bg-white/10 text-white/80 hover:bg-white/20"
+                    ? "bg-emerald-500 text-white shadow-lg"
+                    : "bg-white/10 text-white/80 hover:bg-white/20"
                     }`}
                 >
                   {cat}

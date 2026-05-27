@@ -1,6 +1,6 @@
 // app/vehicles/[id]/page.tsx
 
-import VehicleDetailPage from "@/app/vehicledetail/page";
+import VehicleDetailPage from "@/app/(vehicle)/vehicledetail/page";
 
 // -----------------------------------------------------------------------
 // Shared vehicle data — move this to a lib/data/vehicles.ts in production

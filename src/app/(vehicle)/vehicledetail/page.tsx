@@ -7,8 +7,8 @@ import {
   ChevronRight, Shield, CheckCircle2, Images, Calendar
 } from "lucide-react";
 import Link from "next/link";
-import HomeHeader from "../home/HomeHeader";
-import Footer from "../component/Footer";
+import HomeHeader from "../../home/HomeHeader";
+import Footer from "../../component/Footer";
 
 // ---------------------------------------------------------------------------
 // Types
