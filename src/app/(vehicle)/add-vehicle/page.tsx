@@ -35,8 +35,8 @@ import {
   Briefcase,
   Clock
 } from 'lucide-react';
-import HomeHeader from '../home/HomeHeader';
-import Footer from '../component/Footer';
+import HomeHeader from '../../home/HomeHeader';
+import Footer from '../../component/Footer';
 
 export default function AddVehiclePage() {
   const router = useRouter();
