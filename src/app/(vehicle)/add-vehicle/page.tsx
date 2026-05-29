@@ -1,7 +1,7 @@
 // app/vehicles/add/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Car,
@@ -42,6 +42,8 @@ export default function AddVehiclePage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [kycStatus, setKycStatus] = useState<'verified' | 'pending' | 'rejected' | 'not_submitted'>('not_submitted');
+  const [kycLoading, setKycLoading] = useState(true);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     // Basic Information
@@ -147,6 +149,24 @@ export default function AddVehiclePage() {
     }, 2000);
   };
 
+  // Fetch KYC status on component mount
+  useEffect(() => {
+    async function fetchKycStatus() {
+      try {
+        const response = await fetch('http://localhost:8080/api/kyc/status');
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        setKycStatus(data.status);
+      } catch (error) {
+        console.error('Failed to fetch KYC status:', error);
+        setKycStatus('not_submitted');
+      } finally {
+        setKycLoading(false);
+      }
+    }
+    fetchKycStatus();
+  }, []);
+
   const nextStep = () => {
     setCurrentStep(currentStep + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -165,6 +185,93 @@ export default function AddVehiclePage() {
     { number: 5, title: 'Location', icon: MapPin },
     { number: 6, title: 'Photos', icon: Camera }
   ];
+
+  if (kycLoading) {
+    return (
+      <>
+        <HomeHeader />
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+          <p>Loading KYC status...</p>
+        </div>
+      </>
+    );
+  }
+
+  if (!kycLoading && kycStatus !== 'verified') {
+    return (
+      <>
+        <HomeHeader />
+        <div className="relative">
+          {/* Blurred page background */}
+          <div
+            className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 filter blur-sm pointer-events-none select-none"
+            aria-hidden="true"
+          >
+            <div className="bg-white border-b border-gray-200">
+              <div className="max-w-7xl mx-auto px-4 py-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-800">List Your Vehicle</h1>
+                    <p className="text-gray-600 mt-1">Start earning by sharing your vehicle</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="max-w-7xl mx-auto px-4 py-8">
+              <div className="flex justify-between items-center mb-8">
+                {steps.map((step, index) => {
+                  const Icon = step.icon;
+                  return (
+                    <div key={step.number} className="flex-1 relative">
+                      <div className="flex flex-col items-center">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center border-2 bg-white border-gray-300 text-gray-400">
+                          <Icon className="w-6 h-6" />
+                        </div>
+                        <div className="mt-2 text-center">
+                          <p className="text-sm font-medium text-gray-500">{step.title}</p>
+                        </div>
+                        {index !== steps.length - 1 && (
+                          <div className="absolute top-6 left-1/2 w-full h-0.5 bg-gray-300" style={{ transform: 'translateX(50%)' }} />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 h-64 opacity-60" />
+            </div>
+          </div>
+
+          {/* KYC Modal overlay */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 text-center">
+              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="w-8 h-8 text-emerald-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-3">KYC Verification Required</h2>
+              <p className="text-gray-500 mb-6">
+                You must complete and verify your Owner KYC before adding a vehicle.
+              </p>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => router.back()}
+                  className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Go Back
+                </button>
+                <button
+                  onClick={() => router.push('/kyc/owner')}
+                  className="px-5 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
+                >
+                  Complete KYC
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -198,8 +305,7 @@ export default function AddVehiclePage() {
 
               return (
                 <div key={step.number} className="flex-1 relative">
-                  <div className={`flex flex-col items-center ${index !== steps.length - 1 ? 'relative' : ''
-                    }`}>
+                  <div className={`flex flex-col items-center ${index !== steps.length - 1 ? 'relative' : ''}`}>
                     <div className={`
                       w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all
                       ${isActive ? 'bg-emerald-600 border-emerald-600 text-white' :
@@ -214,8 +320,8 @@ export default function AddVehiclePage() {
                       </p>
                     </div>
                     {index !== steps.length - 1 && (
-                      <div className={`absolute top-6 left-1/2 w-full h-0.5 ${isCompleted ? 'bg-emerald-600' : 'bg-gray-300'
-                        }`} style={{ transform: 'translateX(50%)' }} />
+                      <div className={`absolute top-6 left-1/2 w-full h-0.5 ${isCompleted ? 'bg-emerald-600' : 'bg-gray-300'}`}
+                        style={{ transform: 'translateX(50%)' }} />
                     )}
                   </div>
                 </div>
@@ -230,9 +336,7 @@ export default function AddVehiclePage() {
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Basic Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Brand *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Brand *</label>
                     <input
                       type="text"
                       required
@@ -243,9 +347,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Model *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Model *</label>
                     <input
                       type="text"
                       required
@@ -256,9 +358,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Year *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Year *</label>
                     <input
                       type="number"
                       required
@@ -270,9 +370,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Color *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Color *</label>
                     <input
                       type="text"
                       required
@@ -283,9 +381,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      License Plate *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">License Plate *</label>
                     <input
                       type="text"
                       required
@@ -317,9 +413,7 @@ export default function AddVehiclePage() {
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Vehicle Details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Fuel Type *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Fuel Type *</label>
                     <select
                       value={formData.fuelType}
                       onChange={(e) => setFormData({ ...formData, fuelType: e.target.value })}
@@ -331,9 +425,7 @@ export default function AddVehiclePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Transmission *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Transmission *</label>
                     <select
                       value={formData.transmission}
                       onChange={(e) => setFormData({ ...formData, transmission: e.target.value })}
@@ -345,9 +437,7 @@ export default function AddVehiclePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Number of Seats *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of Seats *</label>
                     <input
                       type="number"
                       required
@@ -359,9 +449,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Number of Doors *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of Doors *</label>
                     <input
                       type="number"
                       required
@@ -373,9 +461,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Luggage Capacity (bags)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Luggage Capacity (bags)</label>
                     <input
                       type="number"
                       value={formData.luggageCapacity}
@@ -388,9 +474,7 @@ export default function AddVehiclePage() {
                 </div>
 
                 <div className="mt-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Vehicle Description *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Vehicle Description *</label>
                   <textarea
                     required
                     rows={5}
@@ -438,9 +522,7 @@ export default function AddVehiclePage() {
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Pricing</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Price per Day ($) *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Day ($) *</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <input
@@ -456,9 +538,7 @@ export default function AddVehiclePage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Price per Week ($)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Week ($)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <input
@@ -473,9 +553,7 @@ export default function AddVehiclePage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Price per Month ($)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Month ($)</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <input
@@ -490,9 +568,7 @@ export default function AddVehiclePage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Security Deposit ($) *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Security Deposit ($) *</label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                       <input
@@ -508,9 +584,7 @@ export default function AddVehiclePage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Minimum Rental Days
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Rental Days</label>
                     <input
                       type="number"
                       value={formData.minimumRentalDays}
@@ -521,9 +595,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Maximum Rental Days
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Rental Days</label>
                     <input
                       type="number"
                       value={formData.maximumRentalDays}
@@ -543,9 +615,7 @@ export default function AddVehiclePage() {
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Pickup Location</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Street Address *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Street Address *</label>
                     <input
                       type="text"
                       required
@@ -556,9 +626,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      City *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
                     <input
                       type="text"
                       required
@@ -569,9 +637,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      State *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
                     <input
                       type="text"
                       required
@@ -582,9 +648,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      ZIP Code *
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">ZIP Code *</label>
                     <input
                       type="text"
                       required

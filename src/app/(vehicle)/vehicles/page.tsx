@@ -1,6 +1,4 @@
-// components/VehiclesPage.tsx  (or app/vehicles/page.tsx)
-// Only the Book button change is highlighted — rest is your original code.
-// Replace the existing <button> "Book" with the Link below.
+// components/VehiclesPage.tsx (or app/vehicles/page.tsx)
 
 "use client";
 
@@ -8,9 +6,10 @@ import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, SlidersHorizontal, Battery, Zap, MapPin,
-  Star, X, ChevronDown,
+  Star, X, ChevronDown, Plus,
 } from "lucide-react";
-import Link from "next/link";           // ← add this import
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import HomeHeader from "../../home/HomeHeader";
 import Footer from "../../component/Footer";
 
@@ -50,6 +49,7 @@ const locations = ["All Locations", "Kathmandu", "Lalitpur", "Bhaktapur", "Pokha
 const sortOptions = ["Recommended", "Price: Low to High", "Price: High to Low", "Rating", "Range"];
 
 export default function VehiclesPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedLocation, setSelectedLocation] = useState("All Locations");
@@ -57,9 +57,10 @@ export default function VehiclesPage() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 150]);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
+  const [vehicles, setVehicles] = useState<Vehicle[]>(allVehicles);
 
   const filtered = useMemo(() => {
-    let result = allVehicles;
+    let result = vehicles;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(v =>
@@ -77,7 +78,7 @@ export default function VehiclesPage() {
       case "Range": result = [...result].sort((a, b) => parseInt(b.range) - parseInt(a.range)); break;
     }
     return result;
-  }, [searchQuery, activeCategory, selectedLocation, sortBy, priceRange]);
+  }, [searchQuery, activeCategory, selectedLocation, sortBy, priceRange, vehicles]);
 
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50 font-['Inter',system-ui]">
@@ -167,6 +168,13 @@ export default function VehiclesPage() {
                   </div>
                 )}
               </div>
+              {/* ✅ ADD VEHICLE BUTTON - Now redirects to add-vehicle page */}
+              <Link
+                href="/add-vehicle"
+                className="flex items-center justify-center gap-2 px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition shadow-md"
+              >
+                <Plus className="w-4 h-4" /> Add Vehicle
+              </Link>
             </div>
           </motion.div>
 
@@ -258,7 +266,6 @@ export default function VehiclesPage() {
                       {v.badge}
                     </div>
                   )}
-                  {/* Clicking the card image/title also navigates to detail */}
                   <Link href={`/vehicles/${v.id}`} className="block">
                     <div className="relative h-44 bg-gray-100 overflow-hidden">
                       <img
@@ -318,7 +325,6 @@ export default function VehiclesPage() {
                         <span className="text-xl font-black text-emerald-600">₹{v.price}</span>
                         <span className="text-xs text-gray-400"> /hr</span>
                       </div>
-                      {/* ✅ CHANGED: was <button>, now <Link> → navigates to detail page */}
                       <Link
                         href={`/vehicles/${v.id}`}
                         className="px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-semibold hover:bg-emerald-600 hover:text-white transition shadow-sm"
@@ -333,6 +339,7 @@ export default function VehiclesPage() {
           </div>
         )}
       </main>
+
       <Footer />
     </div>
   );
