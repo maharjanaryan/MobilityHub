@@ -1,4 +1,3 @@
-// app/admin/kyc/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -46,9 +45,12 @@ interface KYCRequest {
   // Owner specific
   vehicleBluebookNumber?: string;
   vehicleBluebookImage?: string;
+  ownershipProofVerified?: boolean;
   bankAccountNumber?: string;
   bankName?: string;
+  bankAccountHolderName?: string;
   panNumber?: string;
+  verifiedBy?: number;
 }
 
 interface KYCStatistics {
@@ -76,6 +78,7 @@ export default function KYCVerificationPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statistics, setStatistics] = useState<KYCStatistics | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   const getAccessToken = () => {
     if (typeof window !== 'undefined') {
@@ -94,10 +97,14 @@ export default function KYCVerificationPage() {
     }
 
     if (userData) {
-      const parsedUser = JSON.parse(userData);
-      if (parsedUser.role !== 'ADMIN') {
-        router.push('/home');
-        return;
+      try {
+        const parsedUser = JSON.parse(userData);
+        if (parsedUser.role !== 'ADMIN') {
+          router.push('/home');
+          return;
+        }
+      } catch (e) {
+        console.error('Error parsing user data:', e);
       }
     }
 
@@ -105,7 +112,7 @@ export default function KYCVerificationPage() {
     fetchAllKYCRequests();
   }, []);
 
-  const fetchStatistics = async () => {
+  async function fetchStatistics() {
     const token = getAccessToken();
     if (!token) return;
 
@@ -120,92 +127,74 @@ export default function KYCVerificationPage() {
     } catch (error) {
       console.error('Error fetching statistics:', error);
     }
-  };
+  }
 
-  const fetchAllKYCRequests = async () => {
+  async function fetchAllKYCRequests() {
     const token = getAccessToken();
     if (!token) return;
 
     setLoading(true);
     try {
-      // Fetch ALL renter KYC (pending, verified, rejected)
-      const renterResponse = await fetch('http://localhost:8080/api/admin/kyc/pending/renters', {
+      const response = await fetch('http://localhost:8080/api/admin/kyc/all', {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      const pendingRenters = renterResponse.ok ? await renterResponse.json() : [];
 
-      // Fetch verified users
-      const verifiedResponse = await fetch('http://localhost:8080/api/admin/kyc/verified/users', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const verifiedUsers = verifiedResponse.ok ? await verifiedResponse.json() : [];
-
-      // Fetch rejected KYC
-      const rejectedResponse = await fetch('http://localhost:8080/api/admin/kyc/rejected', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const rejectedUsers = rejectedResponse.ok ? await rejectedResponse.json() : [];
-
-      // Combine all requests
-      const allRequests = [
-        ...pendingRenters.map((r: any) => ({ ...r, kycType: 'RENTER' })),
-        ...verifiedUsers.map((v: any) => ({ ...v, kycType: v.kycType || 'RENTER' })),
-        ...rejectedUsers.map((r: any) => ({ ...r, kycType: r.kycType || 'RENTER' }))
-      ];
-
-      // Remove duplicates and fetch details
-      const uniqueIds = new Set();
-      const uniqueRequests = allRequests.filter(req => {
-        if (uniqueIds.has(req.id)) return false;
-        uniqueIds.add(req.id);
-        return true;
-      });
-
-      // Fetch full details for each request
-      const requestsWithDetails = await Promise.all(
-        uniqueRequests.map(async (req: any) => {
-          try {
-            const detailResponse = await fetch(`http://localhost:8080/api/admin/kyc/${req.id}`, {
-              headers: { 'Authorization': `Bearer ${token}` },
-            });
-            if (detailResponse.ok) {
-              const details = await detailResponse.json();
-              return { ...req, ...details };
-            }
-            return req;
-          } catch (error) {
-            return req;
-          }
-        })
-      );
-
-      setKycRequests(requestsWithDetails);
+      if (response.ok) {
+        const data = await response.json();
+        setKycRequests(data);
+      } else {
+        console.error('Failed to fetch KYC requests');
+      }
     } catch (error) {
       console.error('Error fetching KYC requests:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const fetchKycDetails = async (kycId: number) => {
+  async function fetchKycDetails(request: KYCRequest) {
     const token = getAccessToken();
     if (!token) return null;
 
+    setDetailsLoading(true);
     try {
-      const response = await fetch(`http://localhost:8080/api/admin/kyc/${kycId}`, {
+      // Use type-specific endpoint to avoid ambiguity between renter and owner tables
+      const endpoint = request.kycType === 'RENTER' 
+        ? `/api/admin/kyc/renter/${request.id}`
+        : `/api/admin/kyc/owner/${request.id}`;
+      
+      const response = await fetch(`http://localhost:8080${endpoint}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
+      
       if (response.ok) {
-        return await response.json();
+        const details = await response.json();
+        console.log(`Fetched ${request.kycType} details:`, details);
+        
+        // Merge the detailed information with the basic request
+        const mergedDetails = {
+          ...request,
+          ...details,
+          kycType: request.kycType, // Preserve the type from the list
+          id: request.id,
+        };
+        
+        return mergedDetails;
+      } else {
+        console.error(`Failed to fetch ${request.kycType} KYC details for ID ${request.id}`);
+        return request;
       }
     } catch (error) {
-      console.error('Error fetching KYC details:', error);
+      console.error(`Error fetching ${request.kycType} KYC details:`, error);
+      return request;
+    } finally {
+      setDetailsLoading(false);
     }
-    return null;
-  };
+  }
 
   const handleReview = async (request: KYCRequest) => {
-    const details = await fetchKycDetails(request.id);
+    console.log('Reviewing:', request.kycType, request.id);
+    const details = await fetchKycDetails(request);
     setSelectedRequest(details || request);
   };
 
@@ -232,14 +221,15 @@ export default function KYCVerificationPage() {
         }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         alert(`${selectedRequest.kycType} KYC for ${selectedRequest.fullName} has been approved.`);
         setSelectedRequest(null);
-        fetchStatistics();
-        fetchAllKYCRequests();
+        await fetchStatistics();
+        await fetchAllKYCRequests();
       } else {
-        const error = await response.json();
-        alert(`Failed to approve: ${error.message}`);
+        alert(`Failed to approve: ${data.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error approving KYC:', error);
@@ -273,16 +263,17 @@ export default function KYCVerificationPage() {
         }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         alert(`${selectedRequest.kycType} KYC for ${selectedRequest.fullName} has been rejected.`);
         setShowRejectModal(false);
         setSelectedRequest(null);
         setRejectionReason('');
-        fetchStatistics();
-        fetchAllKYCRequests();
+        await fetchStatistics();
+        await fetchAllKYCRequests();
       } else {
-        const error = await response.json();
-        alert(`Failed to reject: ${error.message}`);
+        alert(`Failed to reject: ${data.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error rejecting KYC:', error);
@@ -347,7 +338,7 @@ export default function KYCVerificationPage() {
   }
 
   return (
-    <>
+    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header Stats */}
       <div className="mb-6 md:mb-8">
         <h1 className="text-2xl font-bold text-gray-800 mb-2">KYC Verification</h1>
@@ -456,7 +447,7 @@ export default function KYCVerificationPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredRequests.map((request) => (
-                <tr key={request.id} className="hover:bg-gray-50 transition-all">
+                <tr key={`${request.kycType}-${request.id}`} className="hover:bg-gray-50 transition-all">
                   <td className="px-4 md:px-6 py-4">
                     <div>
                       <p className="text-sm font-medium text-gray-800">{request.fullName}</p>
@@ -464,8 +455,7 @@ export default function KYCVerificationPage() {
                     </div>
                   </td>
                   <td className="px-4 md:px-6 py-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${request.kycType === 'RENTER' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
-                      }`}>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${request.kycType === 'RENTER' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
                       {request.kycType === 'RENTER' ? <User className="w-3 h-3 mr-1" /> : <Car className="w-3 h-3 mr-1" />}
                       {request.kycType}
                     </span>
@@ -507,7 +497,7 @@ export default function KYCVerificationPage() {
         )}
       </div>
 
-      {/* Review Modal - Same as before */}
+      {/* Review Modal */}
       {selectedRequest && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -533,235 +523,271 @@ export default function KYCVerificationPage() {
               </button>
             </div>
 
-            <div className="p-4 md:p-6">
-              {/* Personal Information */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <User className="w-5 h-5 text-gray-500" />
-                  Personal Information
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="p-3 bg-gray-50 rounded-xl">
-                    <p className="text-xs text-gray-500">Full Name</p>
-                    <p className="text-sm font-medium text-gray-800">{selectedRequest.fullName}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-xl">
-                    <p className="text-xs text-gray-500">Email</p>
-                    <p className="text-sm font-medium text-gray-800">{selectedRequest.email}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 rounded-xl">
-                    <p className="text-xs text-gray-500">Phone Number</p>
-                    <p className="text-sm font-medium text-gray-800">{selectedRequest.phoneNumber}</p>
-                  </div>
-                  {selectedRequest.dateOfBirth && (
-                    <div className="p-3 bg-gray-50 rounded-xl">
-                      <p className="text-xs text-gray-500">Date of Birth</p>
-                      <p className="text-sm font-medium text-gray-800">{selectedRequest.dateOfBirth}</p>
-                    </div>
-                  )}
-                  {selectedRequest.gender && (
-                    <div className="p-3 bg-gray-50 rounded-xl">
-                      <p className="text-xs text-gray-500">Gender</p>
-                      <p className="text-sm font-medium text-gray-800">{selectedRequest.gender}</p>
-                    </div>
-                  )}
-                  {selectedRequest.permanentAddress && (
-                    <div className="p-3 bg-gray-50 rounded-xl col-span-2">
-                      <p className="text-xs text-gray-500">Permanent Address</p>
-                      <p className="text-sm font-medium text-gray-800">{selectedRequest.permanentAddress}</p>
-                    </div>
-                  )}
-                </div>
+            {detailsLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
               </div>
-
-              {/* Citizenship Documents */}
-              {(selectedRequest.citizenshipNumber || selectedRequest.citizenshipFrontImage) && (
+            ) : (
+              <div className="p-4 md:p-6">
+                {/* Personal Information */}
                 <div className="mb-8">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-gray-500" />
-                    Citizenship Documents
+                    <User className="w-5 h-5 text-gray-500" />
+                    Personal Information
                   </h3>
-                  <div className="grid grid-cols-1 gap-4 mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-3 bg-gray-50 rounded-xl">
-                      <p className="text-xs text-gray-500">Citizenship Number</p>
-                      <p className="text-sm font-medium text-gray-800">{selectedRequest.citizenshipNumber}</p>
+                      <p className="text-xs text-gray-500">Full Name</p>
+                      <p className="text-sm font-medium text-gray-800">{selectedRequest.fullName}</p>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {selectedRequest.citizenshipFrontImage && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Front Side</p>
-                        <div
-                          className="relative aspect-video bg-gray-100 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setShowImageViewer(selectedRequest.citizenshipFrontImage!)}
-                        >
-                          <img
-                            src={selectedRequest.citizenshipFrontImage}
-                            alt="Citizenship Front"
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
+                    <div className="p-3 bg-gray-50 rounded-xl">
+                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="text-sm font-medium text-gray-800">{selectedRequest.email}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-xl">
+                      <p className="text-xs text-gray-500">Phone Number</p>
+                      <p className="text-sm font-medium text-gray-800">{selectedRequest.phoneNumber}</p>
+                    </div>
+                    {selectedRequest.dateOfBirth && (
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <p className="text-xs text-gray-500">Date of Birth</p>
+                        <p className="text-sm font-medium text-gray-800">{selectedRequest.dateOfBirth}</p>
                       </div>
                     )}
-                    {selectedRequest.citizenshipBackImage && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Back Side</p>
-                        <div
-                          className="relative aspect-video bg-gray-100 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => setShowImageViewer(selectedRequest.citizenshipBackImage!)}
-                        >
-                          <img
-                            src={selectedRequest.citizenshipBackImage}
-                            alt="Citizenship Back"
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
+                    {selectedRequest.gender && (
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <p className="text-xs text-gray-500">Gender</p>
+                        <p className="text-sm font-medium text-gray-800">{selectedRequest.gender}</p>
+                      </div>
+                    )}
+                    {selectedRequest.permanentAddress && (
+                      <div className="p-3 bg-gray-50 rounded-xl col-span-2">
+                        <p className="text-xs text-gray-500">Permanent Address</p>
+                        <p className="text-sm font-medium text-gray-800">{selectedRequest.permanentAddress}</p>
+                      </div>
+                    )}
+                    {selectedRequest.temporaryAddress && (
+                      <div className="p-3 bg-gray-50 rounded-xl col-span-2">
+                        <p className="text-xs text-gray-500">Temporary Address</p>
+                        <p className="text-sm font-medium text-gray-800">{selectedRequest.temporaryAddress}</p>
                       </div>
                     )}
                   </div>
                 </div>
-              )}
 
-              {/* Driving License Documents */}
-              {(selectedRequest.drivingLicenseNumber || selectedRequest.drivingLicenseImage) && (
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-gray-500" />
-                    Driving License
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div className="p-3 bg-gray-50 rounded-xl">
-                      <p className="text-xs text-gray-500">License Number</p>
-                      <p className="text-sm font-medium text-gray-800">{selectedRequest.drivingLicenseNumber}</p>
-                    </div>
-                    {selectedRequest.drivingLicenseIssueDate && (
-                      <div className="p-3 bg-gray-50 rounded-xl">
-                        <p className="text-xs text-gray-500">Issue Date</p>
-                        <p className="text-sm font-medium text-gray-800">{selectedRequest.drivingLicenseIssueDate}</p>
-                      </div>
-                    )}
-                    {selectedRequest.drivingLicenseExpiryDate && (
-                      <div className="p-3 bg-gray-50 rounded-xl">
-                        <p className="text-xs text-gray-500">Expiry Date</p>
-                        <p className="text-sm font-medium text-gray-800">{selectedRequest.drivingLicenseExpiryDate}</p>
-                      </div>
-                    )}
-                  </div>
-                  {selectedRequest.drivingLicenseImage && (
-                    <div className="mt-4">
-                      <p className="text-sm font-medium text-gray-700 mb-2">License Image</p>
-                      <div
-                        className="relative aspect-video bg-gray-100 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity max-w-md"
-                        onClick={() => setShowImageViewer(selectedRequest.drivingLicenseImage!)}
-                      >
-                        <img
-                          src={selectedRequest.drivingLicenseImage}
-                          alt="Driving License"
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Owner Specific Documents */}
-              {selectedRequest.kycType === 'OWNER' && (
-                <>
-                  {(selectedRequest.vehicleBluebookNumber || selectedRequest.vehicleBluebookImage) && (
-                    <div className="mb-8">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <Car className="w-5 h-5 text-gray-500" />
-                        Vehicle Documents
-                      </h3>
+                {/* Citizenship Documents */}
+                {(selectedRequest.citizenshipNumber || selectedRequest.citizenshipFrontImage) && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-gray-500" />
+                      Citizenship Documents
+                    </h3>
+                    {selectedRequest.citizenshipNumber && (
                       <div className="grid grid-cols-1 gap-4 mb-4">
                         <div className="p-3 bg-gray-50 rounded-xl">
-                          <p className="text-xs text-gray-500">Bluebook Number</p>
-                          <p className="text-sm font-medium text-gray-800">{selectedRequest.vehicleBluebookNumber}</p>
+                          <p className="text-xs text-gray-500">Citizenship Number</p>
+                          <p className="text-sm font-medium text-gray-800">{selectedRequest.citizenshipNumber}</p>
                         </div>
                       </div>
-                      {selectedRequest.vehicleBluebookImage && (
-                        <div className="mt-4">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Bluebook Image</p>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {selectedRequest.citizenshipFrontImage && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-2">Front Side</p>
                           <div
-                            className="relative aspect-video bg-gray-100 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity max-w-md"
-                            onClick={() => setShowImageViewer(selectedRequest.vehicleBluebookImage!)}
+                            className="relative aspect-video bg-gray-100 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setShowImageViewer(selectedRequest.citizenshipFrontImage!)}
                           >
                             <img
-                              src={selectedRequest.vehicleBluebookImage}
-                              alt="Bluebook"
+                              src={selectedRequest.citizenshipFrontImage}
+                              alt="Citizenship Front"
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {selectedRequest.citizenshipBackImage && (
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-2">Back Side</p>
+                          <div
+                            className="relative aspect-video bg-gray-100 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setShowImageViewer(selectedRequest.citizenshipBackImage!)}
+                          >
+                            <img
+                              src={selectedRequest.citizenshipBackImage}
+                              alt="Citizenship Back"
                               className="w-full h-full object-contain"
                             />
                           </div>
                         </div>
                       )}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Bank Details */}
-                  {(selectedRequest.bankAccountNumber || selectedRequest.bankName) && (
-                    <div className="mb-8">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                        <CreditCard className="w-5 h-5 text-gray-500" />
-                        Bank Details
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Driving License Documents */}
+                {(selectedRequest.drivingLicenseNumber || selectedRequest.drivingLicenseImage) && (
+                  <div className="mb-8">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-gray-500" />
+                      Driving License
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      {selectedRequest.drivingLicenseNumber && (
                         <div className="p-3 bg-gray-50 rounded-xl">
-                          <p className="text-xs text-gray-500">Bank Name</p>
-                          <p className="text-sm font-medium text-gray-800">{selectedRequest.bankName || 'N/A'}</p>
+                          <p className="text-xs text-gray-500">License Number</p>
+                          <p className="text-sm font-medium text-gray-800">{selectedRequest.drivingLicenseNumber}</p>
                         </div>
+                      )}
+                      {selectedRequest.drivingLicenseIssueDate && (
                         <div className="p-3 bg-gray-50 rounded-xl">
-                          <p className="text-xs text-gray-500">Account Number</p>
-                          <p className="text-sm font-medium text-gray-800">{selectedRequest.bankAccountNumber || 'N/A'}</p>
+                          <p className="text-xs text-gray-500">Issue Date</p>
+                          <p className="text-sm font-medium text-gray-800">{selectedRequest.drivingLicenseIssueDate}</p>
                         </div>
+                      )}
+                      {selectedRequest.drivingLicenseExpiryDate && (
                         <div className="p-3 bg-gray-50 rounded-xl">
-                          <p className="text-xs text-gray-500">PAN Number</p>
-                          <p className="text-sm font-medium text-gray-800">{selectedRequest.panNumber || 'N/A'}</p>
+                          <p className="text-xs text-gray-500">Expiry Date</p>
+                          <p className="text-sm font-medium text-gray-800">{selectedRequest.drivingLicenseExpiryDate}</p>
+                        </div>
+                      )}
+                    </div>
+                    {selectedRequest.drivingLicenseImage && (
+                      <div className="mt-4">
+                        <p className="text-sm font-medium text-gray-700 mb-2">License Image</p>
+                        <div
+                          className="relative aspect-video bg-gray-100 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity max-w-md"
+                          onClick={() => setShowImageViewer(selectedRequest.drivingLicenseImage!)}
+                        >
+                          <img
+                            src={selectedRequest.drivingLicenseImage}
+                            alt="Driving License"
+                            className="w-full h-full object-contain"
+                          />
                         </div>
                       </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Action Buttons */}
-              {selectedRequest.kycStatus === 'SUBMITTED' && (
-                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-100">
-                  <button
-                    onClick={handleApprove}
-                    disabled={actionLoading}
-                    className="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
-                  >
-                    {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-                    <span>Approve KYC</span>
-                  </button>
-                  <button
-                    onClick={() => setShowRejectModal(true)}
-                    disabled={actionLoading}
-                    className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
-                  >
-                    <XCircle className="w-5 h-5" />
-                    <span>Reject KYC</span>
-                  </button>
-                </div>
-              )}
-
-              {selectedRequest.kycStatus !== 'SUBMITTED' && selectedRequest.kycStatus !== 'PENDING' && (
-                <div className="pt-6 border-t border-gray-100">
-                  <div className={`rounded-xl p-4 ${selectedRequest.kycStatus === 'VERIFIED' ? 'bg-green-50' : 'bg-red-50'}`}>
-                    <p className={`text-sm ${selectedRequest.kycStatus === 'VERIFIED' ? 'text-green-800' : 'text-red-800'}`}>
-                      This request has been {selectedRequest.kycStatus?.toLowerCase()} on{' '}
-                      {selectedRequest.verifiedAt && new Date(selectedRequest.verifiedAt).toLocaleString()}
-                    </p>
-                    {selectedRequest.rejectionReason && (
-                      <p className="text-sm text-red-600 mt-2">
-                        Reason: {selectedRequest.rejectionReason}
-                      </p>
                     )}
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+
+                {/* Owner Specific Documents */}
+                {selectedRequest.kycType === 'OWNER' && (
+                  <>
+                    {(selectedRequest.vehicleBluebookNumber || selectedRequest.vehicleBluebookImage) && (
+                      <div className="mb-8">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                          <Car className="w-5 h-5 text-gray-500" />
+                          Vehicle Documents
+                        </h3>
+                        {selectedRequest.vehicleBluebookNumber && (
+                          <div className="grid grid-cols-1 gap-4 mb-4">
+                            <div className="p-3 bg-gray-50 rounded-xl">
+                              <p className="text-xs text-gray-500">Bluebook Number</p>
+                              <p className="text-sm font-medium text-gray-800">{selectedRequest.vehicleBluebookNumber}</p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedRequest.vehicleBluebookImage && (
+                          <div className="mt-4">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Bluebook Image</p>
+                            <div
+                              className="relative aspect-video bg-gray-100 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity max-w-md"
+                              onClick={() => setShowImageViewer(selectedRequest.vehicleBluebookImage!)}
+                            >
+                              <img
+                                src={selectedRequest.vehicleBluebookImage}
+                                alt="Bluebook"
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {selectedRequest.ownershipProofVerified !== undefined && (
+                          <div className="mt-4 p-3 bg-gray-50 rounded-xl">
+                            <p className="text-xs text-gray-500">Ownership Proof Verified</p>
+                            <p className="text-sm font-medium text-gray-800">{selectedRequest.ownershipProofVerified ? 'Yes' : 'No'}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Bank Details */}
+                    {(selectedRequest.bankAccountNumber || selectedRequest.bankName) && (
+                      <div className="mb-8">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                          <CreditCard className="w-5 h-5 text-gray-500" />
+                          Bank Details
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {selectedRequest.bankName && (
+                            <div className="p-3 bg-gray-50 rounded-xl">
+                              <p className="text-xs text-gray-500">Bank Name</p>
+                              <p className="text-sm font-medium text-gray-800">{selectedRequest.bankName}</p>
+                            </div>
+                          )}
+                          {selectedRequest.bankAccountNumber && (
+                            <div className="p-3 bg-gray-50 rounded-xl">
+                              <p className="text-xs text-gray-500">Account Number</p>
+                              <p className="text-sm font-medium text-gray-800">{selectedRequest.bankAccountNumber}</p>
+                            </div>
+                          )}
+                          {selectedRequest.bankAccountHolderName && (
+                            <div className="p-3 bg-gray-50 rounded-xl">
+                              <p className="text-xs text-gray-500">Account Holder Name</p>
+                              <p className="text-sm font-medium text-gray-800">{selectedRequest.bankAccountHolderName}</p>
+                            </div>
+                          )}
+                          {selectedRequest.panNumber && (
+                            <div className="p-3 bg-gray-50 rounded-xl">
+                              <p className="text-xs text-gray-500">PAN Number</p>
+                              <p className="text-sm font-medium text-gray-800">{selectedRequest.panNumber}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Action Buttons */}
+                {selectedRequest.kycStatus === 'SUBMITTED' && (
+                  <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-100">
+                    <button
+                      onClick={handleApprove}
+                      disabled={actionLoading}
+                      className="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
+                      <span>Approve KYC</span>
+                    </button>
+                    <button
+                      onClick={() => setShowRejectModal(true)}
+                      disabled={actionLoading}
+                      className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <XCircle className="w-5 h-5" />
+                      <span>Reject KYC</span>
+                    </button>
+                  </div>
+                )}
+
+                {selectedRequest.kycStatus !== 'SUBMITTED' && selectedRequest.kycStatus !== 'PENDING' && (
+                  <div className="pt-6 border-t border-gray-100">
+                    <div className={`rounded-xl p-4 ${selectedRequest.kycStatus === 'VERIFIED' ? 'bg-green-50' : 'bg-red-50'}`}>
+                      <p className={`text-sm ${selectedRequest.kycStatus === 'VERIFIED' ? 'text-green-800' : 'text-red-800'}`}>
+                        This request has been {selectedRequest.kycStatus?.toLowerCase()} on{' '}
+                        {selectedRequest.verifiedAt && new Date(selectedRequest.verifiedAt).toLocaleString()}
+                      </p>
+                      {selectedRequest.rejectionReason && (
+                        <p className="text-sm text-red-600 mt-2">
+                          Reason: {selectedRequest.rejectionReason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -824,6 +850,6 @@ export default function KYCVerificationPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

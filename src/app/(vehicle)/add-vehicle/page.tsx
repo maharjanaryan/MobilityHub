@@ -38,6 +38,28 @@ import {
 import HomeHeader from '../../home/HomeHeader';
 import Footer from '../../component/Footer';
 
+// Define the KYC status response interface (matching your HomeHeader)
+interface KYCStatusResponse {
+  success: boolean;
+  message: string;
+  kycStatus: string;
+  kycLevel: string;
+  kycType: string;
+  renterKycStatus: string;
+  ownerKycStatus: string;
+  canBook: boolean;
+  canList: boolean;
+  userId: number;
+  userFullName: string;
+  userEmail: string;
+  dailyLimit: number;
+  monthlyLimit: number;
+  perTransactionLimit: number;
+  kycVerifiedAt: string | null;
+  kycSubmittedAt: string | null;
+  rejectionReason: string | null;
+}
+
 export default function AddVehiclePage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -116,6 +138,20 @@ export default function AddVehiclePage() {
     { value: 'manual', label: 'Manual' }
   ];
 
+  // Map API status to frontend status
+  const mapKYCStatus = (status: string): 'verified' | 'pending' | 'rejected' | 'not_submitted' => {
+    switch (status?.toUpperCase()) {
+      case 'VERIFIED':
+        return 'verified';
+      case 'SUBMITTED':
+        return 'pending';
+      case 'REJECTED':
+        return 'rejected';
+      default:
+        return 'not_submitted';
+    }
+  };
+
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
@@ -153,10 +189,52 @@ export default function AddVehiclePage() {
   useEffect(() => {
     async function fetchKycStatus() {
       try {
-        const response = await fetch('http://localhost:8080/api/kyc/status');
-        if (!response.ok) throw new Error('Network response was not ok');
-        const data = await response.json();
-        setKycStatus(data.status);
+        const token = localStorage.getItem('accessToken'); // Changed from 'authToken' to 'accessToken' to match your HomeHeader
+
+        if (!token) {
+          console.log('No access token found');
+          router.push('/signin');
+          return;
+        }
+
+        console.log('Fetching KYC status...');
+
+        const response = await fetch('http://localhost:8080/api/kyc/status', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+
+        console.log('Response status:', response.status);
+
+        if (response.status === 401 || response.status === 403) {
+          console.log('Unauthorized, redirecting to login');
+          router.push('/signin');
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: KYCStatusResponse = await response.json();
+        console.log('KYC Status Response:', data);
+
+        // Use ownerKycStatus from the response (matching your HomeHeader)
+        const ownerStatus = mapKYCStatus(data.ownerKycStatus);
+        console.log('Mapped owner KYC status:', ownerStatus);
+
+        // Also check the canList flag as a backup
+        if (data.canList === true) {
+          console.log('User can list vehicles (canList=true)');
+          setKycStatus('verified');
+        } else {
+          setKycStatus(ownerStatus);
+        }
+
       } catch (error) {
         console.error('Failed to fetch KYC status:', error);
         setKycStatus('not_submitted');
@@ -164,8 +242,9 @@ export default function AddVehiclePage() {
         setKycLoading(false);
       }
     }
+
     fetchKycStatus();
-  }, []);
+  }, [router]);
 
   const nextStep = () => {
     setCurrentStep(currentStep + 1);
@@ -191,13 +270,47 @@ export default function AddVehiclePage() {
       <>
         <HomeHeader />
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
-          <p>Loading KYC status...</p>
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading KYC status...</p>
+          </div>
         </div>
+        <Footer />
       </>
     );
   }
 
+  // Show popup only if KYC is not verified
   if (!kycLoading && kycStatus !== 'verified') {
+    // Determine the message based on KYC status
+    const getKycMessage = () => {
+      switch (kycStatus) {
+        case 'pending':
+          return {
+            title: 'Owner KYC Verification Pending',
+            message: 'Your owner KYC verification is currently pending. Our team is reviewing your documents. You will be notified once verified. Please wait for approval before adding a vehicle.',
+            buttonText: 'Check Status',
+            buttonAction: '/kyc/status'
+          };
+        case 'rejected':
+          return {
+            title: 'Owner KYC Verification Rejected',
+            message: 'Your owner KYC verification was rejected. Please check the reason and resubmit your documents with correct information.',
+            buttonText: 'Resubmit Owner KYC',
+            buttonAction: '/kyc/owner'
+          };
+        default:
+          return {
+            title: 'Owner KYC Verification Required',
+            message: 'You must complete and verify your Owner KYC before adding a vehicle. This includes submitting your citizenship, driving license, and vehicle bluebook.',
+            buttonText: 'Complete Owner KYC',
+            buttonAction: '/kyc/owner'
+          };
+      }
+    };
+
+    const kycMessage = getKycMessage();
+
     return (
       <>
         <HomeHeader />
@@ -245,12 +358,21 @@ export default function AddVehiclePage() {
           {/* KYC Modal overlay */}
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 text-center">
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="w-8 h-8 text-emerald-600" />
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${kycStatus === 'pending' ? 'bg-yellow-100' :
+                  kycStatus === 'rejected' ? 'bg-red-100' :
+                    'bg-emerald-100'
+                }`}>
+                {kycStatus === 'pending' ? (
+                  <Clock className="w-8 h-8 text-yellow-600" />
+                ) : kycStatus === 'rejected' ? (
+                  <AlertCircle className="w-8 h-8 text-red-600" />
+                ) : (
+                  <AlertCircle className="w-8 h-8 text-emerald-600" />
+                )}
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-3">KYC Verification Required</h2>
+              <h2 className="text-2xl font-bold text-gray-800 mb-3">{kycMessage.title}</h2>
               <p className="text-gray-500 mb-6">
-                You must complete and verify your Owner KYC before adding a vehicle.
+                {kycMessage.message}
               </p>
               <div className="flex gap-3 justify-center">
                 <button
@@ -260,15 +382,16 @@ export default function AddVehiclePage() {
                   Go Back
                 </button>
                 <button
-                  onClick={() => router.push('/kyc/owner')}
+                  onClick={() => router.push(kycMessage.buttonAction)}
                   className="px-5 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
                 >
-                  Complete KYC
+                  {kycMessage.buttonText}
                 </button>
               </div>
             </div>
           </div>
         </div>
+        <Footer />
       </>
     );
   }
