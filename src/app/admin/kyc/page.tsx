@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Shield,
@@ -9,13 +9,13 @@ import {
   Eye,
   Clock,
   User,
-  Mail,
   X,
   Search,
   FileText,
   CreditCard,
   Car,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
 
 interface KYCRequest {
@@ -68,6 +68,7 @@ interface KYCStatistics {
 export default function KYCVerificationPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [kycRequests, setKycRequests] = useState<KYCRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<KYCRequest | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'SUBMITTED' | 'VERIFIED' | 'REJECTED'>('all');
@@ -80,12 +81,59 @@ export default function KYCVerificationPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
-  const getAccessToken = () => {
+  const getAccessToken = useCallback(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('accessToken');
     }
     return null;
-  };
+  }, []);
+
+  const fetchStatistics = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch('http://localhost:8080/api/admin/kyc/statistics', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStatistics(data);
+      }
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+    }
+  }, [getAccessToken]);
+
+  const fetchAllKYCRequests = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/admin/kyc/all', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setKycRequests(data);
+      } else {
+        console.error('Failed to fetch KYC requests');
+      }
+    } catch (error) {
+      console.error('Error fetching KYC requests:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [getAccessToken]);
+
+  const loadData = useCallback(async () => {
+    await Promise.all([
+      fetchStatistics(),
+      fetchAllKYCRequests()
+    ]);
+  }, [fetchAllKYCRequests, fetchStatistics]);
 
   useEffect(() => {
     const token = getAccessToken();
@@ -108,49 +156,16 @@ export default function KYCVerificationPage() {
       }
     }
 
-    fetchStatistics();
-    fetchAllKYCRequests();
-  }, []);
+    queueMicrotask(() => {
+      void loadData();
+    });
+  }, [getAccessToken, loadData, router]);
 
-  async function fetchStatistics() {
-    const token = getAccessToken();
-    if (!token) return;
-
-    try {
-      const response = await fetch('http://localhost:8080/api/admin/kyc/statistics', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setStatistics(data);
-      }
-    } catch (error) {
-      console.error('Error fetching statistics:', error);
-    }
-  }
-
-  async function fetchAllKYCRequests() {
-    const token = getAccessToken();
-    if (!token) return;
-
-    setLoading(true);
-    try {
-      const response = await fetch('http://localhost:8080/api/admin/kyc/all', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setKycRequests(data);
-      } else {
-        console.error('Failed to fetch KYC requests');
-      }
-    } catch (error) {
-      console.error('Error fetching KYC requests:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
+  const refreshData = async () => {
+    setRefreshing(true);
+    await loadData();
+    setRefreshing(false);
+  };
 
   async function fetchKycDetails(request: KYCRequest) {
     const token = getAccessToken();
@@ -158,27 +173,24 @@ export default function KYCVerificationPage() {
 
     setDetailsLoading(true);
     try {
-      // Use type-specific endpoint to avoid ambiguity between renter and owner tables
-      const endpoint = request.kycType === 'RENTER' 
+      const endpoint = request.kycType === 'RENTER'
         ? `/api/admin/kyc/renter/${request.id}`
         : `/api/admin/kyc/owner/${request.id}`;
-      
+
       const response = await fetch(`http://localhost:8080${endpoint}`, {
         headers: { 'Authorization': `Bearer ${token}` },
       });
-      
+
       if (response.ok) {
         const details = await response.json();
-        console.log(`Fetched ${request.kycType} details:`, details);
-        
-        // Merge the detailed information with the basic request
+
         const mergedDetails = {
           ...request,
           ...details,
-          kycType: request.kycType, // Preserve the type from the list
+          kycType: request.kycType,
           id: request.id,
         };
-        
+
         return mergedDetails;
       } else {
         console.error(`Failed to fetch ${request.kycType} KYC details for ID ${request.id}`);
@@ -193,7 +205,6 @@ export default function KYCVerificationPage() {
   }
 
   const handleReview = async (request: KYCRequest) => {
-    console.log('Reviewing:', request.kycType, request.id);
     const details = await fetchKycDetails(request);
     setSelectedRequest(details || request);
   };
@@ -226,8 +237,7 @@ export default function KYCVerificationPage() {
       if (response.ok) {
         alert(`${selectedRequest.kycType} KYC for ${selectedRequest.fullName} has been approved.`);
         setSelectedRequest(null);
-        await fetchStatistics();
-        await fetchAllKYCRequests();
+        await loadData();
       } else {
         alert(`Failed to approve: ${data.message || 'Unknown error'}`);
       }
@@ -270,8 +280,7 @@ export default function KYCVerificationPage() {
         setShowRejectModal(false);
         setSelectedRequest(null);
         setRejectionReason('');
-        await fetchStatistics();
-        await fetchAllKYCRequests();
+        await loadData();
       } else {
         alert(`Failed to reject: ${data.message || 'Unknown error'}`);
       }
@@ -324,7 +333,7 @@ export default function KYCVerificationPage() {
     return matchesStatus && matchesType && matchesSearch;
   });
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
@@ -339,10 +348,20 @@ export default function KYCVerificationPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-      {/* Header Stats */}
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">KYC Verification</h1>
-        <p className="text-gray-600">Review and verify user identification documents</p>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6 md:mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">KYC Verification</h1>
+          <p className="text-gray-600">Review and verify user identification documents</p>
+        </div>
+        <button
+          onClick={refreshData}
+          disabled={refreshing}
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
+        </button>
       </div>
 
       {/* Stats Cards */}

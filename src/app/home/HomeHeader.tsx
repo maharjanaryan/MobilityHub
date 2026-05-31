@@ -1,8 +1,18 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, Settings, FileText, LogOut, Menu, X, Shield, IdCard, Briefcase, HelpCircle, MapPin } from "lucide-react";
 import NotificationBell from "../component/NotificationBell";
+
+const API_BASE_URL = "http://localhost:8080";
+
+const normalizeAvatarUrl = (url?: string | null) => {
+  if (!url) return "/logo.png";
+  if (url.startsWith("http") || url.startsWith("data:image") || url.startsWith("/logo.png")) {
+    return url;
+  }
+  return `${API_BASE_URL}${url.startsWith("/") ? url : `/${url}`}`;
+};
 
 interface KYCStatusResponse {
   success: boolean;
@@ -29,6 +39,19 @@ interface HomeHeaderProps {
   userType?: "user" | "owner" | null;
 }
 
+const mapKYCStatus = (status: string): "pending" | "verified" | "rejected" | "not_submitted" => {
+  switch (status?.toUpperCase()) {
+    case 'VERIFIED':
+      return 'verified';
+    case 'SUBMITTED':
+      return 'pending';
+    case 'REJECTED':
+      return 'rejected';
+    default:
+      return 'not_submitted';
+  }
+};
+
 const HomeHeader: React.FC<HomeHeaderProps> = ({
   userType = "user",
 }) => {
@@ -53,20 +76,20 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Get access token
-  const getAccessToken = () => {
+  const getAccessToken = useCallback(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('accessToken');
     }
     return null;
-  };
+  }, []);
 
   // Fetch KYC status from API
-  const fetchKYCStatus = async () => {
+  const fetchKYCStatus = useCallback(async () => {
     const token = getAccessToken();
     if (!token) return;
 
     try {
-      const response = await fetch('http://localhost:8080/api/kyc/status', {
+      const response = await fetch(`${API_BASE_URL}/api/kyc/status`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -93,49 +116,79 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     } catch (error) {
       console.error('Error fetching KYC status:', error);
     }
-  };
+  }, [getAccessToken, router]);
 
   // Fetch user data from localStorage and API
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
+    const token = getAccessToken();
     const storedUser = localStorage.getItem('user');
+    let localUser = null;
+
     if (storedUser) {
       try {
-        const parsedUser = JSON.parse(storedUser);
+        localUser = JSON.parse(storedUser);
         setUserData({
-          name: parsedUser.fullName || parsedUser.username || "User",
-          email: parsedUser.email || "",
-          avatar: "/logo.png",
-          role: parsedUser.role?.toLowerCase() || userType || "user"
+          name: localUser.fullName || localUser.username || "User",
+          email: localUser.email || "",
+          avatar: normalizeAvatarUrl(localUser.avatarUrl),
+          role: localUser.role?.toLowerCase() || userType || "user"
         });
       } catch (e) {
         console.error('Error parsing user data:', e);
       }
     }
-    setLoading(false);
-  };
 
-  // Map API status to badge status
-  const mapKYCStatus = (status: string): "pending" | "verified" | "rejected" | "not_submitted" => {
-    switch (status?.toUpperCase()) {
-      case 'VERIFIED':
-        return 'verified';
-      case 'SUBMITTED':
-        return 'pending';
-      case 'REJECTED':
-        return 'rejected';
-      default:
-        return 'not_submitted';
+    if (token) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const profile = await response.json();
+          const updatedUser = {
+            ...(localUser || {}),
+            ...profile,
+          };
+
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          setUserData({
+            name: profile.fullName || profile.username || "User",
+            email: profile.email || "",
+            avatar: normalizeAvatarUrl(profile.avatarUrl),
+            role: profile.role?.toLowerCase() || userType || "user"
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
     }
-  };
+
+    setLoading(false);
+  }, [getAccessToken, userType]);
 
   useEffect(() => {
-    fetchUserData();
-    fetchKYCStatus();
+    queueMicrotask(() => {
+      void fetchUserData();
+      void fetchKYCStatus();
+    });
+
+    const handleProfileUpdated = () => {
+      void fetchUserData();
+    };
+
+    window.addEventListener('profile-updated', handleProfileUpdated);
 
     // Poll every 30 seconds for KYC status updates
     const interval = setInterval(fetchKYCStatus, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('profile-updated', handleProfileUpdated);
+    };
+  }, [fetchKYCStatus, fetchUserData]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -160,7 +213,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     try {
       const accessToken = localStorage.getItem('accessToken');
 
-      const response = await fetch('http://localhost:8080/api/auth/signout', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/signout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -281,6 +334,9 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                 src={userData.avatar}
                 alt="Profile"
                 className="w-10 h-10 rounded-full cursor-pointer border-2 border-gray-300 hover:border-green-500 transition-colors"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = "/logo.png";
+                }}
               />
             </div>
 
@@ -294,6 +350,9 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                       src={userData.avatar}
                       alt="Profile"
                       className="w-12 h-12 rounded-full border-2 border-green-500 object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = "/logo.png";
+                      }}
                     />
                     <div className="flex-1">
                       <p className="font-semibold text-gray-800">{userData.name}</p>
