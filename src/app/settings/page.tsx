@@ -9,13 +9,10 @@ import Footer from "../component/Footer";
 import {
   User, Mail, Phone, Shield, CreditCard, Bell, Lock,
   X, Loader2, CheckCircle, AlertCircle, Eye, EyeOff,
-  Fingerprint, LogOut, Globe, Moon, Sun, Smartphone,
-  Monitor, Languages, Share2, AlertTriangle, Trash2,
-  Key, Database, Save, ChevronRight, Edit3,
-  ArrowRight, Sparkles, Palette, Volume2, Wifi,
-  Zap, Gift, Heart, HelpCircle, FileText, Users,
-  MessageCircle, Twitter, Facebook, Instagram, Linkedin,
-  Github, Apple, Chrome, DollarSign, Clock, MapPin
+  Fingerprint, Globe, Moon, Sun,
+  Monitor, AlertTriangle,
+  Key, Save, ChevronRight,
+  Sparkles, Palette
 } from "lucide-react";
 
 // Types
