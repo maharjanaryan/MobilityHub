@@ -9,7 +9,7 @@ import Footer from "../component/Footer";
 import {
   User, Mail, Phone, MapPin, Calendar, Car,
   Clock, Star, ChevronRight, Edit3, Camera, Shield,
-  CreditCard, Bell, Lock, Award, TrendingUp, X,
+  Lock, Award, TrendingUp, X,
   Loader2, CheckCircle, AlertCircle, Save, Trash2
 } from "lucide-react";
 
@@ -78,7 +78,7 @@ const achievements = [
   { title: "Star Rider", desc: "Maintain 4.8+ rating", progress: 100, icon: "⭐" },
 ];
 
-type TabKey = "overview" | "rides" | "achievements" | "settings";
+type TabKey = "overview" | "rides" | "achievements";
 
 const API_BASE_URL = "http://localhost:8080";
 
@@ -316,10 +316,12 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
     email: userData.email || ''
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
     if (formData.phoneNumber && !/^\d{10}$/.test(formData.phoneNumber)) {
       setError('Phone number must be 10 digits');
@@ -330,73 +332,216 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Edit Profile">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
-          <input
-            type="text"
-            value={formData.fullName}
-            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-            required
-            minLength={2}
-            maxLength={100}
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50"
           />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-            <input
-              type="text"
-              value={formData.firstName}
-              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-            />
+
+          {/* Modal */}
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.4, bounce: 0.3 }}
+              className="relative w-full max-w-lg pointer-events-auto"
+            >
+              {/* Card */}
+              <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+                {/* Header with gradient */}
+                <div className="relative bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                        <Edit3 className="w-5 h-5 text-white" />
+                      </div>
+                      <h2 className="text-xl font-bold text-white">Edit Profile</h2>
+                    </div>
+                    <button
+                      onClick={onClose}
+                      className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 transition-all duration-200 flex items-center justify-center group"
+                    >
+                      <X className="w-4 h-4 text-white group-hover:rotate-90 transition-transform duration-200" />
+                    </button>
+                  </div>
+                  <p className="text-green-100 text-sm mt-2 ml-13">
+                    Update your personal information
+                  </p>
+                </div>
+
+                {/* Form Body */}
+                <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                  {/* Success Message */}
+                  {success && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg"
+                    >
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <p className="text-green-700 text-sm">{success}</p>
+                    </motion.div>
+                  )}
+
+                  {/* Full Name Field */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors">
+                        <User className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="text"
+                        value={formData.fullName}
+                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 focus:bg-white"
+                        placeholder="Enter your full name"
+                        required
+                        minLength={2}
+                        maxLength={100}
+                      />
+                    </div>
+                  </div>
+
+                  {/* First & Last Name Row */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        First Name
+                      </label>
+                      <div className="relative group">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors">
+                          <User className="w-4 h-4" />
+                        </div>
+                        <input
+                          type="text"
+                          value={formData.firstName}
+                          onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 focus:bg-white"
+                          placeholder="First name"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Last Name
+                      </label>
+                      <div className="relative group">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors">
+                          <User className="w-4 h-4" />
+                        </div>
+                        <input
+                          type="text"
+                          value={formData.lastName}
+                          onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 focus:bg-white"
+                          placeholder="Last name"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Phone Number Field */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Phone Number
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors">
+                        <Phone className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="tel"
+                        value={formData.phoneNumber}
+                        onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                        placeholder="98XXXXXXXX"
+                        pattern="\d{10}"
+                        maxLength={10}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 focus:bg-white"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1 ml-1">Enter 10-digit phone number</p>
+                  </div>
+
+                  {/* Email Field */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors">
+                        <Mail className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 focus:bg-white"
+                        placeholder="you@example.com"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Error Message */}
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"
+                    >
+                      <AlertCircle className="w-4 h-4 text-red-600" />
+                      <p className="text-red-700 text-sm">{error}</p>
+                    </motion.div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="flex-1 px-4 py-2.5 border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold py-2.5 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          Save Changes
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Decorative Elements */}
+                <div className="absolute top-20 right-0 w-32 h-32 bg-green-100 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-100 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
+              </div>
+            </motion.div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-            <input
-              type="text"
-              value={formData.lastName}
-              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-            />
-          </div>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-          <input
-            type="tel"
-            value={formData.phoneNumber}
-            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-            placeholder="10-digit phone number"
-            pattern="\d{10}"
-            maxLength={10}
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-          <input
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-            required
-          />
-        </div>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-        >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {loading ? 'Saving...' : 'Save Changes'}
-        </button>
-      </form>
-    </Modal>
+        </>
+      )}
+    </AnimatePresence>
   );
 };
 
@@ -741,7 +886,6 @@ export default function ProfilePage() {
     { key: "overview", label: "Overview" },
     { key: "rides", label: "Ride History" },
     { key: "achievements", label: "Achievements" },
-    { key: "settings", label: "Settings" },
   ];
 
   if (loading) {
@@ -932,7 +1076,6 @@ export default function ProfilePage() {
             {activeTab === "overview" && <OverviewTab userData={userData} />}
             {activeTab === "rides" && <RidesTab />}
             {activeTab === "achievements" && <AchievementsTab />}
-            {activeTab === "settings" && <SettingsTab onOpenPasswordModal={() => setPasswordModalOpen(true)} />}
           </motion.div>
         </div>
       </main>
@@ -1040,35 +1183,6 @@ function AchievementsTab() {
           </div>
           <p style={{ color: "#6b7280", fontSize: "0.72rem", textAlign: "right", margin: "6px 0 0" }}>{a.progress}%</p>
         </motion.div>
-      ))}
-    </div>
-  );
-}
-
-// Settings Tab
-function SettingsTab({ onOpenPasswordModal }: { onOpenPasswordModal: () => void }) {
-  const router = useRouter();
-
-  const settingsItems = [
-    { label: "Change Password", desc: "Update your password", icon: Lock, onClick: onOpenPasswordModal },
-    { label: "Payment Methods", desc: "Add or manage payment options", icon: CreditCard, path: "/profile/payments" },
-    { label: "Notifications", desc: "Customize notification preferences", icon: Bell, path: "/profile/notifications" },
-    { label: "Privacy Settings", desc: "Manage your privacy preferences", icon: Shield, path: "/profile/privacy" },
-  ];
-
-  return (
-    <div style={cardStyle}>
-      <h3 style={cardTitleStyle}>Settings</h3>
-      {settingsItems.map((item, i) => (
-        <div
-          key={item.label}
-          onClick={() => item.onClick ? item.onClick() : item.path && router.push(item.path)}
-          style={{ display: "flex", alignItems: "center", gap: 16, padding: "18px 0", borderBottom: i < settingsItems.length - 1 ? "1px solid #f3f4f6" : "none", cursor: "pointer" }}
-        >
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}><item.icon size={20} style={{ color: "#16a34a" }} /></div>
-          <div style={{ flex: 1 }}><p style={{ color: "#0d1117", fontWeight: 600, fontSize: "0.9rem", margin: 0 }}>{item.label}</p><p style={{ color: "#9ca3af", fontSize: "0.78rem", margin: "2px 0 0" }}>{item.desc}</p></div>
-          <ChevronRight size={18} style={{ color: "#d1d5db" }} />
-        </div>
       ))}
     </div>
   );
