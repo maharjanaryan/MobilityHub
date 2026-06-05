@@ -1,13 +1,13 @@
 // app/admin/vehicles/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   Car,
   Plus,
   Search,
-  Filter,
   Eye,
   Edit,
   Trash2,
@@ -23,12 +23,15 @@ import {
   Clock,
   Star,
   MoreVertical,
-  Download,
-  RefreshCw
+  RefreshCw,
+  Loader2,
+  Filter,
+  X
 } from 'lucide-react';
 
 interface Vehicle {
-  id: string;
+  id: number;
+  ownerId: number;
   ownerName: string;
   ownerEmail: string;
   brand: string;
@@ -36,230 +39,306 @@ interface Vehicle {
   year: number;
   color: string;
   licensePlate: string;
-  fuelType: 'petrol' | 'diesel' | 'electric' | 'hybrid';
-  transmission: 'manual' | 'automatic';
+  fuelType: string;
+  transmission: string;
   seats: number;
+  doors: number;
+  luggageCapacity: number;
   pricePerDay: number;
-  status: 'available' | 'booked' | 'maintenance' | 'inactive';
-  location: string;
-  images: string[];
-  rating: number;
-  totalTrips: number;
+  pricePerWeek: number;
+  pricePerMonth: number;
+  securityDeposit: number;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  isAvailable: boolean;
+  isVerified: boolean;
+  description: string;
+  photos: string[];
+  totalRentals: number;
+  averageRating: number;
   createdAt: string;
 }
 
+interface VehicleStats {
+  total: number;
+  pending: number;
+  verified: number;
+  rejected: number;
+  available: number;
+}
+
+// Toast Notification Component
+const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className={`fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+      }`}>
+      {type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+      {message}
+    </div>
+  );
+};
+
 export default function VehicleManagement() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'available' | 'booked' | 'maintenance' | 'inactive'>('all');
-  const [filterFuel, setFilterFuel] = useState<'all' | 'petrol' | 'diesel' | 'electric' | 'hybrid'>('all');
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [pendingVehicles, setPendingVehicles] = useState<Vehicle[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [verifyAction, setVerifyAction] = useState<'approve' | 'reject' | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'verified' | 'rejected' | 'available'>('all');
+  const [stats, setStats] = useState<VehicleStats>({
+    total: 0,
+    pending: 0,
+    verified: 0,
+    rejected: 0,
+    available: 0
+  });
+  const [actionLoading, setActionLoading] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Mock data - replace with API call
-  const vehicles: Vehicle[] = [
-    {
-      id: '1',
-      ownerName: 'Sarah Chen',
-      ownerEmail: 'sarah.chen@example.com',
-      brand: 'Tesla',
-      model: 'Model 3',
-      year: 2023,
-      color: 'Midnight Silver',
-      licensePlate: 'EV-1234',
-      fuelType: 'electric',
-      transmission: 'automatic',
-      seats: 5,
-      pricePerDay: 89,
-      status: 'available',
-      location: 'Los Angeles, CA',
-      images: ['/api/placeholder/400/300'],
-      rating: 4.9,
-      totalTrips: 128,
-      createdAt: '2024-01-10'
-    },
-    {
-      id: '2',
-      ownerName: 'Emily Watson',
-      ownerEmail: 'emily.watson@example.com',
-      brand: 'BMW',
-      model: 'X5',
-      year: 2022,
-      color: 'White',
-      licensePlate: 'BMW-5678',
-      fuelType: 'diesel',
-      transmission: 'automatic',
-      seats: 7,
-      pricePerDay: 120,
-      status: 'booked',
-      location: 'Houston, TX',
-      images: ['/api/placeholder/400/300'],
-      rating: 4.7,
-      totalTrips: 89,
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '3',
-      ownerName: 'Lisa Wong',
-      ownerEmail: 'lisa.wong@example.com',
-      brand: 'Honda',
-      model: 'CR-V',
-      year: 2023,
-      color: 'Blue',
-      licensePlate: 'HON-9012',
-      fuelType: 'hybrid',
-      transmission: 'automatic',
-      seats: 5,
-      pricePerDay: 65,
-      status: 'available',
-      location: 'Philadelphia, PA',
-      images: ['/api/placeholder/400/300'],
-      rating: 4.8,
-      totalTrips: 56,
-      createdAt: '2024-01-20'
-    },
-    {
-      id: '4',
-      ownerName: 'Robert Johnson',
-      ownerEmail: 'robert.j@example.com',
-      brand: 'Toyota',
-      model: 'Camry',
-      year: 2021,
-      color: 'Black',
-      licensePlate: 'TOY-3456',
-      fuelType: 'petrol',
-      transmission: 'automatic',
-      seats: 5,
-      pricePerDay: 55,
-      status: 'maintenance',
-      location: 'Chicago, IL',
-      images: ['/api/placeholder/400/300'],
-      rating: 4.5,
-      totalTrips: 34,
-      createdAt: '2024-01-05'
-    },
-    {
-      id: '5',
-      ownerName: 'Anna Martinez',
-      ownerEmail: 'anna.m@example.com',
-      brand: 'Ford',
-      model: 'Mustang',
-      year: 2022,
-      color: 'Red',
-      licensePlate: 'FOR-7890',
-      fuelType: 'petrol',
-      transmission: 'manual',
-      seats: 4,
-      pricePerDay: 150,
-      status: 'available',
-      location: 'Miami, FL',
-      images: ['/api/placeholder/400/300'],
-      rating: 4.9,
-      totalTrips: 67,
-      createdAt: '2024-01-12'
-    },
-    {
-      id: '6',
-      ownerName: 'David Kim',
-      ownerEmail: 'david.kim@example.com',
-      brand: 'Hyundai',
-      model: 'Ioniq 5',
-      year: 2023,
-      color: 'Silver',
-      licensePlate: 'HYU-2345',
-      fuelType: 'electric',
-      transmission: 'automatic',
-      seats: 5,
-      pricePerDay: 95,
-      status: 'inactive',
-      location: 'Phoenix, AZ',
-      images: ['/api/placeholder/400/300'],
-      rating: 4.6,
-      totalTrips: 23,
-      createdAt: '2024-01-18'
+  const getAccessToken = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('accessToken');
     }
-  ];
+    return null;
+  };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'available':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Available
-          </span>
-        );
-      case 'booked':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            <Clock className="w-3 h-3 mr-1" />
-            Booked
-          </span>
-        );
-      case 'maintenance':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            Maintenance
-          </span>
-        );
-      case 'inactive':
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            <XCircle className="w-3 h-3 mr-1" />
-            Inactive
-          </span>
-        );
-      default:
-        return null;
+  useEffect(() => {
+    const token = getAccessToken();
+    const userData = localStorage.getItem('user');
+
+    if (!token) {
+      router.push('/signin');
+      return;
+    }
+
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      if (parsedUser.role !== 'ADMIN') {
+        router.push('/home');
+        return;
+      }
+    }
+
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    await Promise.all([
+      fetchAllVehicles(),
+      fetchPendingVehicles()
+    ]);
+  };
+
+  const fetchAllVehicles = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch('http://localhost:8080/api/vehicles/all?page=0&size=100', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const allVehicles = data.content || [];
+        setVehicles(allVehicles);
+
+        setStats({
+          total: allVehicles.length,
+          pending: allVehicles.filter((v: Vehicle) => !v.isVerified).length,
+          verified: allVehicles.filter((v: Vehicle) => v.isVerified).length,
+          rejected: 0,
+          available: allVehicles.filter((v: Vehicle) => v.isAvailable && v.isVerified).length
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
     }
   };
 
-  const getFuelTypeBadge = (fuelType: string) => {
-    const icons = {
+  const fetchPendingVehicles = async () => {
+    const token = getAccessToken();
+    if (!token) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:8080/api/vehicles/admin/pending', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPendingVehicles(data);
+      }
+    } catch (error) {
+      console.error('Error fetching pending vehicles:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyVehicle = async (approved: boolean) => {
+    if (!selectedVehicle) return;
+
+    setActionLoading(true);
+    const token = getAccessToken();
+
+    try {
+      let url = `http://localhost:8080/api/vehicles/admin/verify/${selectedVehicle.id}?approved=${approved}`;
+      if (!approved && rejectionReason) {
+        url += `&rejectionReason=${encodeURIComponent(rejectionReason)}`;
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const message = approved
+          ? `${selectedVehicle.brand} ${selectedVehicle.model} has been approved successfully!`
+          : `${selectedVehicle.brand} ${selectedVehicle.model} has been rejected.`;
+        setToast({ message, type: 'success' });
+        setShowVerifyModal(false);
+        setSelectedVehicle(null);
+        setRejectionReason('');
+        await loadData();
+      } else {
+        const error = await response.json();
+        setToast({ message: error.message || 'Failed to verify vehicle', type: 'error' });
+      }
+    } catch (error) {
+      console.error('Error verifying vehicle:', error);
+      setToast({ message: 'Failed to verify vehicle. Please try again.', type: 'error' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteVehicle = async () => {
+    if (!selectedVehicle) return;
+
+    setActionLoading(true);
+    const token = getAccessToken();
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/vehicles/${selectedVehicle.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        setToast({ message: `${selectedVehicle.brand} ${selectedVehicle.model} deleted successfully!`, type: 'success' });
+        setShowDeleteModal(false);
+        setSelectedVehicle(null);
+        await loadData();
+      } else {
+        const error = await response.json();
+        setToast({ message: error.message || 'Failed to delete vehicle', type: 'error' });
+      }
+    } catch (error) {
+      console.error('Error deleting vehicle:', error);
+      setToast({ message: 'Failed to delete vehicle. Please try again.', type: 'error' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const getStatusBadge = (vehicle: Vehicle) => {
+    if (!vehicle.isVerified) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+          <Clock className="w-3 h-3 mr-1" />
+          Pending Verification
+        </span>
+      );
+    }
+    if (vehicle.isAvailable) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Available
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+        <XCircle className="w-3 h-3 mr-1" />
+        Unavailable
+      </span>
+    );
+  };
+
+  const getFuelTypeIcon = (fuelType: string) => {
+    const icons: Record<string, string> = {
       electric: '🔋',
       hybrid: '⚡',
       petrol: '⛽',
       diesel: '🛢️'
     };
-    return `${icons[fuelType as keyof typeof icons]} ${fuelType.charAt(0).toUpperCase() + fuelType.slice(1)}`;
+    return icons[fuelType?.toLowerCase()] || '⛽';
   };
 
   const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesStatus = filterStatus === 'all' ? true : vehicle.status === filterStatus;
-    const matchesFuel = filterFuel === 'all' ? true : vehicle.fuelType === filterFuel;
-    const matchesSearch = searchTerm === '' ||
-      vehicle.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vehicle.ownerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vehicle.licensePlate.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesFuel && matchesSearch;
+    if (filterStatus === 'pending') return !vehicle.isVerified;
+    if (filterStatus === 'verified') return vehicle.isVerified;
+    if (filterStatus === 'available') return vehicle.isAvailable && vehicle.isVerified;
+    return true;
+  }).filter(vehicle => {
+    if (!searchTerm) return true;
+    return vehicle.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.ownerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      vehicle.licensePlate?.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  const stats = {
-    total: vehicles.length,
-    available: vehicles.filter(v => v.status === 'available').length,
-    booked: vehicles.filter(v => v.status === 'booked').length,
-    maintenance: vehicles.filter(v => v.status === 'maintenance').length
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin text-emerald-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading vehicles...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
+      {/* Toast Notifications */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
       {/* Header Stats */}
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 mb-2">Vehicle Management</h1>
-            <p className="text-gray-600">Manage all vehicles listed on the platform</p>
+            <p className="text-gray-600">Review and manage all vehicles on the platform</p>
           </div>
-          <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center space-x-2 whitespace-nowrap">
-            <Plus className="w-4 h-4" />
-            <span>Add Vehicle</span>
+          <button
+            onClick={loadData}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center space-x-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Refresh</span>
           </button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-6 md:mb-8">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
           <div className="flex items-center justify-between mb-2">
             <div className="text-gray-500 text-sm">Total Vehicles</div>
@@ -273,9 +352,31 @@ export default function VehicleManagement() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 text-sm">Available Now</div>
+            <div className="text-gray-500 text-sm">Pending Review</div>
+            <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
+              <Clock className="w-5 h-5 text-yellow-600" />
+            </div>
+          </div>
+          <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.pending}</div>
+          <div className="text-xs text-gray-500 mt-2">Awaiting verification</div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-gray-500 text-sm">Verified</div>
             <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
               <CheckCircle className="w-5 h-5 text-green-600" />
+            </div>
+          </div>
+          <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.verified}</div>
+          <div className="text-xs text-gray-500 mt-2">Approved vehicles</div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-gray-500 text-sm">Available Now</div>
+            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-emerald-600" />
             </div>
           </div>
           <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.available}</div>
@@ -284,24 +385,13 @@ export default function VehicleManagement() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 text-sm">Currently Booked</div>
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-blue-600" />
+            <div className="text-gray-500 text-sm">Pending KYC</div>
+            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+              <AlertCircle className="w-5 h-5 text-red-600" />
             </div>
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.booked}</div>
-          <div className="text-xs text-gray-500 mt-2">On rent</div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 text-sm">Maintenance</div>
-            <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
-              <AlertCircle className="w-5 h-5 text-yellow-600" />
-            </div>
-          </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.maintenance}</div>
-          <div className="text-xs text-gray-500 mt-2">Under maintenance</div>
+          <div className="text-2xl md:text-3xl font-bold text-gray-800">0</div>
+          <div className="text-xs text-gray-500 mt-2">Owners pending KYC</div>
         </div>
       </div>
 
@@ -326,29 +416,16 @@ export default function VehicleManagement() {
                 className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="all">All Status</option>
+                <option value="pending">Pending Verification</option>
+                <option value="verified">Verified</option>
                 <option value="available">Available</option>
-                <option value="booked">Booked</option>
-                <option value="maintenance">Maintenance</option>
-                <option value="inactive">Inactive</option>
-              </select>
-              <select
-                value={filterFuel}
-                onChange={(e) => setFilterFuel(e.target.value as any)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              >
-                <option value="all">All Fuel Types</option>
-                <option value="petrol">Petrol</option>
-                <option value="diesel">Diesel</option>
-                <option value="electric">Electric</option>
-                <option value="hybrid">Hybrid</option>
               </select>
               <button
                 onClick={() => {
                   setSearchTerm('');
                   setFilterStatus('all');
-                  setFilterFuel('all');
                 }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm whitespace-nowrap"
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm"
               >
                 Clear Filters
               </button>
@@ -357,105 +434,209 @@ export default function VehicleManagement() {
         </div>
       </div>
 
-      {/* Vehicles Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredVehicles.map((vehicle) => (
-          <div key={vehicle.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden">
-            {/* Vehicle Image */}
-            <div className="relative h-48 bg-gray-100">
-              <Image
-                src={vehicle.images[0]}
-                alt={`${vehicle.brand} ${vehicle.model}`}
-                fill
-                className="object-cover"
-              />
-              <div className="absolute top-3 right-3">
-                <button className="p-1.5 bg-white/90 backdrop-blur-sm rounded-lg text-gray-600 hover:text-emerald-600 transition-colors">
-                  <MoreVertical className="w-4 h-4" />
-                </button>
+      {/* Pending Vehicles Section */}
+      {pendingVehicles.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-yellow-600" />
+            Pending Verification ({pendingVehicles.length})
+          </h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {pendingVehicles.map((vehicle) => (
+              <div key={vehicle.id} className="bg-white rounded-2xl shadow-sm border border-yellow-200 hover:shadow-lg transition-all overflow-hidden">
+                <div className="relative h-48 bg-gray-100">
+                  {vehicle.photos && vehicle.photos[0] ? (
+                    <img src={vehicle.photos[0]} alt={`${vehicle.brand} ${vehicle.model}`} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <Car className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="absolute top-3 right-3">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <Clock className="w-3 h-3 mr-1" />
+                      Pending
+                    </span>
+                  </div>
+                </div>
+                <div className="p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800">{vehicle.brand} {vehicle.model}</h3>
+                      <p className="text-sm text-gray-500">{vehicle.year} • {vehicle.color}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-emerald-600">₹{vehicle.pricePerDay}</p>
+                      <p className="text-xs text-gray-500">per day</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Users className="w-4 h-4 mr-2 text-gray-400" />
+                      {vehicle.seats} Seats
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Gauge className="w-4 h-4 mr-2 text-gray-400" />
+                      {vehicle.transmission}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="mr-2">{getFuelTypeIcon(vehicle.fuelType)}</span>
+                      {vehicle.fuelType}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                      {vehicle.city}
+                    </div>
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => {
+                        setSelectedVehicle(vehicle);
+                        setVerifyAction('approve');
+                        setShowVerifyModal(true);
+                      }}
+                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center space-x-1"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Approve</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedVehicle(vehicle);
+                        setVerifyAction('reject');
+                        setShowVerifyModal(true);
+                      }}
+                      className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-1"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      <span>Reject</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedVehicle(vehicle);
+                        setShowDeleteModal(true);
+                      }}
+                      className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="absolute bottom-3 left-3">
-                {getStatusBadge(vehicle.status)}
-              </div>
-            </div>
-
-            {/* Vehicle Info */}
-            <div className="p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    {vehicle.brand} {vehicle.model}
-                  </h3>
-                  <p className="text-sm text-gray-500">{vehicle.year} • {vehicle.color}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-emerald-600">${vehicle.pricePerDay}</p>
-                  <p className="text-xs text-gray-500">per day</p>
-                </div>
-              </div>
-
-              {/* Vehicle Details */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Users className="w-4 h-4 mr-2 text-gray-400" />
-                  {vehicle.seats} Seats
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Gauge className="w-4 h-4 mr-2 text-gray-400" />
-                  {vehicle.transmission}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Fuel className="w-4 h-4 mr-2 text-gray-400" />
-                  {getFuelTypeBadge(vehicle.fuelType)}
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <MapPin className="w-4 h-4 mr-2 text-gray-400" />
-                  {vehicle.location}
-                </div>
-              </div>
-
-              {/* Owner Info */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                <div>
-                  <p className="text-xs text-gray-500">Owner</p>
-                  <p className="text-sm font-medium text-gray-800">{vehicle.ownerName}</p>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                  <span className="text-sm font-medium text-gray-700">{vehicle.rating}</span>
-                  <span className="text-xs text-gray-500">({vehicle.totalTrips} trips)</span>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex space-x-2 mt-4 pt-3 border-t border-gray-100">
-                <button
-                  onClick={() => setSelectedVehicle(vehicle)}
-                  className="flex-1 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors flex items-center justify-center space-x-1"
-                >
-                  <Eye className="w-4 h-4" />
-                  <span>View Details</span>
-                </button>
-                <button className="flex-1 px-3 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm font-medium hover:bg-emerald-100 transition-colors flex items-center justify-center space-x-1">
-                  <Edit className="w-4 h-4" />
-                  <span>Edit</span>
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedVehicle(vehicle);
-                    setShowDeleteModal(true);
-                  }}
-                  className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors flex items-center justify-center"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+            ))}
           </div>
-        ))}
+        </div>
+      )}
+
+      {/* All Vehicles Grid */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-800 mb-4">All Vehicles ({filteredVehicles.length})</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredVehicles.map((vehicle) => (
+            <div key={vehicle.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all overflow-hidden">
+              <div className="relative h-48 bg-gray-100">
+                {vehicle.photos && vehicle.photos[0] ? (
+                  <img src={vehicle.photos[0]} alt={`${vehicle.brand} ${vehicle.model}`} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                    <Car className="w-12 h-12 text-gray-400" />
+                  </div>
+                )}
+                <div className="absolute top-3 right-3">
+                  {getStatusBadge(vehicle)}
+                </div>
+              </div>
+              <div className="p-5">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">{vehicle.brand} {vehicle.model}</h3>
+                    <p className="text-sm text-gray-500">{vehicle.year} • {vehicle.color}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-2xl font-bold text-emerald-600">₹{vehicle.pricePerDay}</p>
+                    <p className="text-xs text-gray-500">per day</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Users className="w-4 h-4 mr-2 text-gray-400" />
+                    {vehicle.seats} Seats
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Gauge className="w-4 h-4 mr-2 text-gray-400" />
+                    {vehicle.transmission}
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="mr-2">{getFuelTypeIcon(vehicle.fuelType)}</span>
+                    {vehicle.fuelType}
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                    {vehicle.city}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                  <div>
+                    <p className="text-xs text-gray-500">Owner</p>
+                    <p className="text-sm font-medium text-gray-800">{vehicle.ownerName}</p>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                    <span className="text-sm font-medium text-gray-700">{vehicle.averageRating || 0}</span>
+                    <span className="text-xs text-gray-500">({vehicle.totalRentals || 0} trips)</span>
+                  </div>
+                </div>
+                <div className="flex space-x-2 mt-4 pt-3 border-t border-gray-100">
+                  <button
+                    onClick={() => setSelectedVehicle(vehicle)}
+                    className="flex-1 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors flex items-center justify-center space-x-1"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>View Details</span>
+                  </button>
+                  {!vehicle.isVerified && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setSelectedVehicle(vehicle);
+                          setVerifyAction('approve');
+                          setShowVerifyModal(true);
+                        }}
+                        className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center space-x-1"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Approve</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedVehicle(vehicle);
+                          setVerifyAction('reject');
+                          setShowVerifyModal(true);
+                        }}
+                        className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-1"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        <span>Reject</span>
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => {
+                      setSelectedVehicle(vehicle);
+                      setShowDeleteModal(true);
+                    }}
+                    className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {filteredVehicles.length === 0 && (
+      {filteredVehicles.length === 0 && vehicles.length === 0 && (
         <div className="text-center py-12">
           <Car className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500">No vehicles found</p>
@@ -469,40 +650,32 @@ export default function VehicleManagement() {
             <div className="sticky top-0 bg-white border-b border-gray-100 p-4 md:p-6 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">Vehicle Details</h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  {selectedVehicle.brand} {selectedVehicle.model}
-                </p>
+                <p className="text-sm text-gray-500 mt-1">{selectedVehicle.brand} {selectedVehicle.model}</p>
               </div>
-              <button
-                onClick={() => setSelectedVehicle(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
+              <button onClick={() => setSelectedVehicle(null)} className="text-gray-400 hover:text-gray-600">
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
-
             <div className="p-4 md:p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Vehicle Images */}
                 <div>
                   <div className="relative h-64 bg-gray-100 rounded-xl overflow-hidden mb-3">
-                    <Image
-                      src={selectedVehicle.images[0]}
-                      alt={`${selectedVehicle.brand} ${selectedVehicle.model}`}
-                      fill
-                      className="object-cover"
-                    />
+                    {selectedVehicle.photos && selectedVehicle.photos[0] ? (
+                      <img src={selectedVehicle.photos[0]} alt="Vehicle" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Car className="w-12 h-12 text-gray-400" />
+                      </div>
+                    )}
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    {selectedVehicle.images.map((img, idx) => (
+                    {selectedVehicle.photos?.slice(0, 3).map((photo, idx) => (
                       <div key={idx} className="relative h-20 bg-gray-100 rounded-lg overflow-hidden">
-                        <Image src={img} alt={`Vehicle ${idx + 1}`} fill className="object-cover" />
+                        <img src={photo} alt={`Vehicle ${idx + 1}`} className="w-full h-full object-cover" />
                       </div>
                     ))}
                   </div>
                 </div>
-
-                {/* Vehicle Information */}
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-3">Vehicle Information</h3>
@@ -525,7 +698,7 @@ export default function VehicleManagement() {
                       </div>
                       <div className="p-3 bg-gray-50 rounded-lg">
                         <p className="text-xs text-gray-500">Fuel Type</p>
-                        <p className="text-sm font-medium text-gray-800">{getFuelTypeBadge(selectedVehicle.fuelType)}</p>
+                        <p className="text-sm font-medium text-gray-800">{selectedVehicle.fuelType}</p>
                       </div>
                       <div className="p-3 bg-gray-50 rounded-lg">
                         <p className="text-xs text-gray-500">Seats</p>
@@ -533,57 +706,115 @@ export default function VehicleManagement() {
                       </div>
                     </div>
                   </div>
-
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800 mb-3">Owner Information</h3>
-                    <div className="space-y-2">
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Owner Name</p>
-                        <p className="text-sm font-medium text-gray-800">{selectedVehicle.ownerName}</p>
-                      </div>
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Email</p>
-                        <p className="text-sm font-medium text-gray-800">{selectedVehicle.ownerEmail}</p>
-                      </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-500">Owner Name</p>
+                      <p className="text-sm font-medium text-gray-800">{selectedVehicle.ownerName}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg mt-2">
+                      <p className="text-xs text-gray-500">Email</p>
+                      <p className="text-sm font-medium text-gray-800">{selectedVehicle.ownerEmail}</p>
                     </div>
                   </div>
-
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Pricing & Stats</h3>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Pricing</h3>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 bg-gray-50 rounded-lg">
                         <p className="text-xs text-gray-500">Price Per Day</p>
-                        <p className="text-lg font-bold text-emerald-600">${selectedVehicle.pricePerDay}</p>
+                        <p className="text-lg font-bold text-emerald-600">₹{selectedVehicle.pricePerDay}</p>
                       </div>
                       <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Total Trips</p>
-                        <p className="text-lg font-bold text-gray-800">{selectedVehicle.totalTrips}</p>
-                      </div>
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Rating</p>
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                          <span className="text-lg font-bold text-gray-800">{selectedVehicle.rating}</span>
-                        </div>
-                      </div>
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Listed On</p>
-                        <p className="text-sm font-medium text-gray-800">
-                          {new Date(selectedVehicle.createdAt).toLocaleDateString()}
-                        </p>
+                        <p className="text-xs text-gray-500">Security Deposit</p>
+                        <p className="text-sm font-medium text-gray-800">₹{selectedVehicle.securityDeposit || 0}</p>
                       </div>
                     </div>
                   </div>
-
                   <div className="flex space-x-3 pt-4">
-                    <button className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors">
-                      Edit Vehicle
-                    </button>
-                    <button className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors">
-                      View Bookings
+                    {!selectedVehicle.isVerified && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setVerifyAction('approve');
+                            setShowVerifyModal(true);
+                          }}
+                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                        >
+                          Approve Vehicle
+                        </button>
+                        <button
+                          onClick={() => {
+                            setVerifyAction('reject');
+                            setShowVerifyModal(true);
+                          }}
+                          className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                        >
+                          Reject Vehicle
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => setShowDeleteModal(true)}
+                      className="flex-1 px-4 py-2 border border-red-300 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors"
+                    >
+                      Delete Vehicle
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Verify Modal (Approve/Reject) */}
+      {showVerifyModal && selectedVehicle && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${verifyAction === 'approve' ? 'bg-green-100' : 'bg-red-100'}`}>
+                {verifyAction === 'approve' ? (
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                ) : (
+                  <AlertCircle className="w-6 h-6 text-red-600" />
+                )}
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 text-center mb-2">
+                {verifyAction === 'approve' ? 'Approve Vehicle' : 'Reject Vehicle'}
+              </h3>
+              <p className="text-sm text-gray-600 text-center mb-4">
+                {verifyAction === 'approve'
+                  ? `Are you sure you want to approve ${selectedVehicle.brand} ${selectedVehicle.model}? This vehicle will be visible to all users.`
+                  : `Are you sure you want to reject ${selectedVehicle.brand} ${selectedVehicle.model}? The owner will be notified.`}
+              </p>
+              {verifyAction === 'reject' && (
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Please provide a reason for rejection..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
+                />
+              )}
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowVerifyModal(false);
+                    setRejectionReason('');
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleVerifyVehicle(verifyAction === 'approve')}
+                  disabled={actionLoading || (verifyAction === 'reject' && !rejectionReason.trim())}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${verifyAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+                    }`}
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  {verifyAction === 'approve' ? 'Approve' : 'Reject'}
+                </button>
               </div>
             </div>
           </div>
@@ -607,18 +838,16 @@ export default function VehicleManagement() {
               <div className="flex space-x-3">
                 <button
                   onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setSelectedVehicle(null);
-                    alert('Vehicle deleted successfully');
-                  }}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                  onClick={handleDeleteVehicle}
+                  disabled={actionLoading}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   Delete
                 </button>
               </div>

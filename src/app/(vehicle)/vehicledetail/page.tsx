@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import {
   ArrowLeft, Star, Zap, Users, Gauge, Leaf, ChevronLeft,
-  ChevronRight, Shield, CheckCircle2, Images, Calendar
+  ChevronRight, Shield, Images, Calendar, Loader2
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import HomeHeader from "../../home/HomeHeader";
 import Footer from "../../component/Footer";
 
@@ -44,7 +45,6 @@ function getDaysInMonth(year: number, month: number) {
   return new Date(year, month + 1, 0).getDate();
 }
 function getFirstDayOfMonth(year: number, month: number) {
-  // Monday-based offset
   const d = new Date(year, month, 1).getDay();
   return (d + 6) % 7;
 }
@@ -64,7 +64,7 @@ function MiniCalendar({ selected, onChange, year, month, onPrev, onNext }: Calen
   const today = new Date();
   const todayDay = today.getFullYear() === year && today.getMonth() === month ? today.getDate() : -1;
 
-  const unavailable = new Set([3, 4, 12, 13, 19]); // demo unavailable days
+  const unavailable = new Set([3, 4, 12, 13, 19]);
 
   function handleDay(d: number) {
     if (unavailable.has(d)) return;
@@ -137,35 +137,199 @@ function MiniCalendar({ selected, onChange, year, month, onPrev, onNext }: Calen
   );
 }
 
+// Helper function to get auth token
+const getAuthToken = () => {
+  // Check localStorage for token
+  const token = localStorage.getItem('token') ||
+    localStorage.getItem('accessToken') ||
+    localStorage.getItem('jwt');
+
+  // Also check sessionStorage
+  const sessionToken = sessionStorage.getItem('token') ||
+    sessionStorage.getItem('accessToken');
+
+  return token || sessionToken;
+};
+
 // ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
-export default function VehicleDetailPage({ vehicle }: { vehicle: Vehicle }) {
-  const images = [vehicle.img, ...(vehicle.extraImages ?? [])].slice(0, 5);
+export default function VehicleDetailPage({ params }: { params: { id: string } }) {
+  const vehicleId = params.id;
+  const router = useRouter();
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [activeImg, setActiveImg] = useState(0);
   const [insurance, setInsurance] = useState<"premium" | "standard">("premium");
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
-  const [dateRange, setDateRange] = useState<[number | null, number | null]>([6, 8]);
+  const [dateRange, setDateRange] = useState<[number | null, number | null]>([null, null]);
 
-  const insuranceCost = insurance === "premium" ? 45 : 22;
-  const days = dateRange[0] && dateRange[1] ? dateRange[1] - dateRange[0] + 1 : 1;
-  const totalPerDay = vehicle.price + insuranceCost;
+
+
+  // Fetch vehicle data
+  useEffect(() => {
+    if (vehicleId) {
+      fetchVehicleData();
+    }
+  }, [vehicleId]);
+
+  const fetchVehicleData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const token = getAuthToken();
+
+      if (!token) {
+        setError('Please login to view vehicle details');
+        setLoading(false);
+        return;
+      }
+
+      console.log('Fetching vehicle with ID:', vehicleId);
+
+      const response = await fetch(`http://localhost:8080/api/vehicles/${vehicleId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.status === 401) {
+        // Token expired or invalid
+        localStorage.removeItem('token');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('jwt');
+        setError('Session expired. Please login again.');
+        setLoading(false);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch vehicle (Status: ${response.status})`);
+      }
+
+      const data = await response.json();
+      console.log('Vehicle data:', data);
+
+      // Transform API data to match your Vehicle interface
+      const transformedVehicle: Vehicle = {
+        id: data.id,
+        name: `${data.brand} ${data.model}`,
+        category: data.fuelType || "Electric",
+        img: data.photos && data.photos.length > 0 ? data.photos[0] : "https://via.placeholder.com/600x400?text=Vehicle",
+        price: data.pricePerDay,
+        rating: data.averageRating || 4.5,
+        range: data.range || (data.fuelType === "Electric" ? "400 km" : "600 km"),
+        charge: data.charge || 80,
+        location: data.city || "Unknown Location",
+        tags: [data.transmission || "Automatic", `${data.seats || 4} Seats`, data.fuelType || "Petrol"],
+        seats: data.seats || 4,
+        speed: data.speed || "200 km/h",
+        driveType: data.driveType || (data.fuelType === "Electric" ? "Dual Motor AWD" : "Front Wheel Drive"),
+        extraImages: data.photos && data.photos.length > 1 ? data.photos.slice(1) : [],
+        description: data.description || `Experience the ${data.brand} ${data.model} - a perfect blend of performance and comfort.`,
+        host: {
+          name: data.ownerName || "Premium Host",
+          trips: data.hostTrips || 124
+        },
+        co2Saved: data.co2Saved || "42.5kg"
+      };
+
+      setVehicle(transformedVehicle);
+    } catch (error) {
+      console.error('Error fetching vehicle:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load vehicle details');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   function prevMonth() {
     if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
     else setCalMonth(m => m - 1);
   }
+
   function nextMonth() {
     if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); }
     else setCalMonth(m => m + 1);
   }
 
-  const discount = 13; // demo
+  const insuranceCost = insurance === "premium" ? 45 : 22;
+  const days = dateRange[0] && dateRange[1] ? dateRange[1] - dateRange[0] + 1 : 1;
+  const discount = 13;
+
+  // Loading State
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fb]">
+        <HomeHeader />
+        <div className="flex-1 flex items-center justify-center h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-emerald-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading vehicle details...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Error State with Login Option
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fb]">
+        <HomeHeader />
+        <div className="flex-1 flex items-center justify-center h-[60vh] px-4">
+          <div className="text-center max-w-md">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+              <p className="text-red-600 font-semibold mb-2">Error Loading Vehicle</p>
+              <p className="text-gray-600 text-sm mb-4">{error}</p>
+              <div className="flex gap-3 justify-center">
+                {error.includes('login') || error.includes('Session expired') ? (
+                  <button
+                    onClick={() => router.push('/login')}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                  >
+                    Go to Login
+                  </button>
+                ) : (
+                  <button
+                    onClick={fetchVehicleData}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                  >
+                    Try Again
+                  </button>
+                )}
+                <Link
+                  href="/vehicles"
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Browse Vehicles
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!vehicle) {
+    return null;
+  }
+
+  const images = [vehicle.img, ...(vehicle.extraImages ?? [])].slice(0, 5);
 
   return (
     <div className="min-h-screen bg-[#f8f9fb] font-['Sora',system-ui]">
       <HomeHeader />
+
       {/* Back nav */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-2">
         <Link
@@ -197,7 +361,7 @@ export default function VehicleDetailPage({ vehicle }: { vehicle: Vehicle }) {
                   onError={e => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/600x400?text=Vehicle"; }}
                 />
                 <div className="absolute bottom-2 left-2 bg-black/40 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm">
-                  Exterior View — {vehicle.name}
+                  {vehicle.name}
                 </div>
               </div>
               {/* Side images */}
@@ -237,7 +401,7 @@ export default function VehicleDetailPage({ vehicle }: { vehicle: Vehicle }) {
                   <span className="text-gray-300">|</span>
                   <span>{vehicle.host?.trips ?? 124} trips completed</span>
                   <span className="text-gray-300">|</span>
-                  <span className="text-emerald-600 font-medium">⚡ Top Host</span>
+                  <span className="text-emerald-600 font-medium">{vehicle.location}</span>
                 </div>
               </div>
               {vehicle.host && (
@@ -255,8 +419,8 @@ export default function VehicleDetailPage({ vehicle }: { vehicle: Vehicle }) {
             <div className="mt-5 grid grid-cols-3 gap-3">
               {[
                 { icon: <Gauge className="w-5 h-5 text-emerald-600" />, label: "DRIVE TYPE", value: vehicle.driveType ?? "Dual Motor AWD" },
-                { icon: <Users className="w-5 h-5 text-emerald-600" />, label: "CAPACITY", value: `${vehicle.seats ?? 5} Full Seats` },
-                { icon: <Zap className="w-5 h-5 text-emerald-600" />, label: "RANGE", value: `${vehicle.range} (est.)` },
+                { icon: <Users className="w-5 h-5 text-emerald-600" />, label: "CAPACITY", value: `${vehicle.seats ?? 5} Seats` },
+                { icon: <Zap className="w-5 h-5 text-emerald-600" />, label: "RANGE", value: vehicle.range },
               ].map(s => (
                 <div key={s.label} className="bg-white rounded-xl p-3.5 border border-gray-100 shadow-sm">
                   {s.icon}
@@ -290,8 +454,7 @@ export default function VehicleDetailPage({ vehicle }: { vehicle: Vehicle }) {
             <div className="mt-7">
               <h2 className="text-lg font-bold text-gray-900">Experience the Future</h2>
               <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-                {vehicle.description ??
-                  `The ${vehicle.name} delivers an extraordinary experience that combines heart-pounding performance with an impeccably crafted interior. This specific model features the Glass Canopy roof, providing a panoramic view of the sky, and the Surreal Sound™ Pro system for an immersive auditory journey.`}
+                {vehicle.description}
               </p>
             </div>
 

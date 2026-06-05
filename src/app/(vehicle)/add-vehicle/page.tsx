@@ -38,7 +38,7 @@ import {
 import HomeHeader from '../../home/HomeHeader';
 import Footer from '../../component/Footer';
 
-// Define the KYC status response interface (matching your HomeHeader)
+// Define the KYC status response interface
 interface KYCStatusResponse {
   success: boolean;
   message: string;
@@ -60,13 +60,131 @@ interface KYCStatusResponse {
   rejectionReason: string | null;
 }
 
+// Vehicle creation response interface
+interface VehicleResponse {
+  success: boolean;
+  message: string;
+  vehicleId?: number;
+  vehicle?: any;
+}
+
+// Notification Popup Component
+function NotificationPopup({
+  type,
+  message,
+  onClose
+}: {
+  type: 'success' | 'error' | 'warning' | 'info';
+  message: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  const getIcon = () => {
+    switch (type) {
+      case 'success':
+        return <CheckCircle className="w-6 h-6 text-green-600" />;
+      case 'error':
+        return <AlertCircle className="w-6 h-6 text-red-600" />;
+      case 'warning':
+        return <AlertCircle className="w-6 h-6 text-yellow-600" />;
+      default:
+        return <Info className="w-6 h-6 text-blue-600" />;
+    }
+  };
+
+  const getBgColor = () => {
+    switch (type) {
+      case 'success':
+        return 'bg-green-50 border-green-200';
+      case 'error':
+        return 'bg-red-50 border-red-200';
+      case 'warning':
+        return 'bg-yellow-50 border-yellow-200';
+      default:
+        return 'bg-blue-50 border-blue-200';
+    }
+  };
+
+  const getTextColor = () => {
+    switch (type) {
+      case 'success':
+        return 'text-green-800';
+      case 'error':
+        return 'text-red-800';
+      case 'warning':
+        return 'text-yellow-800';
+      default:
+        return 'text-blue-800';
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className={`max-w-md w-full mx-4 ${getBgColor()} border rounded-2xl shadow-2xl p-6 transform animate-in zoom-in-95 duration-200`}>
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            {getIcon()}
+          </div>
+          <div className="flex-1">
+            <h3 className={`text-lg font-semibold ${getTextColor()} mb-2`}>
+              {type === 'success' ? 'Success!' : type === 'error' ? 'Error!' : type === 'warning' ? 'Warning!' : 'Info'}
+            </h3>
+            <p className={`text-sm ${getTextColor()} opacity-90`}>
+              {message}
+            </p>
+            <div className="mt-4 pt-2">
+              <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                <div className="animate-progress-bar bg-current h-full rounded-full" style={{
+                  width: '100%',
+                  animation: 'progress 3s linear forwards'
+                }} />
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="flex-shrink-0 p-1 hover:bg-black/10 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+      <style jsx>{`
+        @keyframes progress {
+          from {
+            width: 100%;
+          }
+          to {
+            width: 0%;
+          }
+        }
+        .animate-progress-bar {
+          animation: progress 3s linear forwards;
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function AddVehiclePage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [kycStatus, setKycStatus] = useState<'verified' | 'pending' | 'rejected' | 'not_submitted'>('not_submitted');
   const [kycLoading, setKycLoading] = useState(true);
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [uploadError, setUploadError] = useState<string>('');
+  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
+  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
+
   const [formData, setFormData] = useState({
     // Basic Information
     brand: '',
@@ -138,30 +256,40 @@ export default function AddVehiclePage() {
     { value: 'manual', label: 'Manual' }
   ];
 
-  // Map API status to frontend status
-  const mapKYCStatus = (status: string): 'verified' | 'pending' | 'rejected' | 'not_submitted' => {
-    switch (status?.toUpperCase()) {
-      case 'VERIFIED':
-        return 'verified';
-      case 'SUBMITTED':
-        return 'pending';
-      case 'REJECTED':
-        return 'rejected';
-      default:
-        return 'not_submitted';
-    }
+  // Convert File to base64 string
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  // Convert multiple files to base64 strings
+  const filesToBase64 = async (files: File[]): Promise<string[]> => {
+    const base64Promises = files.map(file => fileToBase64(file));
+    return await Promise.all(base64Promises);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      const newImages = Array.from(files).map(file => URL.createObjectURL(file));
-      setUploadedImages([...uploadedImages, ...newImages]);
+      const newFiles = Array.from(files);
+      const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+
+      setUploadedImages([...uploadedImages, ...newFiles]);
+      setImagePreviews([...imagePreviews, ...newPreviews]);
+      setUploadError('');
     }
   };
 
   const removeImage = (index: number) => {
+    // Revoke the object URL to avoid memory leaks
+    URL.revokeObjectURL(imagePreviews[index]);
+
     setUploadedImages(uploadedImages.filter((_, i) => i !== index));
+    setImagePreviews(imagePreviews.filter((_, i) => i !== index));
   };
 
   const toggleFeature = (featureId: string) => {
@@ -173,23 +301,139 @@ export default function AddVehiclePage() {
     }));
   };
 
+  const showNotification = (type: 'success' | 'error' | 'warning' | 'info', message: string, autoRedirect?: boolean, redirectPath?: string) => {
+    setNotification({ type, message });
+
+    if (autoRedirect && redirectPath) {
+      let countdown = 3;
+      setRedirectCountdown(countdown);
+
+      const interval = setInterval(() => {
+        countdown--;
+        setRedirectCountdown(countdown);
+
+        if (countdown <= 0) {
+          clearInterval(interval);
+          router.push(redirectPath);
+        }
+      }, 1000);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    // Validate required fields
+    if (uploadedImages.length === 0) {
+      showNotification('error', 'Please upload at least one photo of your vehicle', false);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setUploadError('');
+
+    try {
+      const token = localStorage.getItem('accessToken');
+
+      if (!token) {
+        showNotification('error', 'Authentication failed. Please login again.', true, '/signin');
+        return;
+      }
+
+      // Convert images to base64 strings
+      let base64Images: string[] = [];
+      try {
+        base64Images = await filesToBase64(uploadedImages);
+        console.log(`Converted ${base64Images.length} images to base64`);
+      } catch (convertErr) {
+        console.error('Image conversion failed:', convertErr);
+        showNotification('error', 'Failed to process images. Please try again with smaller images.', false);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Prepare the request body according to the API schema
+      const requestBody: any = {
+        brand: formData.brand,
+        model: formData.model,
+        year: formData.year,
+        color: formData.color,
+        licensePlate: formData.licensePlate,
+        fuelType: formData.fuelType,
+        transmission: formData.transmission,
+        seats: formData.seats,
+        doors: formData.doors,
+        luggageCapacity: formData.luggageCapacity,
+        features: formData.features,
+        pricePerDay: formData.pricePerDay,
+        securityDeposit: formData.securityDeposit,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        minRentalDays: formData.minimumRentalDays,
+        maxRentalDays: formData.maximumRentalDays,
+        description: formData.description,
+        photos: base64Images
+      };
+
+      // Add optional fields only if they have values
+      if (formData.vin) requestBody.vin = formData.vin;
+      if (formData.pricePerWeek > 0) requestBody.pricePerWeek = formData.pricePerWeek;
+      if (formData.pricePerMonth > 0) requestBody.pricePerMonth = formData.pricePerMonth;
+      if (formData.latitude) requestBody.latitude = parseFloat(formData.latitude);
+      if (formData.longitude) requestBody.longitude = parseFloat(formData.longitude);
+      if (formData.availableFrom) requestBody.availableFrom = new Date(formData.availableFrom).toISOString();
+      if (formData.availableTo) requestBody.availableTo = new Date(formData.availableTo).toISOString();
+      if (formData.terms) requestBody.terms = formData.terms;
+
+      console.log('Sending vehicle data...');
+
+      const response = await fetch('http://localhost:8080/api/vehicles', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        showNotification('error', 'Session expired. Please login again.', true, '/signin');
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        const errorMessage = errorData.message || errorData.error || 'Failed to add vehicle';
+        throw new Error(errorMessage);
+      }
+
+      const data: VehicleResponse = await response.json();
+      console.log('Vehicle added successfully:', data);
+
+      // Show success notification and redirect to owner vehicles page
+      showNotification(
+        'success',
+        data.message || 'Vehicle added successfully! Redirecting to your vehicles...',
+        true,
+        '/owner/vehicles'
+      );
+
+    } catch (error) {
+      console.error('Error adding vehicle:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add vehicle. Please try again.';
+      showNotification('error', errorMessage, false);
+    } finally {
       setIsSubmitting(false);
-      alert('Vehicle added successfully!');
-      router.push('/owner/vehicles');
-    }, 2000);
+    }
   };
 
   // Fetch KYC status on component mount
   useEffect(() => {
     async function fetchKycStatus() {
       try {
-        const token = localStorage.getItem('accessToken'); // Changed from 'authToken' to 'accessToken' to match your HomeHeader
+        const token = localStorage.getItem('accessToken');
 
         if (!token) {
           console.log('No access token found');
@@ -223,11 +467,9 @@ export default function AddVehiclePage() {
         const data: KYCStatusResponse = await response.json();
         console.log('KYC Status Response:', data);
 
-        // Use ownerKycStatus from the response (matching your HomeHeader)
         const ownerStatus = mapKYCStatus(data.ownerKycStatus);
         console.log('Mapped owner KYC status:', ownerStatus);
 
-        // Also check the canList flag as a backup
         if (data.canList === true) {
           console.log('User can list vehicles (canList=true)');
           setKycStatus('verified');
@@ -244,11 +486,56 @@ export default function AddVehiclePage() {
     }
 
     fetchKycStatus();
+
+    // Cleanup function to revoke object URLs
+    return () => {
+      imagePreviews.forEach(preview => URL.revokeObjectURL(preview));
+    };
   }, [router]);
 
   const nextStep = () => {
+    // Validate current step before proceeding
+    if (currentStep === 1) {
+      if (!formData.brand || !formData.model || !formData.year || !formData.color || !formData.licensePlate) {
+        showNotification('warning', 'Please fill in all required fields in Basic Information', false);
+        return;
+      }
+    } else if (currentStep === 2) {
+      if (!formData.description) {
+        showNotification('warning', 'Please provide a vehicle description', false);
+        return;
+      }
+    } else if (currentStep === 4) {
+      if (formData.pricePerDay <= 0) {
+        showNotification('warning', 'Please set a valid price per day', false);
+        return;
+      }
+      if (formData.securityDeposit <= 0) {
+        showNotification('warning', 'Please set a valid security deposit', false);
+        return;
+      }
+    } else if (currentStep === 5) {
+      if (!formData.address || !formData.city || !formData.state || !formData.zipCode) {
+        showNotification('warning', 'Please fill in all location fields', false);
+        return;
+      }
+    }
+
     setCurrentStep(currentStep + 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const mapKYCStatus = (status: string): 'verified' | 'pending' | 'rejected' | 'not_submitted' => {
+    switch (status?.toUpperCase()) {
+      case 'VERIFIED':
+        return 'verified';
+      case 'SUBMITTED':
+        return 'pending';
+      case 'REJECTED':
+        return 'rejected';
+      default:
+        return 'not_submitted';
+    }
   };
 
   const prevStep = () => {
@@ -282,7 +569,6 @@ export default function AddVehiclePage() {
 
   // Show popup only if KYC is not verified
   if (!kycLoading && kycStatus !== 'verified') {
-    // Determine the message based on KYC status
     const getKycMessage = () => {
       switch (kycStatus) {
         case 'pending':
@@ -315,7 +601,6 @@ export default function AddVehiclePage() {
       <>
         <HomeHeader />
         <div className="relative">
-          {/* Blurred page background */}
           <div
             className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 filter blur-sm pointer-events-none select-none"
             aria-hidden="true"
@@ -355,7 +640,6 @@ export default function AddVehiclePage() {
             </div>
           </div>
 
-          {/* KYC Modal overlay */}
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 text-center">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${kycStatus === 'pending' ? 'bg-yellow-100' :
@@ -791,11 +1075,17 @@ export default function AddVehiclePage() {
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Vehicle Photos</h2>
                 <p className="text-gray-600 mb-6">Upload clear photos of your vehicle (at least 5 photos recommended)</p>
 
+                {uploadError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                    {uploadError}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {uploadedImages.map((image, index) => (
+                  {imagePreviews.map((preview, index) => (
                     <div key={index} className="relative group">
                       <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
-                        <img src={image} alt={`Vehicle ${index + 1}`} className="w-full h-full object-cover" />
+                        <img src={preview} alt={`Vehicle ${index + 1}`} className="w-full h-full object-cover" />
                       </div>
                       <button
                         type="button"
@@ -880,6 +1170,15 @@ export default function AddVehiclePage() {
         </div>
       </div>
       <Footer />
+
+      {/* Notification Popup */}
+      {notification && (
+        <NotificationPopup
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </>
   );
 }

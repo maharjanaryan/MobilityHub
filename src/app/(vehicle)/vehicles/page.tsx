@@ -1,84 +1,218 @@
-// components/VehiclesPage.tsx (or app/vehicles/page.tsx)
-
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, SlidersHorizontal, Battery, Zap, MapPin,
-  Star, X, ChevronDown, Plus,
+  Star, X, ChevronDown, Plus, Loader2, Car
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import HomeHeader from "../../home/HomeHeader";
-import Footer from "../../component/Footer";
+import HomeHeader from "@/app/home/HomeHeader";
+import Footer from "@/app/component/Footer";
 
 interface Vehicle {
   id: number;
+  brand: string;
+  model: string;
   name: string;
   category: string;
   img: string;
-  price: number;
+  pricePerDay: number;
   rating: number;
   range: string;
   charge: number;
   location: string;
+  city: string;
   tags: string[];
   badge?: string;
   seats?: number;
-  speed: string;
+  transmission: string;
+  fuelType: string;
+  isAvailable: boolean;
+  photos: string[];
 }
-
-const allVehicles: Vehicle[] = [
-  { id: 1, name: "Lucid Air Touring", category: "Cars", img: "/Car.jpg", price: 120, rating: 4.9, range: "516 km", charge: 95, location: "Kathmandu", tags: ["Autopilot", "Luxury"], badge: "PREMIUM", seats: 5, speed: "250 km/h" },
-  { id: 2, name: "Hyundai IONIQ 5", category: "Cars", img: "/ioniq.png", price: 80, rating: 4.7, range: "480 km", charge: 85, location: "Lalitpur", tags: ["Fast Charge", "Spacious"], badge: "POPULAR", seats: 5, speed: "185 km/h" },
-  { id: 3, name: "BMW i4 eDrive40", category: "Cars", img: "/BMW.png", price: 100, rating: 4.8, range: "590 km", charge: 78, location: "Bhaktapur", tags: ["Premium Audio", "Sport"], badge: "TOP RATED", seats: 4, speed: "200 km/h" },
-  { id: 4, name: "Tesla Model 3", category: "Cars", img: "/ev_car_white.png", price: 90, rating: 4.6, range: "510 km", charge: 92, location: "Kathmandu", tags: ["Autopilot", "Efficient"], seats: 5, speed: "225 km/h" },
-  { id: 5, name: "Ather 450X", category: "Scooters", img: "/ev_scooter.png", price: 25, rating: 4.5, range: "105 km", charge: 88, location: "Pokhara", tags: ["Smart", "Connected"], badge: "ECO", seats: 2, speed: "80 km/h" },
-  { id: 6, name: "Ola S1 Pro", category: "Scooters", img: "/scooters.jpg", price: 20, rating: 4.3, range: "135 km", charge: 70, location: "Kathmandu", tags: ["Budget", "City"], seats: 2, speed: "90 km/h" },
-  { id: 7, name: "Revolt RV400", category: "Bikes", img: "/ev_motorcycle.png", price: 45, rating: 4.4, range: "150 km", charge: 60, location: "Lalitpur", tags: ["Sporty", "AI Sound"], badge: "NEW", seats: 2, speed: "85 km/h" },
-  { id: 8, name: "Ultraviolette F77", category: "Bikes", img: "/bikes.jpg", price: 55, rating: 4.6, range: "200 km", charge: 75, location: "Bhaktapur", tags: ["Performance", "Track"], seats: 2, speed: "155 km/h" },
-  { id: 9, name: "Trek Domane+ SLR", category: "Cycles", img: "/ev_bicycle.png", price: 15, rating: 4.2, range: "90 km", charge: 100, location: "Pokhara", tags: ["Fitness", "Trail"], seats: 1, speed: "45 km/h" },
-  { id: 10, name: "Giant Trance X E+", category: "Cycles", img: "/cycle.jpg", price: 12, rating: 4.1, range: "75 km", charge: 95, location: "Kathmandu", tags: ["Mountain", "Assist"], seats: 1, speed: "40 km/h" },
-  { id: 11, name: "Nissan Leaf", category: "Cars", img: "/leaf.png", price: 70, rating: 4.5, range: "364 km", charge: 82, location: "Pokhara", tags: ["Compact", "Family"], seats: 5, speed: "157 km/h" },
-  { id: 12, name: "TVS iQube", category: "Scooters", img: "/ev_scooter.png", price: 18, rating: 4.0, range: "100 km", charge: 65, location: "Lalitpur", tags: ["Affordable", "Commute"], seats: 2, speed: "78 km/h" },
-];
 
 const categories = ["All", "Cars", "Bikes", "Scooters", "Cycles"];
 const locations = ["All Locations", "Kathmandu", "Lalitpur", "Bhaktapur", "Pokhara"];
-const sortOptions = ["Recommended", "Price: Low to High", "Price: High to Low", "Rating", "Range"];
+const sortOptions = ["Recommended", "Price: Low to High", "Price: High to Low", "Rating"];
 
 export default function VehiclesPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedLocation, setSelectedLocation] = useState("All Locations");
   const [sortBy, setSortBy] = useState("Recommended");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 150]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
-  const [vehicles, setVehicles] = useState<Vehicle[]>(allVehicles);
+
+  const getAccessToken = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('accessToken') || localStorage.getItem('token');
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push('/signin');
+      return;
+    }
+    fetchVehicles();
+  }, []);
+
+  const fetchVehicles = async () => {
+    setLoading(true);
+    try {
+      const token = getAccessToken();
+      if (!token) {
+        router.push('/signin');
+        return;
+      }
+
+      const response = await fetch('http://localhost:8080/api/vehicles/recent?page=0&size=100', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/signin');
+        return;
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        const vehicleList = data.content || [];
+
+        const formattedVehicles = vehicleList.map((v: any) => ({
+          id: v.id,
+          brand: v.brand,
+          model: v.model,
+          name: `${v.brand} ${v.model}`,
+          category: mapCategory(v.seats),
+          img: v.photos && v.photos[0] ? v.photos[0] : '/car-placeholder.jpg',
+          pricePerDay: v.pricePerDay,
+          rating: v.averageRating || 4.5,
+          range: getRangeByFuelType(v.fuelType),
+          charge: getChargeByFuelType(v.fuelType),
+          location: v.city,
+          city: v.city,
+          tags: extractTags(v),
+          seats: v.seats,
+          transmission: v.transmission,
+          fuelType: v.fuelType,
+          isAvailable: v.isAvailable,
+          photos: v.photos || []
+        }));
+
+        setVehicles(formattedVehicles);
+      } else {
+        console.error('Failed to fetch vehicles:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mapCategory = (seats: number): string => {
+    if (seats === 2) return "Bikes";
+    if (seats === 1) return "Cycles";
+    return "Cars";
+  };
+
+  const getRangeByFuelType = (fuelType: string): string => {
+    switch (fuelType?.toLowerCase()) {
+      case 'electric': return '400 km';
+      case 'hybrid': return '600 km';
+      case 'petrol': return '500 km';
+      case 'diesel': return '700 km';
+      default: return '400 km';
+    }
+  };
+
+  const getChargeByFuelType = (fuelType: string): number => {
+    switch (fuelType?.toLowerCase()) {
+      case 'electric': return 85;
+      case 'hybrid': return 75;
+      default: return 65;
+    }
+  };
+
+  const extractTags = (vehicle: any): string[] => {
+    const tags = [];
+    if (vehicle.transmission === 'automatic') tags.push('Automatic');
+    if (vehicle.seats >= 5) tags.push('Family');
+    if (vehicle.fuelType === 'electric') tags.push('Eco-Friendly');
+    if (vehicle.pricePerDay < 1000) tags.push('Budget');
+    if (vehicle.pricePerDay > 5000) tags.push('Premium');
+    return tags.slice(0, 3);
+  };
 
   const filtered = useMemo(() => {
-    let result = vehicles;
+    let result = [...vehicles];
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(v =>
         v.name.toLowerCase().includes(q) ||
+        v.brand.toLowerCase().includes(q) ||
+        v.model.toLowerCase().includes(q) ||
         v.tags.some(t => t.toLowerCase().includes(q))
       );
     }
-    if (activeCategory !== "All") result = result.filter(v => v.category === activeCategory);
-    if (selectedLocation !== "All Locations") result = result.filter(v => v.location === selectedLocation);
-    result = result.filter(v => v.price >= priceRange[0] && v.price <= priceRange[1]);
-    switch (sortBy) {
-      case "Price: Low to High": result = [...result].sort((a, b) => a.price - b.price); break;
-      case "Price: High to Low": result = [...result].sort((a, b) => b.price - a.price); break;
-      case "Rating": result = [...result].sort((a, b) => b.rating - a.rating); break;
-      case "Range": result = [...result].sort((a, b) => parseInt(b.range) - parseInt(a.range)); break;
+
+    if (activeCategory !== "All") {
+      result = result.filter(v => v.category === activeCategory);
     }
+
+    if (selectedLocation !== "All Locations") {
+      result = result.filter(v => v.location === selectedLocation);
+    }
+
+    result = result.filter(v => v.pricePerDay >= priceRange[0] && v.pricePerDay <= priceRange[1]);
+
+    switch (sortBy) {
+      case "Price: Low to High":
+        result = [...result].sort((a, b) => a.pricePerDay - b.pricePerDay);
+        break;
+      case "Price: High to Low":
+        result = [...result].sort((a, b) => b.pricePerDay - a.pricePerDay);
+        break;
+      case "Rating":
+        result = [...result].sort((a, b) => b.rating - a.rating);
+        break;
+      default:
+        result = [...result].sort((a, b) => b.id - a.id);
+    }
+
     return result;
   }, [searchQuery, activeCategory, selectedLocation, sortBy, priceRange, vehicles]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-neutral-50">
+        <HomeHeader />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-emerald-600 mx-auto mb-4" />
+            <p className="text-gray-600">Loading vehicles...</p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-neutral-50 font-['Inter',system-ui]">
@@ -86,7 +220,6 @@ export default function VehiclesPage() {
 
       {/* Hero Section */}
       <div className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1621609764180-2ca554a9c6f6?auto=format&fit=crop&q=80')] opacity-10 bg-cover bg-center mix-blend-overlay" />
         <div className="max-w-7xl mx-auto px-6 py-12 md:py-16 relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
@@ -96,7 +229,7 @@ export default function VehiclesPage() {
           </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-6">
-            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-5 py-3 focus-within:ring-2 focus-within:ring-emerald-400 transition-all">
+            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-5 py-3">
               <Search className="w-5 h-5 text-white/50" />
               <input
                 type="text"
@@ -119,20 +252,17 @@ export default function VehiclesPage() {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${activeCategory === cat
-                    ? "bg-emerald-500 text-white shadow-lg"
-                    : "bg-white/10 text-white/80 hover:bg-white/20"
-                    }`}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${activeCategory === cat ? "bg-emerald-500 text-white shadow-lg" : "bg-white/10 text-white/80 hover:bg-white/20"}`}
                 >
                   {cat}
                 </button>
               ))}
             </div>
-            <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+            <div className="flex flex-wrap gap-3">
               <select
                 value={selectedLocation}
                 onChange={e => setSelectedLocation(e.target.value)}
-                className="min-w-0 flex-1 sm:flex-none bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white outline-none cursor-pointer"
+                className="bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white"
               >
                 {locations.map(loc => (
                   <option key={loc} value={loc} className="text-gray-900">{loc}</option>
@@ -140,38 +270,34 @@ export default function VehiclesPage() {
               </select>
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center justify-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-sm font-medium hover:bg-white/20 transition"
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg text-sm font-medium"
               >
                 <SlidersHorizontal className="w-4 h-4" /> Filters
               </button>
               <div className="relative">
                 <button
                   onClick={() => setShowSort(!showSort)}
-                  className="flex items-center justify-center gap-2 px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-sm font-medium hover:bg-white/20 transition max-w-full"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg text-sm font-medium"
                 >
                   <ChevronDown className="w-4 h-4" /> {sortBy}
                 </button>
                 {showSort && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border z-20 overflow-hidden">
-                    <div className="py-1">
-                      {sortOptions.map(opt => (
-                        <button
-                          key={opt}
-                          onClick={() => { setSortBy(opt); setShowSort(false); }}
-                          className={`block w-full text-left px-4 py-2 text-sm hover:bg-emerald-50 transition ${sortBy === opt ? "text-emerald-600 font-semibold bg-emerald-50" : "text-gray-700"
-                            }`}
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-20">
+                    {sortOptions.map(opt => (
+                      <button
+                        key={opt}
+                        onClick={() => { setSortBy(opt); setShowSort(false); }}
+                        className="block w-full text-left px-4 py-2 text-sm hover:bg-emerald-50"
+                      >
+                        {opt}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
-              {/* ✅ ADD VEHICLE BUTTON - Now redirects to add-vehicle page */}
               <Link
                 href="/add-vehicle"
-                className="flex items-center justify-center gap-2 px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition shadow-md"
+                className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm font-medium"
               >
                 <Plus className="w-4 h-4" /> Add Vehicle
               </Link>
@@ -189,16 +315,14 @@ export default function VehiclesPage() {
                 <div className="flex flex-wrap gap-6 items-center">
                   <div className="flex-1 min-w-[200px]">
                     <label className="text-white/80 text-sm block mb-2">
-                      Price per hour:{" "}
-                      <span className="text-emerald-300 font-bold">₹{priceRange[0]}</span> —{" "}
-                      <span className="text-emerald-300 font-bold">₹{priceRange[1]}</span>
+                      Price per day: ₹{priceRange[0]} — ₹{priceRange[1]}
                     </label>
                     <div className="flex gap-4">
-                      <input type="range" min={0} max={150} value={priceRange[0]}
+                      <input type="range" min={0} max={50000} value={priceRange[0]}
                         onChange={e => setPriceRange([Math.min(+e.target.value, priceRange[1]), priceRange[1]])}
                         className="w-full accent-emerald-400"
                       />
-                      <input type="range" min={0} max={150} value={priceRange[1]}
+                      <input type="range" min={0} max={50000} value={priceRange[1]}
                         onChange={e => setPriceRange([priceRange[0], Math.max(+e.target.value, priceRange[0])])}
                         className="w-full accent-emerald-400"
                       />
@@ -206,13 +330,13 @@ export default function VehiclesPage() {
                   </div>
                   <button
                     onClick={() => {
-                      setPriceRange([0, 150]);
+                      setPriceRange([0, 50000]);
                       setSelectedLocation("All Locations");
                       setActiveCategory("All");
                       setSortBy("Recommended");
                       setSearchQuery("");
                     }}
-                    className="px-4 py-2 rounded-lg text-red-300 border border-white/20 text-sm hover:bg-white/10 transition"
+                    className="px-4 py-2 rounded-lg text-red-300 border border-white/20 text-sm hover:bg-white/10"
                   >
                     Reset all
                   </button>
@@ -225,117 +349,76 @@ export default function VehiclesPage() {
 
       {/* Results */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
-        <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
+        <div className="flex justify-between items-center mb-6">
           <p className="text-gray-500 text-sm">
-            Showing <strong className="text-gray-900">{filtered.length}</strong> vehicle{filtered.length !== 1 ? "s" : ""}
+            Showing <strong>{filtered.length}</strong> vehicle{filtered.length !== 1 ? "s" : ""}
           </p>
-          {selectedLocation !== "All Locations" && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Filtering by:</span>
-              <span className="px-2 py-1 bg-emerald-50 text-emerald-700 text-xs rounded-full flex items-center gap-1">
-                <MapPin className="w-3 h-3" /> {selectedLocation}
-                <button onClick={() => setSelectedLocation("All Locations")} className="ml-1 hover:text-red-500">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            </div>
-          )}
         </div>
 
         {filtered.length === 0 ? (
           <div className="text-center py-20">
-            <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-700">No vehicles found</h3>
-            <p className="text-gray-400">Try adjusting your filters or search query.</p>
+            <p className="text-gray-400 mt-2">Try adjusting your filters or check back later.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <AnimatePresence mode="popLayout">
-              {filtered.map((v, i) => (
-                <motion.div
-                  key={v.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-emerald-200 relative"
-                >
-                  {v.badge && (
-                    <div className="absolute z-10 m-3 px-2 py-0.5 bg-emerald-500 text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow-md">
-                      {v.badge}
-                    </div>
-                  )}
-                  <Link href={`/vehicles/${v.id}`} className="block">
-                    <div className="relative h-44 bg-gray-100 overflow-hidden">
-                      <img
-                        src={v.img}
-                        alt={v.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                        onError={e => {
-                          (e.target as HTMLImageElement).src =
-                            "https://via.placeholder.com/300x200?text=Vehicle+Image";
-                        }}
-                      />
-                    </div>
-                  </Link>
-                  <div className="p-4">
-                    <div className="flex justify-between items-start">
-                      <Link href={`/vehicles/${v.id}`}>
-                        <h3 className="font-bold text-gray-800 text-lg hover:text-emerald-600 transition">{v.name}</h3>
-                      </Link>
-                      <div className="flex items-center gap-0.5 bg-yellow-50 px-1.5 py-0.5 rounded-md">
-                        <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
-                        <span className="text-xs font-bold text-yellow-700">{v.rating}</span>
+            {filtered.map((v) => (
+              <div
+                key={v.id}
+                onClick={() => router.push(`/vehicles/${v.id}`)}
+                className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all overflow-hidden border border-gray-100 hover:border-emerald-200 cursor-pointer"
+              >
+                <div className="relative h-48 bg-gray-100 overflow-hidden">
+                  <img
+                    src={v.img}
+                    alt={v.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x300?text=Vehicle";
+                    }}
+                  />
+                </div>
+                <div className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-gray-800 text-lg">{v.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                        <span className="text-sm font-medium">{v.rating}</span>
+                        <span className="text-gray-400">•</span>
+                        <span className="text-sm text-gray-500">{v.location}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-gray-500 mt-1.5 flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <Zap className="w-3 h-3 text-emerald-500" />
-                        {v.range}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-indigo-400" />
-                        {v.location}
-                      </span>
-                      <span className="font-mono bg-gray-100 px-1.5 rounded">{v.speed}</span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      <Battery className={`w-3.5 h-3.5 ${v.charge > 80 ? "text-emerald-500" : v.charge > 50 ? "text-amber-500" : "text-red-500"}`} />
-                      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${v.charge > 80 ? "bg-emerald-500" : v.charge > 50 ? "bg-amber-500" : "bg-red-500"}`}
-                          style={{ width: `${v.charge}%` }}
-                        />
-                      </div>
-                      <span className="text-[11px] font-medium text-gray-600">{v.charge}%</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 mt-3">
-                      <span className="text-[10px] font-medium bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                        {v.category}
-                      </span>
-                      {v.tags.slice(0, 2).map(tag => (
-                        <span key={tag} className="text-[10px] font-medium bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                      <div>
-                        <span className="text-xl font-black text-emerald-600">₹{v.price}</span>
-                        <span className="text-xs text-gray-400"> /hr</span>
-                      </div>
-                      <Link
-                        href={`/vehicles/${v.id}`}
-                        className="px-4 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm font-semibold hover:bg-emerald-600 hover:text-white transition shadow-sm"
-                      >
-                        Book
-                      </Link>
+                    <div className="text-right">
+                      <span className="text-xl font-black text-emerald-600">₹{v.pricePerDay}</span>
+                      <span className="text-xs text-gray-400"> /day</span>
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+
+                  <div className="flex items-center gap-3 mt-3 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <Zap className="w-3 h-3 text-emerald-500" />
+                      {v.range}
+                    </span>
+                    <span>{v.seats} seats</span>
+                    <span className="capitalize">{v.transmission}</span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5 mt-3">
+                    {v.tags.slice(0, 2).map(tag => (
+                      <span key={tag} className="text-[10px] font-medium bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <button className="w-full mt-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-semibold hover:bg-emerald-600 hover:text-white transition">
+                    View Details
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </main>
