@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, Star, Zap, Users, Gauge, Leaf, ChevronLeft,
-  ChevronRight, Shield, Images, Calendar, Loader2
+  ArrowLeft, Star, Users, Gauge, Leaf, ChevronLeft,
+  ChevronRight, Shield, Images, Calendar, Loader2, Car,
+  Fuel, MapPin, Palette, Hash, Luggage, Banknote, Clock,
+  CheckCircle2, FileText, Navigation, Timer, DoorOpen
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,20 +19,45 @@ import Footer from "../../../component/Footer";
 interface Vehicle {
   id: number;
   name: string;
+  brand?: string;
+  model?: string;
+  year?: number;
+  color?: string;
+  licensePlate?: string;
+  vin?: string;
   category: string;
   img: string;
   price: number;
+  pricePerWeek?: number;
+  pricePerMonth?: number;
+  securityDeposit?: number;
   rating: number;
   range: string;
   charge: number;
   location: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  latitude?: number;
+  longitude?: number;
   tags: string[];
+  features: string[];
   badge?: string;
   seats?: number;
+  doors?: number;
+  luggageCapacity?: number;
   speed: string;
   driveType?: string;
+  transmission?: string;
+  fuelType?: string;
+  availableFrom?: string;
+  availableTo?: string;
+  minRentalDays?: number;
+  maxRentalDays?: number;
   extraImages?: string[];
   description?: string;
+  terms?: string;
   host?: { name: string; avatar?: string; trips: number };
   co2Saved?: string;
 }
@@ -145,6 +172,67 @@ const getAuthToken = () => {
   return null;
 };
 
+const titleCase = (value?: string | number | null) => {
+  if (value === null || value === undefined || value === "") return "Not provided";
+  return String(value)
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\w\S*/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+};
+
+const formatCurrency = (value?: number | null) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return "Not set";
+  return `Rs. ${Number(value).toLocaleString()}`;
+};
+
+const formatDate = (value?: string | null) => {
+  if (!value) return "Not set";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Not set";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
+function DetailItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+          <p className="mt-1 break-words text-sm font-semibold text-gray-800">{value || "Not provided"}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-7">
+      <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Main Component
 // ---------------------------------------------------------------------------
@@ -168,14 +256,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     });
   }, [params]);
 
-  // Fetch vehicle data
-  useEffect(() => {
-    if (vehicleId) {
-      fetchVehicleData();
-    }
-  }, [vehicleId]);
-
-  const fetchVehicleData = async () => {
+  const fetchVehicleData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -213,24 +294,55 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
       const transformedVehicle: Vehicle = {
         id: data.id,
         name: `${data.brand} ${data.model}`,
+        brand: data.brand,
+        model: data.model,
+        year: data.year,
+        color: data.color,
+        licensePlate: data.licensePlate,
+        vin: data.vin,
         category: data.fuelType || "Electric",
         img: data.photos && data.photos.length > 0 ? data.photos[0] : "https://via.placeholder.com/600x400?text=Vehicle",
-        price: data.pricePerDay,
+        price: data.pricePerDay || 0,
+        pricePerWeek: data.pricePerWeek,
+        pricePerMonth: data.pricePerMonth,
+        securityDeposit: data.securityDeposit,
         rating: data.averageRating || 4.5,
         range: data.range || (data.fuelType === "Electric" ? "400 km" : "600 km"),
         charge: data.charge || 80,
-        location: data.city || "Unknown Location",
-        tags: [data.transmission || "Automatic", `${data.seats || 4} Seats`, data.fuelType || "Petrol"],
+        location: [data.city, data.state].filter(Boolean).join(", ") || "Unknown Location",
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zipCode: data.zipCode,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        tags: [
+          data.transmission,
+          data.seats ? `${data.seats} Seats` : undefined,
+          data.fuelType,
+          data.year,
+          data.color
+        ].filter(Boolean).map(String),
+        features: Array.isArray(data.features) ? data.features : [],
         seats: data.seats || 4,
+        doors: data.doors,
+        luggageCapacity: data.luggageCapacity,
         speed: data.speed || "200 km/h",
-        driveType: data.driveType || (data.fuelType === "Electric" ? "Dual Motor AWD" : "Front Wheel Drive"),
+        driveType: data.driveType || titleCase(data.transmission),
+        transmission: data.transmission,
+        fuelType: data.fuelType,
+        availableFrom: data.availableFrom,
+        availableTo: data.availableTo,
+        minRentalDays: data.minRentalDays ?? data.minimumRentalDays,
+        maxRentalDays: data.maxRentalDays ?? data.maximumRentalDays,
         extraImages: data.photos && data.photos.length > 1 ? data.photos.slice(1) : [],
         description: data.description || `Experience the ${data.brand} ${data.model} - a perfect blend of performance and comfort.`,
+        terms: data.terms,
         host: {
           name: data.ownerName || "Premium Host",
           trips: data.hostTrips || 124
         },
-        co2Saved: data.co2Saved || "42.5kg"
+        co2Saved: data.co2Saved
       };
 
       setVehicle(transformedVehicle);
@@ -240,7 +352,15 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     } finally {
       setLoading(false);
     }
-  };
+  }, [vehicleId]);
+
+  // Fetch vehicle data
+  useEffect(() => {
+    if (vehicleId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      fetchVehicleData();
+    }
+  }, [vehicleId, fetchVehicleData]);
 
   function prevMonth() {
     if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
@@ -318,6 +438,8 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   }
 
   const images = [vehicle.img, ...(vehicle.extraImages ?? [])].slice(0, 5);
+  const isElectric = vehicle.fuelType?.toLowerCase() === "electric";
+  const hasAvailability = vehicle.availableFrom || vehicle.availableTo || vehicle.minRentalDays || vehicle.maxRentalDays;
 
   return (
     <div className="min-h-screen bg-[#f8f9fb] font-['Sora',system-ui]">
@@ -346,7 +468,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 onClick={() => setActiveImg(0)}
               >
                 <img
-                  src={images[0]}
+                  src={images[activeImg] || images[0]}
                   alt={vehicle.name}
                   className="w-full h-full object-cover hover:scale-105 transition duration-500"
                   onError={e => { (e.target as HTMLImageElement).src = "https://via.placeholder.com/600x400?text=Vehicle"; }}
@@ -408,9 +530,9 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
             {/* Specs strip */}
             <div className="mt-5 grid grid-cols-3 gap-3">
               {[
-                { icon: <Gauge className="w-5 h-5 text-emerald-600" />, label: "DRIVE TYPE", value: vehicle.driveType || "Dual Motor AWD" },
+                { icon: <Gauge className="w-5 h-5 text-emerald-600" />, label: "TRANSMISSION", value: titleCase(vehicle.transmission || vehicle.driveType) },
                 { icon: <Users className="w-5 h-5 text-emerald-600" />, label: "CAPACITY", value: `${vehicle.seats || 5} Seats` },
-                { icon: <Zap className="w-5 h-5 text-emerald-600" />, label: "RANGE", value: vehicle.range },
+                { icon: <Fuel className="w-5 h-5 text-emerald-600" />, label: "FUEL TYPE", value: titleCase(vehicle.fuelType || vehicle.category) },
               ].map(s => (
                 <div key={s.label} className="bg-white rounded-xl p-3.5 border border-gray-100 shadow-sm">
                   {s.icon}
@@ -421,6 +543,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* Eco banner */}
+            {isElectric && (
             <div className="mt-5 bg-emerald-900 text-white rounded-2xl p-5 relative overflow-hidden">
               <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
                 <Leaf className="w-20 h-20 text-emerald-400" />
@@ -432,17 +555,18 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 <div>
                   <p className="font-bold text-base">Make an impact.</p>
                   <p className="text-emerald-200 text-sm mt-1 leading-relaxed max-w-sm">
-                    By choosing this electric vehicle for your {days}-day trip, you'll save approximately{" "}
-                    <span className="text-emerald-300 font-semibold">{vehicle.co2Saved || "42.5kg"}</span> of CO₂
+                    By choosing this electric vehicle for your {days}-day trip, you will save approximately{" "}
+                    <span className="text-emerald-300 font-semibold">{vehicle.co2Saved || "42.5kg"}</span> of CO2
                     compared to a luxury ICE sedan.
                   </p>
                 </div>
               </div>
             </div>
+            )}
 
             {/* Description */}
             <div className="mt-7">
-              <h2 className="text-lg font-bold text-gray-900">Experience the Future</h2>
+              <h2 className="text-lg font-bold text-gray-900">Vehicle Description</h2>
               <p className="mt-2 text-sm text-gray-500 leading-relaxed">
                 {vehicle.description}
               </p>
@@ -456,13 +580,73 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 </span>
               ))}
             </div>
+
+            <DetailSection title="Vehicle Information">
+              <DetailItem icon={<Car className="h-4 w-4" />} label="Brand & Model" value={`${vehicle.brand || "Vehicle"} ${vehicle.model || ""}`.trim()} />
+              <DetailItem icon={<Calendar className="h-4 w-4" />} label="Year" value={vehicle.year || "Not provided"} />
+              <DetailItem icon={<Palette className="h-4 w-4" />} label="Color" value={titleCase(vehicle.color)} />
+              <DetailItem icon={<Hash className="h-4 w-4" />} label="License Plate" value={vehicle.licensePlate || "Not provided"} />
+              <DetailItem icon={<Hash className="h-4 w-4" />} label="VIN" value={vehicle.vin || "Not provided"} />
+              <DetailItem icon={<DoorOpen className="h-4 w-4" />} label="Doors" value={vehicle.doors ? `${vehicle.doors} doors` : "Not provided"} />
+              <DetailItem icon={<Luggage className="h-4 w-4" />} label="Luggage Capacity" value={vehicle.luggageCapacity !== undefined ? `${vehicle.luggageCapacity} bags` : "Not provided"} />
+              <DetailItem icon={<Users className="h-4 w-4" />} label="Seats" value={vehicle.seats ? `${vehicle.seats} seats` : "Not provided"} />
+            </DetailSection>
+
+            <DetailSection title="Pricing & Rental Rules">
+              <DetailItem icon={<Banknote className="h-4 w-4" />} label="Daily Price" value={formatCurrency(vehicle.price)} />
+              <DetailItem icon={<Banknote className="h-4 w-4" />} label="Weekly Price" value={formatCurrency(vehicle.pricePerWeek)} />
+              <DetailItem icon={<Banknote className="h-4 w-4" />} label="Monthly Price" value={formatCurrency(vehicle.pricePerMonth)} />
+              <DetailItem icon={<Shield className="h-4 w-4" />} label="Security Deposit" value={formatCurrency(vehicle.securityDeposit)} />
+              <DetailItem icon={<Timer className="h-4 w-4" />} label="Minimum Rental" value={vehicle.minRentalDays ? `${vehicle.minRentalDays} day${vehicle.minRentalDays > 1 ? "s" : ""}` : "Not set"} />
+              <DetailItem icon={<Clock className="h-4 w-4" />} label="Maximum Rental" value={vehicle.maxRentalDays ? `${vehicle.maxRentalDays} day${vehicle.maxRentalDays > 1 ? "s" : ""}` : "Not set"} />
+            </DetailSection>
+
+            <DetailSection title="Pickup Location">
+              <DetailItem icon={<MapPin className="h-4 w-4" />} label="Address" value={vehicle.address || "Not provided"} />
+              <DetailItem icon={<MapPin className="h-4 w-4" />} label="City" value={vehicle.city || "Not provided"} />
+              <DetailItem icon={<Navigation className="h-4 w-4" />} label="State" value={vehicle.state || "Not provided"} />
+              <DetailItem icon={<Hash className="h-4 w-4" />} label="ZIP Code" value={vehicle.zipCode || "Not provided"} />
+              <DetailItem icon={<Navigation className="h-4 w-4" />} label="Latitude" value={vehicle.latitude ?? "Not provided"} />
+              <DetailItem icon={<Navigation className="h-4 w-4" />} label="Longitude" value={vehicle.longitude ?? "Not provided"} />
+            </DetailSection>
+
+            {hasAvailability && (
+              <DetailSection title="Availability">
+                <DetailItem icon={<Calendar className="h-4 w-4" />} label="Available From" value={formatDate(vehicle.availableFrom)} />
+                <DetailItem icon={<Calendar className="h-4 w-4" />} label="Available To" value={formatDate(vehicle.availableTo)} />
+              </DetailSection>
+            )}
+
+            {vehicle.features.length > 0 && (
+              <section className="mt-7">
+                <h2 className="text-lg font-bold text-gray-900">Features & Amenities</h2>
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {vehicle.features.map(feature => (
+                    <div key={feature} className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+                      <CheckCircle2 className="h-4 w-4 shrink-0" />
+                      {titleCase(feature)}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {vehicle.terms && (
+              <section className="mt-7 rounded-lg border border-gray-100 bg-white p-5 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-emerald-700" />
+                  <h2 className="text-lg font-bold text-gray-900">Owner Terms</h2>
+                </div>
+                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-gray-600">{vehicle.terms}</p>
+              </section>
+            )}
           </div>
 
           {/* RIGHT COLUMN (Booking Card) */}
           <div className="lg:w-[320px] xl:w-[340px] flex-shrink-0">
             <div className="sticky top-6 bg-white rounded-2xl shadow-lg border border-gray-100 p-5 space-y-5">
               <div className="flex items-end gap-2">
-                <span className="text-3xl font-black text-gray-900">₹{vehicle.price}</span>
+                <span className="text-3xl font-black text-gray-900">Rs. {vehicle.price}</span>
                 <span className="text-sm text-gray-400 pb-0.5">/ day</span>
                 {discount > 0 && (
                   <span className="ml-auto text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
@@ -485,7 +669,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 />
                 {dateRange[0] && dateRange[1] && (
                   <p className="text-xs text-emerald-600 font-semibold mt-2">
-                    {days} day{days > 1 ? "s" : ""} selected · {MONTHS[calMonth]} {dateRange[0]}–{dateRange[1]}, {calYear}
+                    {days} day{days > 1 ? "s" : ""} selected, {MONTHS[calMonth]} {dateRange[0]}-{dateRange[1]}, {calYear}
                   </p>
                 )}
               </div>
@@ -512,11 +696,11 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-gray-800 capitalize">{plan}</p>
                         <p className="text-[10px] text-gray-400 truncate">
-                          {plan === "premium" ? "₹0 Deductible · All Inclusive" : "₹500 Deductible · Recommended"}
+                          {plan === "premium" ? "Rs. 0 deductible, all inclusive" : "Rs. 500 deductible, recommended"}
                         </p>
                       </div>
                       <span className="text-xs font-bold text-emerald-600 flex-shrink-0">
-                        +₹{plan === "premium" ? 45 : 22}/d
+                        +Rs. {plan === "premium" ? 45 : 22}/d
                       </span>
                     </button>
                   ))}
@@ -525,16 +709,46 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
 
               <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-600 space-y-1.5">
                 <div className="flex justify-between">
-                  <span>₹{vehicle.price}/day × {days} day{days > 1 ? "s" : ""}</span>
-                  <span className="font-semibold text-gray-800">₹{vehicle.price * days}</span>
+                  <span>Rs. {vehicle.price}/day x {days} day{days > 1 ? "s" : ""}</span>
+                  <span className="font-semibold text-gray-800">Rs. {vehicle.price * days}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>{insurance === "premium" ? "Premium" : "Standard"} insurance</span>
-                  <span className="font-semibold text-gray-800">₹{insuranceCost * days}</span>
+                  <span className="font-semibold text-gray-800">Rs. {insuranceCost * days}</span>
                 </div>
+                {vehicle.securityDeposit !== undefined && (
+                  <div className="flex justify-between">
+                    <span>Security deposit</span>
+                    <span className="font-semibold text-gray-800">{formatCurrency(vehicle.securityDeposit)}</span>
+                  </div>
+                )}
+                {vehicle.pricePerWeek ? (
+                  <div className="flex justify-between text-emerald-700">
+                    <span>Weekly rate</span>
+                    <span className="font-semibold">{formatCurrency(vehicle.pricePerWeek)}</span>
+                  </div>
+                ) : null}
+                {vehicle.pricePerMonth ? (
+                  <div className="flex justify-between text-emerald-700">
+                    <span>Monthly rate</span>
+                    <span className="font-semibold">{formatCurrency(vehicle.pricePerMonth)}</span>
+                  </div>
+                ) : null}
+                {vehicle.minRentalDays || vehicle.maxRentalDays ? (
+                  <div className="flex justify-between text-gray-500">
+                    <span>Rental window</span>
+                    <span>{vehicle.minRentalDays || 1}-{vehicle.maxRentalDays || "any"} days</span>
+                  </div>
+                ) : null}
+                {vehicle.availableFrom || vehicle.availableTo ? (
+                  <div className="flex justify-between text-gray-500">
+                    <span>Available</span>
+                    <span>{formatDate(vehicle.availableFrom)} - {formatDate(vehicle.availableTo)}</span>
+                  </div>
+                ) : null}
                 <div className="flex justify-between pt-1.5 border-t border-gray-200 font-bold text-gray-900 text-sm">
                   <span>Total</span>
-                  <span>₹{(vehicle.price + insuranceCost) * days}</span>
+                  <span>Rs. {(vehicle.price + insuranceCost) * days + (vehicle.securityDeposit || 0)}</span>
                 </div>
               </div>
 
@@ -548,7 +762,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
               </motion.button>
 
               <p className="text-center text-[10px] text-gray-400">
-                You won't be charged until a host accepts your trip request.
+                You will not be charged until a host accepts your trip request.
               </p>
             </div>
           </div>

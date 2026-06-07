@@ -4,7 +4,9 @@ import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, SlidersHorizontal, Battery, Zap, MapPin,
-  Star, X, ChevronDown, Plus, Loader2, Car
+  Star, X, ChevronDown, Plus, Loader2, Car, Heart,
+  Fuel, Users, Gauge, Filter, ArrowUpDown, TrendingUp,
+  Clock, Shield, Sparkles, Leaf, Wallet, Navigation
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,9 +35,21 @@ interface Vehicle {
   photos: string[];
 }
 
-const categories = ["All", "Cars", "Bikes", "Scooters", "Cycles"];
+const categories = [
+  { name: "All", icon: Car, color: "emerald" },
+  { name: "Cars", icon: Car, color: "blue" },
+  { name: "Bikes", icon: Zap, color: "purple" },
+  { name: "Scooters", icon: Battery, color: "orange" },
+  { name: "Cycles", icon: Leaf, color: "green" }
+];
+
 const locations = ["All Locations", "Kathmandu", "Lalitpur", "Bhaktapur", "Pokhara"];
-const sortOptions = ["Recommended", "Price: Low to High", "Price: High to Low", "Rating"];
+const sortOptions = [
+  { label: "Recommended", icon: TrendingUp },
+  { label: "Price: Low to High", icon: ArrowUpDown },
+  { label: "Price: High to Low", icon: ArrowUpDown },
+  { label: "Rating", icon: Star }
+];
 
 export default function VehiclesPage() {
   const router = useRouter();
@@ -48,6 +62,7 @@ export default function VehiclesPage() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
 
   const getAccessToken = () => {
     if (typeof window !== 'undefined') {
@@ -152,11 +167,18 @@ export default function VehiclesPage() {
   const extractTags = (vehicle: any): string[] => {
     const tags = [];
     if (vehicle.transmission === 'automatic') tags.push('Automatic');
-    if (vehicle.seats >= 5) tags.push('Family');
+    if (vehicle.seats >= 5) tags.push('Family Friendly');
     if (vehicle.fuelType === 'electric') tags.push('Eco-Friendly');
     if (vehicle.pricePerDay < 1000) tags.push('Budget');
     if (vehicle.pricePerDay > 5000) tags.push('Premium');
     return tags.slice(0, 3);
+  };
+
+  const toggleFavorite = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFavoriteIds(prev =>
+      prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]
+    );
   };
 
   const filtered = useMemo(() => {
@@ -201,12 +223,18 @@ export default function VehiclesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-neutral-50">
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
         <HomeHeader />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-emerald-600 mx-auto mb-4" />
-            <p className="text-gray-600">Loading vehicles...</p>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              className="inline-block"
+            >
+              <Loader2 className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
+            </motion.div>
+            <p className="text-gray-600 font-medium">Loading amazing vehicles...</p>
           </div>
         </div>
         <Footer />
@@ -215,211 +243,418 @@ export default function VehiclesPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-50 font-['Inter',system-ui]">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 font-['Inter',system-ui]">
       <HomeHeader />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 text-white relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 py-12 md:py-16 relative z-10">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-              Find Your Perfect <span className="text-emerald-400">Electric Ride</span>
+      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white">
+        {/* Animated Background */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-400 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-400 rounded-full blur-3xl animate-pulse delay-1000" />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 py-16 md:py-20 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center max-w-3xl mx-auto"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring" }}
+              className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2 mb-6"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span className="text-sm font-medium">Explore Our Fleet</span>
+            </motion.div>
+
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4">
+              Find Your Perfect{" "}
+              <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+                Electric Ride
+              </span>
             </h1>
-            <p className="text-white/60 mt-2 max-w-lg">Browse our eco-friendly fleet. Filter by type, price, and location.</p>
+            <p className="text-white/70 text-lg max-w-2xl mx-auto">
+              Browse our eco-friendly fleet of premium vehicles. Filter by type, price, and location to find your perfect match.
+            </p>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mt-6">
-            <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl px-5 py-3">
-              <Search className="w-5 h-5 text-white/50" />
-              <input
-                type="text"
-                placeholder="Search vehicles by name or feature..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-white placeholder-white/40"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")}>
-                  <X className="w-4 h-4 text-white/50" />
-                </button>
-              )}
-            </div>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="flex flex-wrap justify-between items-center gap-4 mt-8">
-            <div className="flex flex-wrap gap-2">
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${activeCategory === cat ? "bg-emerald-500 text-white shadow-lg" : "bg-white/10 text-white/80 hover:bg-white/20"}`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <select
-                value={selectedLocation}
-                onChange={e => setSelectedLocation(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-sm text-white"
-              >
-                {locations.map(loc => (
-                  <option key={loc} value={loc} className="text-gray-900">{loc}</option>
-                ))}
-              </select>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg text-sm font-medium"
-              >
-                <SlidersHorizontal className="w-4 h-4" /> Filters
-              </button>
-              <div className="relative">
-                <button
-                  onClick={() => setShowSort(!showSort)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg text-sm font-medium"
-                >
-                  <ChevronDown className="w-4 h-4" /> {sortBy}
-                </button>
-                {showSort && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl z-20">
-                    {sortOptions.map(opt => (
-                      <button
-                        key={opt}
-                        onClick={() => { setSortBy(opt); setShowSort(false); }}
-                        className="block w-full text-left px-4 py-2 text-sm hover:bg-emerald-50"
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
+          {/* Search Bar */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-10 max-w-3xl mx-auto"
+          >
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-300" />
+              <div className="relative flex items-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-6 py-4 shadow-xl">
+                <Search className="w-6 h-6 text-white/60" />
+                <input
+                  type="text"
+                  placeholder="Search by brand, model, or feature..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="flex-1 bg-transparent outline-none text-white placeholder-white/40 text-lg font-medium"
+                  autoFocus={false}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="p-1 hover:bg-white/10 rounded-lg transition"
+                  >
+                    <X className="w-5 h-5 text-white/60" />
+                  </button>
                 )}
               </div>
-              <Link
-                href="/add-vehicle"
-                className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500 text-white rounded-lg text-sm font-medium"
-              >
-                <Plus className="w-4 h-4" /> Add Vehicle
-              </Link>
             </div>
           </motion.div>
 
-          <AnimatePresence>
-            {showFilters && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-6 p-5 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20"
-              >
-                <div className="flex flex-wrap gap-6 items-center">
-                  <div className="flex-1 min-w-[200px]">
-                    <label className="text-white/80 text-sm block mb-2">
-                      Price per day: ₹{priceRange[0]} — ₹{priceRange[1]}
-                    </label>
-                    <div className="flex gap-4">
-                      <input type="range" min={0} max={50000} value={priceRange[0]}
-                        onChange={e => setPriceRange([Math.min(+e.target.value, priceRange[1]), priceRange[1]])}
-                        className="w-full accent-emerald-400"
-                      />
-                      <input type="range" min={0} max={50000} value={priceRange[1]}
-                        onChange={e => setPriceRange([priceRange[0], Math.max(+e.target.value, priceRange[0])])}
-                        className="w-full accent-emerald-400"
-                      />
-                    </div>
-                  </div>
+          {/* Filters Row */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mt-10"
+          >
+            <div className="flex flex-wrap justify-between items-center gap-4">
+              {/* Categories */}
+              <div className="flex flex-wrap gap-2">
+                {categories.map((cat) => {
+                  const Icon = cat.icon;
+                  return (
+                    <button
+                      key={cat.name}
+                      onClick={() => setActiveCategory(cat.name)}
+                      className={`group px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${activeCategory === cat.name
+                          ? `bg-${cat.color}-500 text-white shadow-lg shadow-${cat.color}-500/30 scale-105`
+                          : "bg-white/10 text-white/80 hover:bg-white/20 hover:scale-105"
+                        }`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {cat.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Controls */}
+              <div className="flex flex-wrap gap-3">
+                <div className="relative">
                   <button
-                    onClick={() => {
-                      setPriceRange([0, 50000]);
-                      setSelectedLocation("All Locations");
-                      setActiveCategory("All");
-                      setSortBy("Recommended");
-                      setSearchQuery("");
-                    }}
-                    className="px-4 py-2 rounded-lg text-red-300 border border-white/20 text-sm hover:bg-white/10"
+                    onClick={() => setSelectedLocation(prev =>
+                      prev === "All Locations" ? "Kathmandu" : "All Locations"
+                    )}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-medium hover:bg-white/20 transition-all duration-300"
                   >
-                    Reset all
+                    <MapPin className="w-4 h-4" />
+                    {selectedLocation}
+                    <ChevronDown className="w-4 h-4" />
                   </button>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${showFilters ? "bg-emerald-500 text-white" : "bg-white/10 hover:bg-white/20"
+                    }`}
+                >
+                  <Filter className="w-4 h-4" />
+                  Filters
+                  {Object.keys(priceRange).length > 0 && priceRange[0] > 0 && (
+                    <span className="ml-1 w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                  )}
+                </button>
+
+                <div className="relative">
+                  <button
+                    onClick={() => setShowSort(!showSort)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-medium hover:bg-white/20 transition-all duration-300"
+                  >
+                    <ArrowUpDown className="w-4 h-4" />
+                    {sortBy}
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+
+                  <AnimatePresence>
+                    {showSort && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl z-20 overflow-hidden border border-gray-100"
+                      >
+                        {sortOptions.map(opt => {
+                          const Icon = opt.icon;
+                          return (
+                            <button
+                              key={opt.label}
+                              onClick={() => { setSortBy(opt.label); setShowSort(false); }}
+                              className="w-full text-left px-4 py-3 text-sm hover:bg-emerald-50 transition-colors duration-200 flex items-center gap-3 group"
+                            >
+                              <Icon className="w-4 h-4 text-gray-400 group-hover:text-emerald-600" />
+                              <span className="group-hover:text-emerald-600">{opt.label}</span>
+                              {sortBy === opt.label && (
+                                <motion.div
+                                  layoutId="activeSort"
+                                  className="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"
+                                />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                <Link
+                  href="/add-vehicle"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 hover:scale-105"
+                >
+                  <Plus className="w-4 h-4" />
+                  List Your Vehicle
+                </Link>
+              </div>
+            </div>
+
+            {/* Advanced Filters Panel */}
+            <AnimatePresence>
+              {showFilters && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{ opacity: 1, height: "auto", marginTop: "1rem" }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Price Range */}
+                      <div>
+                        <label className="text-white/80 text-sm font-medium mb-3 flex items-center gap-2">
+                          <Wallet className="w-4 h-4" />
+                          Price Range: ₹{priceRange[0].toLocaleString()} — ₹{priceRange[1].toLocaleString()}
+                        </label>
+                        <div className="space-y-3">
+                          <input
+                            type="range"
+                            min={0}
+                            max={50000}
+                            step={500}
+                            value={priceRange[0]}
+                            onChange={e => setPriceRange([Math.min(+e.target.value, priceRange[1]), priceRange[1]])}
+                            className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                          />
+                          <input
+                            type="range"
+                            min={0}
+                            max={50000}
+                            step={500}
+                            value={priceRange[1]}
+                            onChange={e => setPriceRange([priceRange[0], Math.max(+e.target.value, priceRange[0])])}
+                            className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+                          />
+                          <div className="flex justify-between text-sm text-white/60">
+                            <span>₹0</span>
+                            <span>₹50,000+</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Quick Stats */}
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3 text-white/80 text-sm">
+                            <span>🚗 {filtered.length} vehicles available</span>
+                            <span>⭐ Avg rating: {(filtered.reduce((acc, v) => acc + v.rating, 0) / filtered.length || 0).toFixed(1)}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className="px-2 py-1 bg-white/10 rounded-lg text-xs">
+                              Electric: {filtered.filter(v => v.fuelType === 'electric').length}
+                            </span>
+                            <span className="px-2 py-1 bg-white/10 rounded-lg text-xs">
+                              Automatic: {filtered.filter(v => v.transmission === 'automatic').length}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setPriceRange([0, 50000]);
+                            setSelectedLocation("All Locations");
+                            setActiveCategory("All");
+                            setSortBy("Recommended");
+                            setSearchQuery("");
+                          }}
+                          className="px-5 py-2.5 rounded-xl text-red-300 border border-white/20 text-sm font-medium hover:bg-white/10 transition-all duration-300"
+                        >
+                          Reset All Filters
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </div>
       </div>
 
-      {/* Results */}
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-10 w-full">
-        <div className="flex justify-between items-center mb-6">
-          <p className="text-gray-500 text-sm">
-            Showing <strong>{filtered.length}</strong> vehicle{filtered.length !== 1 ? "s" : ""}
-          </p>
+      {/* Results Section */}
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-12 w-full">
+        <div className="flex justify-between items-center mb-8 pb-2 border-b border-gray-200">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Available Vehicles</h2>
+            <p className="text-gray-500 text-sm mt-1">
+              Showing <strong className="text-emerald-600">{filtered.length}</strong> vehicle{filtered.length !== 1 ? "s" : ""} for you
+            </p>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Clock className="w-4 h-4" />
+            <span>Updated just now</span>
+          </div>
         </div>
 
         {filtered.length === 0 ? (
-          <div className="text-center py-20">
-            <Car className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700">No vehicles found</h3>
-            <p className="text-gray-400 mt-2">Try adjusting your filters or check back later.</p>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-20 bg-white rounded-2xl shadow-sm"
+          >
+            <div className="inline-flex p-4 bg-gray-100 rounded-full mb-4">
+              <Car className="w-12 h-12 text-gray-400" />
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-700 mb-2">No vehicles found</h3>
+            <p className="text-gray-400 max-w-md mx-auto">
+              We couldn't find any vehicles matching your criteria. Try adjusting your filters or check back later.
+            </p>
+            <button
+              onClick={() => {
+                setPriceRange([0, 50000]);
+                setSelectedLocation("All Locations");
+                setActiveCategory("All");
+                setSortBy("Recommended");
+                setSearchQuery("");
+              }}
+              className="mt-6 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-all duration-300"
+            >
+              Clear All Filters
+            </button>
+          </motion.div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filtered.map((v) => (
-              <div
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ staggerChildren: 0.1 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          >
+            {filtered.map((v, index) => (
+              <motion.div
                 key={v.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ y: -8 }}
                 onClick={() => router.push(`/vehicles/${v.id}`)}
-                className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all overflow-hidden border border-gray-100 hover:border-emerald-200 cursor-pointer"
+                className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-emerald-200 cursor-pointer"
               >
-                <div className="relative h-48 bg-gray-100 overflow-hidden">
+                {/* Image Container */}
+                <div className="relative h-52 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                   <img
                     src={v.img}
                     alt={v.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x300?text=Vehicle";
                     }}
                   />
+                  {/* Favorite Button */}
+                  <button
+                    onClick={(e) => toggleFavorite(v.id, e)}
+                    className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 shadow-md"
+                  >
+                    <Heart
+                      className={`w-4 h-4 transition-colors ${favoriteIds.includes(v.id)
+                          ? "fill-red-500 text-red-500"
+                          : "text-gray-600 group-hover:text-red-500"
+                        }`}
+                    />
+                  </button>
+                  {/* Badge */}
+                  {v.fuelType === 'electric' && (
+                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2 py-1 bg-emerald-600/90 backdrop-blur-sm rounded-lg text-white text-xs font-semibold">
+                      <Leaf className="w-3 h-3" />
+                      Eco-Friendly
+                    </div>
+                  )}
                 </div>
-                <div className="p-4">
-                  <div className="flex justify-between items-start">
+
+                {/* Content */}
+                <div className="p-5">
+                  <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-bold text-gray-800 text-lg">{v.name}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                        <span className="text-sm font-medium">{v.rating}</span>
-                        <span className="text-gray-400">•</span>
-                        <span className="text-sm text-gray-500">{v.location}</span>
+                      <h3 className="font-bold text-gray-800 text-lg group-hover:text-emerald-600 transition-colors">
+                        {v.name}
+                      </h3>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                          <span className="text-sm font-semibold text-gray-700">{v.rating}</span>
+                        </div>
+                        <span className="text-gray-300">•</span>
+                        <div className="flex items-center gap-1 text-gray-500 text-sm">
+                          <MapPin className="w-3 h-3" />
+                          <span>{v.location}</span>
+                        </div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-xl font-black text-emerald-600">₹{v.pricePerDay}</span>
+                      <span className="text-2xl font-black text-emerald-600">₹{v.pricePerDay}</span>
                       <span className="text-xs text-gray-400"> /day</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 mt-3 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-emerald-500" />
-                      {v.range}
-                    </span>
-                    <span>{v.seats} seats</span>
-                    <span className="capitalize">{v.transmission}</span>
+                  {/* Specs */}
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <Users className="w-3.5 h-3.5" />
+                      <span>{v.seats} seats</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <Gauge className="w-3.5 h-3.5" />
+                      <span>{v.range}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <Fuel className="w-3.5 h-3.5" />
+                      <span className="capitalize">{v.transmission}</span>
+                    </div>
                   </div>
 
+                  {/* Tags */}
                   <div className="flex flex-wrap gap-1.5 mt-3">
-                    {v.tags.slice(0, 2).map(tag => (
-                      <span key={tag} className="text-[10px] font-medium bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full">
+                    {v.tags.map(tag => (
+                      <span
+                        key={tag}
+                        className="text-[10px] font-medium bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full"
+                      >
                         {tag}
                       </span>
                     ))}
                   </div>
 
-                  <button className="w-full mt-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-semibold hover:bg-emerald-600 hover:text-white transition">
+                  {/* Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full mt-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300"
+                  >
                     View Details
-                  </button>
+                  </motion.button>
                 </div>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         )}
       </main>
 
