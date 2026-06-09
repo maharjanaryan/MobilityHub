@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Settings, FileText, LogOut, Menu, X, Shield, IdCard, Briefcase, HelpCircle, MapPin } from "lucide-react";
+import { User, Settings, FileText, LogOut, Menu, X, Shield, IdCard, Briefcase, HelpCircle, MapPin, TrendingUp } from "lucide-react";
 import NotificationBell from "../component/NotificationBell";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -281,6 +281,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     { label: "My Reports", icon: FileText, onClick: () => navigateTo("/reports"), divider: false },
     { label: "Track My Ride", icon: MapPin, onClick: () => navigateTo("/tracking"), divider: false },
     { label: "Help & Support", icon: HelpCircle, onClick: () => navigateTo("/help"), divider: true },
+    { label: "Earnings", icon: TrendingUp, onClick: () => navigateTo("/earnings"), divider: false },
     { label: "Logout", icon: LogOut, onClick: handleLogout, divider: false, danger: true },
   ];
 

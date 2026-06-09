@@ -39,8 +39,6 @@ interface Vehicle {
   city?: string;
   state?: string;
   zipCode?: string;
-  latitude?: number;
-  longitude?: number;
   tags: string[];
   features: string[];
   badge?: string;
@@ -314,8 +312,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         city: data.city,
         state: data.state,
         zipCode: data.zipCode,
-        latitude: data.latitude,
-        longitude: data.longitude,
         tags: [
           data.transmission,
           data.seats ? `${data.seats} Seats` : undefined,
@@ -357,7 +353,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   // Fetch vehicle data
   useEffect(() => {
     if (vehicleId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchVehicleData();
     }
   }, [vehicleId, fetchVehicleData]);
@@ -544,24 +539,24 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Eco banner */}
             {isElectric && (
-            <div className="mt-5 bg-emerald-900 text-white rounded-2xl p-5 relative overflow-hidden">
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
-                <Leaf className="w-20 h-20 text-emerald-400" />
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-700 flex items-center justify-center flex-shrink-0">
-                  <Leaf className="w-5 h-5 text-emerald-300" />
+              <div className="mt-5 bg-emerald-900 text-white rounded-2xl p-5 relative overflow-hidden">
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
+                  <Leaf className="w-20 h-20 text-emerald-400" />
                 </div>
-                <div>
-                  <p className="font-bold text-base">Make an impact.</p>
-                  <p className="text-emerald-200 text-sm mt-1 leading-relaxed max-w-sm">
-                    By choosing this electric vehicle for your {days}-day trip, you will save approximately{" "}
-                    <span className="text-emerald-300 font-semibold">{vehicle.co2Saved || "42.5kg"}</span> of CO2
-                    compared to a luxury ICE sedan.
-                  </p>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-700 flex items-center justify-center flex-shrink-0">
+                    <Leaf className="w-5 h-5 text-emerald-300" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-base">Make an impact.</p>
+                    <p className="text-emerald-200 text-sm mt-1 leading-relaxed max-w-sm">
+                      By choosing this electric vehicle for your {days}-day trip, you will save approximately{" "}
+                      <span className="text-emerald-300 font-semibold">{vehicle.co2Saved || "42.5kg"}</span> of CO2
+                      compared to a luxury ICE sedan.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
             )}
 
             {/* Description */}
@@ -604,18 +599,9 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
             <DetailSection title="Pickup Location">
               <DetailItem icon={<MapPin className="h-4 w-4" />} label="Address" value={vehicle.address || "Not provided"} />
               <DetailItem icon={<MapPin className="h-4 w-4" />} label="City" value={vehicle.city || "Not provided"} />
-              <DetailItem icon={<Navigation className="h-4 w-4" />} label="State" value={vehicle.state || "Not provided"} />
+              <DetailItem icon={<MapPin className="h-4 w-4" />} label="State" value={vehicle.state || "Not provided"} />
               <DetailItem icon={<Hash className="h-4 w-4" />} label="ZIP Code" value={vehicle.zipCode || "Not provided"} />
-              <DetailItem icon={<Navigation className="h-4 w-4" />} label="Latitude" value={vehicle.latitude ?? "Not provided"} />
-              <DetailItem icon={<Navigation className="h-4 w-4" />} label="Longitude" value={vehicle.longitude ?? "Not provided"} />
             </DetailSection>
-
-            {hasAvailability && (
-              <DetailSection title="Availability">
-                <DetailItem icon={<Calendar className="h-4 w-4" />} label="Available From" value={formatDate(vehicle.availableFrom)} />
-                <DetailItem icon={<Calendar className="h-4 w-4" />} label="Available To" value={formatDate(vehicle.availableTo)} />
-              </DetailSection>
-            )}
 
             {vehicle.features.length > 0 && (
               <section className="mt-7">
@@ -738,12 +724,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                   <div className="flex justify-between text-gray-500">
                     <span>Rental window</span>
                     <span>{vehicle.minRentalDays || 1}-{vehicle.maxRentalDays || "any"} days</span>
-                  </div>
-                ) : null}
-                {vehicle.availableFrom || vehicle.availableTo ? (
-                  <div className="flex justify-between text-gray-500">
-                    <span>Available</span>
-                    <span>{formatDate(vehicle.availableFrom)} - {formatDate(vehicle.availableTo)}</span>
                   </div>
                 ) : null}
                 <div className="flex justify-between pt-1.5 border-t border-gray-200 font-bold text-gray-900 text-sm">
