@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Settings, FileText, LogOut, Menu, X, Shield, IdCard, Briefcase, HelpCircle, MapPin, TrendingUp } from "lucide-react";
+import { User, Settings, FileText, LogOut, Menu, X, Shield, IdCard, Briefcase, HelpCircle, MapPin, TrendingUp, CalendarCheck } from "lucide-react";
 import NotificationBell from "../component/NotificationBell";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -262,6 +262,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const menuItems = [
     { label: "Profile", icon: User, onClick: () => navigateTo("/profile"), divider: false },
     { label: "Settings", icon: Settings, onClick: () => navigateTo("/settings"), divider: false },
+    { label: "Booking Request", icon: CalendarCheck, onClick: () => navigateTo("/booking"), divider: false },
     {
       label: "User KYC",
       icon: IdCard,
@@ -458,6 +459,13 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             ))}
             {/* Mobile KYC Links */}
             <div className="border-t border-gray-200 my-2 pt-2">
+              <button
+                onClick={() => navigateTo("/booking")}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center space-x-2"
+              >
+                <CalendarCheck size={18} />
+                <span>Booking Request</span>
+              </button>
               <button
                 onClick={() => navigateTo("/kyc/user")}
                 className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center justify-between"

@@ -417,7 +417,7 @@ export default function AddVehiclePage() {
         'success',
         data.message || 'Vehicle added successfully! Redirecting to your vehicles...',
         true,
-        '/owner/vehicles'
+        '/vehicles'
       );
 
     } catch (error) {
@@ -643,8 +643,8 @@ export default function AddVehiclePage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 text-center">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${kycStatus === 'pending' ? 'bg-yellow-100' :
-                  kycStatus === 'rejected' ? 'bg-red-100' :
-                    'bg-emerald-100'
+                kycStatus === 'rejected' ? 'bg-red-100' :
+                  'bg-emerald-100'
                 }`}>
                 {kycStatus === 'pending' ? (
                   <Clock className="w-8 h-8 text-yellow-600" />
