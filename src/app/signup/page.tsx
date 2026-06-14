@@ -203,7 +203,7 @@ export default function SignUpPage() {
                       setFirstName(e.target.value);
                       setError('');
                     }}
-                    placeholder="John"
+                    placeholder="First Name"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     disabled={isLoading}
                   />
@@ -220,7 +220,7 @@ export default function SignUpPage() {
                       setLastName(e.target.value);
                       setError('');
                     }}
-                    placeholder="Doe"
+                    placeholder="Last Name"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     disabled={isLoading}
                   />
@@ -239,7 +239,7 @@ export default function SignUpPage() {
                     setEmail(e.target.value);
                     setError('');
                   }}
-                  placeholder="you@example.com"
+                  placeholder="Enter Your Email Address"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   disabled={isLoading}
                 />
@@ -257,7 +257,7 @@ export default function SignUpPage() {
                     setPhoneNumber(e.target.value);
                     setError('');
                   }}
-                  placeholder="+1 234 567 8900"
+                  placeholder="Phone Number"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   disabled={isLoading}
                 />
@@ -278,7 +278,7 @@ export default function SignUpPage() {
                     setPassword(e.target.value);
                     setError('');
                   }}
-                  placeholder="••••••••"
+                  placeholder="Password"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   disabled={isLoading}
                 />
@@ -299,7 +299,7 @@ export default function SignUpPage() {
                     setConfirmPassword(e.target.value);
                     setError('');
                   }}
-                  placeholder="••••••••"
+                  placeholder="Confirm Password"
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   disabled={isLoading}
                 />
