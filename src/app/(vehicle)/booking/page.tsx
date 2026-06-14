@@ -49,25 +49,22 @@ interface Booking {
   approvedAt: string | null;
 }
 
+interface KYCStatusResponse {
+  success: boolean;
+  userId: number;
+  userFullName: string;
+  userEmail: string;
+  renterKycStatus: string;
+  ownerKycStatus: string;
+  canBook: boolean;
+  canList: boolean;
+  hasOwnerPrivileges: boolean;
+}
+
 // Helper functions
 const getAuthToken = () => {
   if (typeof window !== 'undefined') {
     return localStorage.getItem('accessToken') || localStorage.getItem('token');
-  }
-  return null;
-};
-
-const getUserRole = () => {
-  if (typeof window !== 'undefined') {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        return user.role?.toUpperCase() || user.userType?.toUpperCase() || 'USER';
-      } catch (e) {
-        console.error('Error parsing user:', e);
-      }
-    }
   }
   return null;
 };
@@ -360,23 +357,66 @@ export default function OwnerBookingsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [stats, setStats] = useState({ pending: 0, confirmed: 0, total: 0 });
   const [isAuthorized, setIsAuthorized] = useState(true);
+  const [kycStatus, setKycStatus] = useState<KYCStatusResponse | null>(null);
+  const [checkingKyc, setCheckingKyc] = useState(true);
 
-  const checkUserRole = useCallback(() => {
-    const role = getUserRole();
-    const isOwnerUser = role === 'OWNER' || role === 'ADMIN';
-
-    if (!isOwnerUser) {
-      setIsAuthorized(false);
-      setToast({
-        message: 'Access denied. Only vehicle owners can access this page.',
-        type: 'error'
-      });
-      // Redirect after 2 seconds
-      setTimeout(() => router.push('/home'), 2000);
+  // Check owner KYC status
+  const checkOwnerKycStatus = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) {
+      router.push('/signin');
       return false;
     }
-    setIsAuthorized(true);
-    return true;
+
+    try {
+      const response = await fetch('http://localhost:8080/api/kyc/status', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('token');
+        router.push('/signin');
+        return false;
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch KYC status');
+      }
+
+      const data: KYCStatusResponse = await response.json();
+      setKycStatus(data);
+
+      // Check if user has owner privileges (ownerKycStatus === 'VERIFIED')
+      const hasAccess = data.ownerKycStatus === 'VERIFIED' || data.hasOwnerPrivileges === true;
+
+      if (!hasAccess) {
+        setIsAuthorized(false);
+        setToast({
+          message: 'Access denied. Please complete Owner KYC verification to manage bookings.',
+          type: 'error'
+        });
+        // Redirect to owner KYC page after 2 seconds
+        setTimeout(() => router.push('/kyc/owner'), 2000);
+        return false;
+      }
+
+      setIsAuthorized(true);
+      return true;
+
+    } catch (error) {
+      console.error('Error checking KYC status:', error);
+      setToast({
+        message: 'Failed to verify KYC status. Please try again.',
+        type: 'error'
+      });
+      return false;
+    } finally {
+      setCheckingKyc(false);
+    }
   }, [router]);
 
   const fetchBookings = useCallback(async () => {
@@ -386,17 +426,8 @@ export default function OwnerBookingsPage() {
       return;
     }
 
-    // Check if user has owner role
-    const role = getUserRole();
-    if (role !== 'OWNER' && role !== 'ADMIN') {
-      setToast({ message: 'Access denied. Owner role required.', type: 'error' });
-      setLoading(false);
-      return;
-    }
-
     setLoading(true);
     try {
-      // Use the correct API endpoint with pagination
       let url = `http://localhost:8080/api/bookings/owner-bookings?page=0&size=50`;
       if (filterStatus !== 'all') {
         url = `http://localhost:8080/api/bookings/owner-bookings?status=${filterStatus.toUpperCase()}&page=0&size=50`;
@@ -419,7 +450,7 @@ export default function OwnerBookingsPage() {
       }
 
       if (response.status === 403) {
-        setToast({ message: 'Access forbidden. You need owner privileges.', type: 'error' });
+        setToast({ message: 'Access forbidden. Please complete Owner KYC verification.', type: 'error' });
         setLoading(false);
         return;
       }
@@ -433,31 +464,13 @@ export default function OwnerBookingsPage() {
       const data = await response.json();
       console.log('Bookings data:', data);
 
-      // Handle paginated response
       const bookingsList = data.content || data || [];
       setBookings(bookingsList);
 
-      // Calculate stats from all bookings (not filtered)
-      if (filterStatus === 'all') {
-        const pending = bookingsList.filter((b: Booking) => b.bookingStatus?.toUpperCase() === 'PENDING').length;
-        const confirmed = bookingsList.filter((b: Booking) => b.bookingStatus?.toUpperCase() === 'CONFIRMED').length;
-        setStats({ pending, confirmed, total: bookingsList.length });
-      } else {
-        // Re-fetch total stats without filter
-        const allResponse = await fetch(`http://localhost:8080/api/bookings/owner-bookings?page=0&size=50`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (allResponse.ok) {
-          const allData = await allResponse.json();
-          const allBookings = allData.content || allData || [];
-          const pending = allBookings.filter((b: Booking) => b.bookingStatus?.toUpperCase() === 'PENDING').length;
-          const confirmed = allBookings.filter((b: Booking) => b.bookingStatus?.toUpperCase() === 'CONFIRMED').length;
-          setStats({ pending, confirmed, total: allBookings.length });
-        }
-      }
+      // Calculate stats
+      const pending = bookingsList.filter((b: Booking) => b.bookingStatus?.toUpperCase() === 'PENDING').length;
+      const confirmed = bookingsList.filter((b: Booking) => b.bookingStatus?.toUpperCase() === 'CONFIRMED').length;
+      setStats({ pending, confirmed, total: bookingsList.length });
 
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -467,15 +480,17 @@ export default function OwnerBookingsPage() {
     }
   }, [filterStatus, router]);
 
+  // Initial check
   useEffect(() => {
-    checkUserRole();
-  }, [checkUserRole]);
+    checkOwnerKycStatus();
+  }, [checkOwnerKycStatus]);
 
+  // Fetch bookings when authorized
   useEffect(() => {
-    if (isAuthorized) {
+    if (isAuthorized && !checkingKyc) {
       fetchBookings();
     }
-  }, [fetchBookings, isAuthorized, filterStatus]);
+  }, [fetchBookings, isAuthorized, checkingKyc, filterStatus]);
 
   const handleApprove = async (booking: Booking, rejectionReason?: string, ownerNotes?: string) => {
     const token = getAuthToken();
@@ -485,8 +500,6 @@ export default function OwnerBookingsPage() {
     try {
       const requestBody: { ownerNotes?: string } = {};
       if (ownerNotes) requestBody.ownerNotes = ownerNotes;
-
-      console.log('Approving booking:', booking.id, requestBody);
 
       const response = await fetch(`http://localhost:8080/api/bookings/${booking.id}/approve`, {
         method: 'POST',
@@ -498,7 +511,7 @@ export default function OwnerBookingsPage() {
       });
 
       if (response.status === 403) {
-        setToast({ message: 'Access forbidden. You need owner privileges.', type: 'error' });
+        setToast({ message: 'Access forbidden. Please complete Owner KYC verification.', type: 'error' });
         return;
       }
 
@@ -533,8 +546,6 @@ export default function OwnerBookingsPage() {
       const requestBody: { rejectionReason: string; ownerNotes?: string } = { rejectionReason };
       if (ownerNotes) requestBody.ownerNotes = ownerNotes;
 
-      console.log('Rejecting booking:', booking.id, requestBody);
-
       const response = await fetch(`http://localhost:8080/api/bookings/${booking.id}/reject`, {
         method: 'POST',
         headers: {
@@ -545,7 +556,7 @@ export default function OwnerBookingsPage() {
       });
 
       if (response.status === 403) {
-        setToast({ message: 'Access forbidden. You need owner privileges.', type: 'error' });
+        setToast({ message: 'Access forbidden. Please complete Owner KYC verification.', type: 'error' });
         return;
       }
 
@@ -578,35 +589,76 @@ export default function OwnerBookingsPage() {
 
   const pendingBookings = bookings.filter(b => b.bookingStatus?.toUpperCase() === 'PENDING');
 
-  if (!isAuthorized) {
+  // Loading state
+  if (checkingKyc || loading) {
     return (
       <>
         <HomeHeader />
         <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
-            <p className="text-gray-600">You don't have permission to access this page.</p>
-            <p className="text-gray-500 text-sm mt-2">Only vehicle owners can manage bookings.</p>
-            <button
-              onClick={() => router.push('/home')}
-              className="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
-            >
-              Go to Home
-            </button>
-          </div>
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
         </div>
         <Footer />
       </>
     );
   }
 
-  if (loading) {
+  // Unauthorized state - Show KYC required message
+  if (!isAuthorized) {
+    const getKycMessage = () => {
+      const ownerStatus = kycStatus?.ownerKycStatus;
+      if (ownerStatus === 'SUBMITTED') {
+        return {
+          title: 'Owner KYC Verification Pending',
+          message: 'Your owner KYC verification is currently pending. Our team is reviewing your documents. You will be notified once verified.',
+          buttonText: 'Check Status',
+          buttonAction: '/kyc/status'
+        };
+      } else if (ownerStatus === 'REJECTED') {
+        return {
+          title: 'Owner KYC Verification Rejected',
+          message: kycStatus?.ownerKycStatus === 'REJECTED'
+            ? 'Your owner KYC verification was rejected. Please check the reason and resubmit your documents.'
+            : 'Your owner KYC verification was rejected. Please resubmit with correct information.',
+          buttonText: 'Resubmit Owner KYC',
+          buttonAction: '/kyc/owner'
+        };
+      } else {
+        return {
+          title: 'Owner KYC Verification Required',
+          message: 'You must complete and verify your Owner KYC before managing bookings. This includes submitting your citizenship, driving license, and vehicle bluebook.',
+          buttonText: 'Complete Owner KYC',
+          buttonAction: '/kyc/owner'
+        };
+      }
+    };
+
+    const kycMessage = getKycMessage();
+
     return (
       <>
         <HomeHeader />
         <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+          <div className="text-center max-w-md mx-auto p-8">
+            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-10 h-10 text-yellow-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">{kycMessage.title}</h2>
+            <p className="text-gray-600 mb-6">{kycMessage.message}</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={() => router.push('/home')}
+                className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+              >
+                Go to Home
+              </button>
+              <button
+                onClick={() => router.push(kycMessage.buttonAction)}
+                className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700"
+              >
+                {kycMessage.buttonText}
+              </button>
+            </div>
+          </div>
         </div>
         <Footer />
       </>
@@ -625,6 +677,12 @@ export default function OwnerBookingsPage() {
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">Booking Management</h1>
                 <p className="text-gray-600 mt-1">Manage and respond to booking requests</p>
+                {kycStatus?.ownerKycStatus === 'VERIFIED' && (
+                  <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
+                    <CheckCircle className="w-4 h-4" />
+                    Owner KYC Verified ✓
+                  </p>
+                )}
               </div>
               <button
                 onClick={fetchBookings}
@@ -731,7 +789,7 @@ export default function OwnerBookingsPage() {
             </div>
           </div>
 
-          {/* Pending Bookings Section (only show when filter is 'all' and there are pending bookings) */}
+          {/* Pending Bookings Section */}
           {filterStatus === 'all' && pendingBookings.length > 0 && (
             <div className="mb-8">
               <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
