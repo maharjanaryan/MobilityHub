@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Settings, FileText, LogOut, Menu, X, Shield, IdCard, Briefcase, HelpCircle, MapPin, TrendingUp, CalendarCheck } from "lucide-react";
+import { User, Settings, FileText, LogOut, Menu, X, Shield, IdCard, Briefcase, HelpCircle, MapPin, TrendingUp, CalendarCheck, BookOpen } from "lucide-react";
 import NotificationBell from "../component/NotificationBell";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -262,6 +262,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const menuItems = [
     { label: "Profile", icon: User, onClick: () => navigateTo("/profile"), divider: false },
     { label: "Settings", icon: Settings, onClick: () => navigateTo("/settings"), divider: false },
+    { label: "My Bookings", icon: BookOpen, onClick: () => navigateTo("/my-bookings"), divider: false },
     { label: "Booking Request", icon: CalendarCheck, onClick: () => navigateTo("/booking"), divider: false },
     {
       label: "User KYC",
@@ -319,7 +320,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/home")}>Home</li>
           <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/maps")}>Maps</li>
           <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/vehicles")}>Vehicles</li>
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/gallery")}>Gallery</li>
+          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/my-bookings")}>My Bookings</li>
           <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/about")}>About Us</li>
         </ul>
 
@@ -445,7 +446,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               ["Home", "/home"],
               ["Maps", "/maps"],
               ["Vehicles", "/vehicles"],
-              ["Gallery", "/gallery"],
+              ["My Bookings", "/my-bookings"],
               ["About Us", "/about"],
             ].map(([label, path]) => (
               <button
