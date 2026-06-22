@@ -6,7 +6,8 @@ import {
   ArrowLeft, Star, Users, Gauge, Leaf, ChevronLeft,
   ChevronRight, Shield, Images, Calendar, Loader2, Car,
   Fuel, MapPin, Palette, Hash, Luggage, Banknote, Clock,
-  CheckCircle2, FileText, Timer, DoorOpen, X, User, IdCard
+  CheckCircle2, FileText, Timer, DoorOpen, X, User, IdCard,
+  FileCheck, AlertTriangle, ScrollText
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -286,6 +287,262 @@ function MiniCalendar({ selected, onChange, year, month, onPrev, onNext, bookedD
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Terms & Conditions Modal Component
+// ─────────────────────────────────────────────────────────────────────────────
+interface TermsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAccept: () => void;
+  loading?: boolean;
+}
+
+function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalProps) {
+  const [accepted, setAccepted] = useState(false);
+  const [scrolledToBottom, setScrolledToBottom] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    const isBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 10;
+    if (isBottom) {
+      setScrolledToBottom(true);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+              <ScrollText className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Vehicle Rental Agreement</h2>
+              <p className="text-sm text-gray-500">Please read and accept the terms below</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div
+          className="flex-1 overflow-y-auto p-6 space-y-6"
+          onScroll={handleScroll}
+        >
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800">
+              By proceeding with this booking, you agree to all the terms and conditions outlined below.
+              Please read carefully before accepting.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <FileCheck className="w-5 h-5 text-emerald-600" />
+                Booking Confirmation
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
+                <li>A booking is confirmed only after successful payment.</li>
+                <li>Users must provide valid and accurate information during booking.</li>
+                <li>The rented vehicle can only be used during the selected rental duration.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-600" />
+                User Responsibilities
+              </h3>
+              <div className="mt-3 space-y-3">
+                <p className="text-sm font-semibold text-gray-700">The renter agrees to:</p>
+                <ul className="space-y-2 text-sm text-gray-600 list-disc pl-6">
+                  <li>Handle the vehicle carefully and responsibly.</li>
+                  <li>Follow all traffic laws and regulations.</li>
+                  <li>Return the vehicle in the same condition as received.</li>
+                  <li>Keep the vehicle secure during the rental period.</li>
+                </ul>
+                <p className="text-sm font-semibold text-gray-700 mt-2">The renter must not:</p>
+                <ul className="space-y-2 text-sm text-gray-600 list-disc pl-6">
+                  <li>Drive recklessly or dangerously.</li>
+                  <li>Use the vehicle for illegal activities.</li>
+                  <li>Allow another person to drive without permission.</li>
+                  <li>Use the vehicle while under the influence of alcohol or drugs.</li>
+                </ul>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-emerald-600" />
+                Security Deposit
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
+                <li>A refundable security deposit may be required before the rental starts.</li>
+                <li className="font-semibold text-gray-700">The deposit may be deducted for:</li>
+                <ul className="pl-6 space-y-1 text-sm text-gray-600 list-disc">
+                  <li>Vehicle damage</li>
+                  <li>Missing accessories or documents</li>
+                  <li>Late return charges</li>
+                  <li>Traffic fines or penalties</li>
+                </ul>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-emerald-600" />
+                Vehicle Return Policy
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
+                <li>The vehicle must be returned on or before the agreed return time.</li>
+                <li>Late returns may result in additional charges.</li>
+                <li>Failure to return the vehicle without communication may lead to account suspension or legal action.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-emerald-600" />
+                Damage and Accident Policy
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
+                <li>Any damage occurring during the rental period will be the responsibility of the renter.</li>
+                <li>In case of an accident or breakdown, the renter must immediately contact the vehicle owner and Mobility Hub support.</li>
+                <li>Repair costs caused by negligence may be charged to the renter.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Fuel className="w-5 h-5 text-emerald-600" />
+                Fuel Policy
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
+                <li>The vehicle should be returned with the same fuel level provided at pickup.</li>
+                <li>Additional fuel charges may apply if the fuel level is lower.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-emerald-600" />
+                Cancellation and Refund
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
+                <li>Users may cancel bookings before the rental start time.</li>
+                <li>Refund eligibility depends on the cancellation timing and platform policy.</li>
+                <li>No refund will be provided after the rental period begins.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-600" />
+                Platform Limitation
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
+                <li>Mobility Hub acts only as a platform connecting vehicle owners and renters.</li>
+                <li className="font-semibold text-gray-700">Mobility Hub is not responsible for:</li>
+                <ul className="pl-6 space-y-1 text-sm text-gray-600 list-disc">
+                  <li>Personal injuries</li>
+                  <li>Loss of personal belongings</li>
+                  <li>Accidents caused by user negligence</li>
+                </ul>
+              </ul>
+            </section>
+
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <X className="w-5 h-5 text-emerald-600" />
+                Account Restriction
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
+                <li>Mobility Hub reserves the right to suspend or terminate accounts involved in:</li>
+                <ul className="pl-6 space-y-1 text-sm text-gray-600 list-disc">
+                  <li>Fraudulent activities</li>
+                  <li>Violation of rental policies</li>
+                  <li>Vehicle misuse or repeated complaints</li>
+                </ul>
+              </ul>
+            </section>
+
+            <section className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                Acceptance of Terms
+              </h3>
+              <p className="mt-2 text-sm text-gray-600">
+                By proceeding with the booking, the user confirms that they have read, understood,
+                and agreed to these Terms & Conditions.
+              </p>
+            </section>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-200 flex-shrink-0">
+          <div className="flex items-center gap-4 mb-4">
+            <input
+              type="checkbox"
+              id="acceptTerms"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+              className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+            />
+            <label htmlFor="acceptTerms" className="text-sm font-medium text-gray-700">
+              I have read and agree to all the Terms & Conditions
+            </label>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onAccept}
+              disabled={!accepted || loading}
+              className={[
+                "flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold transition flex items-center justify-center gap-2",
+                (!accepted || loading) ? "opacity-50 cursor-not-allowed" : "hover:bg-emerald-700"
+              ].join(" ")}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Accept & Continue
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main page
 // ─────────────────────────────────────────────────────────────────────────────
 export default function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -299,6 +556,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState<BookingResponse | null>(null);
   const [showDriverModal, setShowDriverModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const [driverInfo, setDriverInfo] = useState({ name: "", licenseNumber: "" });
 
   const [activeImg, setActiveImg] = useState(0);
@@ -438,6 +696,13 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
       return;
     }
 
+    // Show terms modal first
+    setShowTermsModal(true);
+  };
+
+  const handleAcceptTerms = () => {
+    setShowTermsModal(false);
+    // Then show driver modal
     setShowDriverModal(true);
   };
 
@@ -861,6 +1126,14 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
 
         </div>
       </div>
+
+      {/* Terms & Conditions Modal */}
+      <TermsModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        onAccept={handleAcceptTerms}
+        loading={bookingLoading}
+      />
 
       {/* Driver Info Modal */}
       {showDriverModal && (
