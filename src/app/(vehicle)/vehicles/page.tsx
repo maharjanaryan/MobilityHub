@@ -1,3 +1,4 @@
+// app/vehicles/page.tsx
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -12,6 +13,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HomeHeader from "@/app/home/HomeHeader";
 import Footer from "@/app/component/Footer";
+import KycModal from "@/app/component/KycModal";
+
 
 interface Vehicle {
   id: number;
@@ -63,10 +66,31 @@ export default function VehiclesPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const [kycLoading, setKycLoading] = useState<number | null>(null);
+
+  // KYC Modal state
+  const [showKycModal, setShowKycModal] = useState(false);
+  const [kycStatus, setKycStatus] = useState<"VERIFIED" | "APPROVED" | "PENDING" | "REJECTED" | "NOT_SUBMITTED" | null>(null);
+  const [userName, setUserName] = useState("");
+  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
 
   const getAccessToken = () => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('accessToken') || localStorage.getItem('token');
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("accessToken") || localStorage.getItem("token");
+    }
+    return null;
+  };
+
+  const getUserData = () => {
+    if (typeof window !== "undefined") {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        try {
+          return JSON.parse(userStr);
+        } catch {
+          return null;
+        }
+      }
     }
     return null;
   };
@@ -74,9 +98,16 @@ export default function VehiclesPage() {
   useEffect(() => {
     const token = getAccessToken();
     if (!token) {
-      router.push('/signin');
+      router.push("/signin");
       return;
     }
+
+    // Get user data for modal
+    const user = getUserData();
+    if (user) {
+      setUserName(user.fullName || user.username || "User");
+    }
+
     fetchVehicles();
   }, []);
 
@@ -84,37 +115,33 @@ export default function VehiclesPage() {
     setLoading(true);
     try {
       const token = getAccessToken();
-      if (!token) {
-        router.push('/signin');
-        return;
-      }
+      if (!token) { router.push("/signin"); return; }
 
-      const response = await fetch('http://localhost:8080/api/vehicles/recent?page=0&size=100', {
+      const response = await fetch("http://localhost:8080/api/vehicles/recent?page=0&size=100", {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
         }
       });
 
       if (response.status === 401) {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        router.push('/signin');
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        router.push("/signin");
         return;
       }
 
       if (response.ok) {
         const data = await response.json();
         const vehicleList = data.content || [];
-
-        const formattedVehicles = vehicleList.map((v: any) => ({
+        setVehicles(vehicleList.map((v: any) => ({
           id: v.id,
           brand: v.brand,
           model: v.model,
           name: `${v.brand} ${v.model}`,
           category: mapCategory(v.seats),
-          img: v.photos && v.photos[0] ? v.photos[0] : '/car-placeholder.jpg',
+          img: v.photos?.[0] || "/car-placeholder.jpg",
           pricePerDay: v.pricePerDay,
           rating: v.averageRating || 4.5,
           range: getRangeByFuelType(v.fuelType),
@@ -127,14 +154,10 @@ export default function VehiclesPage() {
           fuelType: v.fuelType,
           isAvailable: v.isAvailable,
           photos: v.photos || []
-        }));
-
-        setVehicles(formattedVehicles);
-      } else {
-        console.error('Failed to fetch vehicles:', response.status);
+        })));
       }
     } catch (error) {
-      console.error('Error fetching vehicles:', error);
+      console.error("Error fetching vehicles:", error);
     } finally {
       setLoading(false);
     }
@@ -148,29 +171,29 @@ export default function VehiclesPage() {
 
   const getRangeByFuelType = (fuelType: string): string => {
     switch (fuelType?.toLowerCase()) {
-      case 'electric': return '400 km';
-      case 'hybrid': return '600 km';
-      case 'petrol': return '500 km';
-      case 'diesel': return '700 km';
-      default: return '400 km';
+      case "electric": return "400 km";
+      case "hybrid": return "600 km";
+      case "petrol": return "500 km";
+      case "diesel": return "700 km";
+      default: return "400 km";
     }
   };
 
   const getChargeByFuelType = (fuelType: string): number => {
     switch (fuelType?.toLowerCase()) {
-      case 'electric': return 85;
-      case 'hybrid': return 75;
+      case "electric": return 85;
+      case "hybrid": return 75;
       default: return 65;
     }
   };
 
   const extractTags = (vehicle: any): string[] => {
     const tags = [];
-    if (vehicle.transmission === 'automatic') tags.push('Automatic');
-    if (vehicle.seats >= 5) tags.push('Family Friendly');
-    if (vehicle.fuelType === 'electric') tags.push('Eco-Friendly');
-    if (vehicle.pricePerDay < 1000) tags.push('Budget');
-    if (vehicle.pricePerDay > 5000) tags.push('Premium');
+    if (vehicle.transmission === "automatic") tags.push("Automatic");
+    if (vehicle.seats >= 5) tags.push("Family Friendly");
+    if (vehicle.fuelType === "electric") tags.push("Eco-Friendly");
+    if (vehicle.pricePerDay < 1000) tags.push("Budget");
+    if (vehicle.pricePerDay > 5000) tags.push("Premium");
     return tags.slice(0, 3);
   };
 
@@ -179,6 +202,57 @@ export default function VehiclesPage() {
     setFavoriteIds(prev =>
       prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]
     );
+  };
+
+  // Check KYC status and show modal if needed
+  const checkKycAndNavigate = async (vehicleId: number) => {
+    const token = getAccessToken();
+    if (!token) { router.push("/signin"); return; }
+
+    setKycLoading(vehicleId);
+    setSelectedVehicleId(vehicleId);
+
+    try {
+      const res = await fetch("http://localhost:8080/api/kyc/status", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const status = data.kycStatus || data.status || null;
+        setKycStatus(status);
+
+        if (status === "VERIFIED" || status === "APPROVED") {
+          // KYC is verified, navigate to vehicle details
+          router.push(`/vehicles/${vehicleId}`);
+        } else {
+          // Show KYC modal for any other status
+          setShowKycModal(true);
+        }
+      } else {
+        // If API fails, show KYC modal with default state
+        setKycStatus(null);
+        setShowKycModal(true);
+      }
+    } catch (error) {
+      console.error("Error checking KYC:", error);
+      setKycStatus(null);
+      setShowKycModal(true);
+    } finally {
+      setKycLoading(null);
+    }
+  };
+
+  // Handle KYC modal close
+  const handleKycModalClose = () => {
+    setShowKycModal(false);
+    setSelectedVehicleId(null);
+  };
+
+  // Handle KYC modal action (redirect to KYC page)
+  const handleKycAction = () => {
+    setShowKycModal(false);
+    router.push("/kyc");
   };
 
   const filtered = useMemo(() => {
@@ -205,17 +279,10 @@ export default function VehiclesPage() {
     result = result.filter(v => v.pricePerDay >= priceRange[0] && v.pricePerDay <= priceRange[1]);
 
     switch (sortBy) {
-      case "Price: Low to High":
-        result = [...result].sort((a, b) => a.pricePerDay - b.pricePerDay);
-        break;
-      case "Price: High to Low":
-        result = [...result].sort((a, b) => b.pricePerDay - a.pricePerDay);
-        break;
-      case "Rating":
-        result = [...result].sort((a, b) => b.rating - a.rating);
-        break;
-      default:
-        result = [...result].sort((a, b) => b.id - a.id);
+      case "Price: Low to High": result = [...result].sort((a, b) => a.pricePerDay - b.pricePerDay); break;
+      case "Price: High to Low": result = [...result].sort((a, b) => b.pricePerDay - a.pricePerDay); break;
+      case "Rating": result = [...result].sort((a, b) => b.rating - a.rating); break;
+      default: result = [...result].sort((a, b) => b.id - a.id);
     }
 
     return result;
@@ -227,11 +294,7 @@ export default function VehiclesPage() {
         <HomeHeader />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="inline-block"
-            >
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
               <Loader2 className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
             </motion.div>
             <p className="text-gray-600 font-medium">Loading amazing vehicles...</p>
@@ -246,9 +309,8 @@ export default function VehiclesPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 font-['Inter',system-ui]">
       <HomeHeader />
 
-      {/* Hero Section */}
+      {/* Hero */}
       <div className="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white">
-        {/* Animated Background */}
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-400 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-400 rounded-full blur-3xl animate-pulse delay-1000" />
@@ -282,7 +344,7 @@ export default function VehiclesPage() {
             </p>
           </motion.div>
 
-          {/* Search Bar */}
+          {/* Search */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -299,13 +361,9 @@ export default function VehiclesPage() {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   className="flex-1 bg-transparent outline-none text-white placeholder-white/40 text-lg font-medium"
-                  autoFocus={false}
                 />
                 {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="p-1 hover:bg-white/10 rounded-lg transition"
-                  >
+                  <button onClick={() => setSearchQuery("")} className="p-1 hover:bg-white/10 rounded-lg transition">
                     <X className="w-5 h-5 text-white/60" />
                   </button>
                 )}
@@ -314,24 +372,19 @@ export default function VehiclesPage() {
           </motion.div>
 
           {/* Filters Row */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mt-10"
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-10">
             <div className="flex flex-wrap justify-between items-center gap-4">
               {/* Categories */}
               <div className="flex flex-wrap gap-2">
-                {categories.map((cat) => {
+                {categories.map(cat => {
                   const Icon = cat.icon;
                   return (
                     <button
                       key={cat.name}
                       onClick={() => setActiveCategory(cat.name)}
-                      className={`group px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${activeCategory === cat.name
-                          ? `bg-${cat.color}-500 text-white shadow-lg shadow-${cat.color}-500/30 scale-105`
-                          : "bg-white/10 text-white/80 hover:bg-white/20 hover:scale-105"
+                      className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${activeCategory === cat.name
+                        ? "bg-emerald-500 text-white shadow-lg scale-105"
+                        : "bg-white/10 text-white/80 hover:bg-white/20 hover:scale-105"
                         }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -343,18 +396,16 @@ export default function VehiclesPage() {
 
               {/* Controls */}
               <div className="flex flex-wrap gap-3">
-                <div className="relative">
-                  <button
-                    onClick={() => setSelectedLocation(prev =>
-                      prev === "All Locations" ? "Kathmandu" : "All Locations"
-                    )}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-medium hover:bg-white/20 transition-all duration-300"
-                  >
-                    <MapPin className="w-4 h-4" />
-                    {selectedLocation}
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => setSelectedLocation(prev =>
+                    prev === "All Locations" ? "Kathmandu" : "All Locations"
+                  )}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-medium hover:bg-white/20 transition-all duration-300"
+                >
+                  <MapPin className="w-4 h-4" />
+                  {selectedLocation}
+                  <ChevronDown className="w-4 h-4" />
+                </button>
 
                 <button
                   onClick={() => setShowFilters(!showFilters)}
@@ -363,9 +414,6 @@ export default function VehiclesPage() {
                 >
                   <Filter className="w-4 h-4" />
                   Filters
-                  {Object.keys(priceRange).length > 0 && priceRange[0] > 0 && (
-                    <span className="ml-1 w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                  )}
                 </button>
 
                 <div className="relative">
@@ -377,7 +425,6 @@ export default function VehiclesPage() {
                     {sortBy}
                     <ChevronDown className="w-4 h-4" />
                   </button>
-
                   <AnimatePresence>
                     {showSort && (
                       <motion.div
@@ -392,16 +439,11 @@ export default function VehiclesPage() {
                             <button
                               key={opt.label}
                               onClick={() => { setSortBy(opt.label); setShowSort(false); }}
-                              className="w-full text-left px-4 py-3 text-sm hover:bg-emerald-50 transition-colors duration-200 flex items-center gap-3 group"
+                              className="w-full text-left px-4 py-3 text-sm hover:bg-emerald-50 transition flex items-center gap-3 group"
                             >
                               <Icon className="w-4 h-4 text-gray-400 group-hover:text-emerald-600" />
                               <span className="group-hover:text-emerald-600">{opt.label}</span>
-                              {sortBy === opt.label && (
-                                <motion.div
-                                  layoutId="activeSort"
-                                  className="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full"
-                                />
-                              )}
+                              {sortBy === opt.label && <div className="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full" />}
                             </button>
                           );
                         })}
@@ -431,51 +473,42 @@ export default function VehiclesPage() {
                 >
                   <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Price Range */}
                       <div>
                         <label className="text-white/80 text-sm font-medium mb-3 flex items-center gap-2">
                           <Wallet className="w-4 h-4" />
-                          Price Range: ₹{priceRange[0].toLocaleString()} — ₹{priceRange[1].toLocaleString()}
+                          Price Range: Rs.{priceRange[0].toLocaleString()} — Rs.{priceRange[1].toLocaleString()}
                         </label>
                         <div className="space-y-3">
                           <input
-                            type="range"
-                            min={0}
-                            max={50000}
-                            step={500}
+                            type="range" min={0} max={50000} step={500}
                             value={priceRange[0]}
                             onChange={e => setPriceRange([Math.min(+e.target.value, priceRange[1]), priceRange[1]])}
                             className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-400"
                           />
                           <input
-                            type="range"
-                            min={0}
-                            max={50000}
-                            step={500}
+                            type="range" min={0} max={50000} step={500}
                             value={priceRange[1]}
                             onChange={e => setPriceRange([priceRange[0], Math.max(+e.target.value, priceRange[0])])}
                             className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-emerald-400"
                           />
                           <div className="flex justify-between text-sm text-white/60">
-                            <span>₹0</span>
-                            <span>₹50,000+</span>
+                            <span>Rs.0</span><span>Rs.50,000+</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Quick Stats */}
                       <div className="flex items-center justify-between">
                         <div className="space-y-2">
                           <div className="flex items-center gap-3 text-white/80 text-sm">
                             <span>🚗 {filtered.length} vehicles available</span>
-                            <span>⭐ Avg rating: {(filtered.reduce((acc, v) => acc + v.rating, 0) / filtered.length || 0).toFixed(1)}</span>
+                            <span>⭐ Avg: {(filtered.reduce((acc, v) => acc + v.rating, 0) / (filtered.length || 1)).toFixed(1)}</span>
                           </div>
                           <div className="flex gap-2">
                             <span className="px-2 py-1 bg-white/10 rounded-lg text-xs">
-                              Electric: {filtered.filter(v => v.fuelType === 'electric').length}
+                              Electric: {filtered.filter(v => v.fuelType === "electric").length}
                             </span>
                             <span className="px-2 py-1 bg-white/10 rounded-lg text-xs">
-                              Automatic: {filtered.filter(v => v.transmission === 'automatic').length}
+                              Auto: {filtered.filter(v => v.transmission === "automatic").length}
                             </span>
                           </div>
                         </div>
@@ -487,9 +520,9 @@ export default function VehiclesPage() {
                             setSortBy("Recommended");
                             setSearchQuery("");
                           }}
-                          className="px-5 py-2.5 rounded-xl text-red-300 border border-white/20 text-sm font-medium hover:bg-white/10 transition-all duration-300"
+                          className="px-5 py-2.5 rounded-xl text-red-300 border border-white/20 text-sm font-medium hover:bg-white/10 transition"
                         >
-                          Reset All Filters
+                          Reset All
                         </button>
                       </div>
                     </div>
@@ -501,7 +534,7 @@ export default function VehiclesPage() {
         </div>
       </div>
 
-      {/* Results Section */}
+      {/* Results */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-12 w-full">
         <div className="flex justify-between items-center mb-8 pb-2 border-b border-gray-200">
           <div>
@@ -527,7 +560,7 @@ export default function VehiclesPage() {
             </div>
             <h3 className="text-2xl font-semibold text-gray-700 mb-2">No vehicles found</h3>
             <p className="text-gray-400 max-w-md mx-auto">
-              We couldn't find any vehicles matching your criteria. Try adjusting your filters or check back later.
+              We couldn't find any vehicles matching your criteria. Try adjusting your filters.
             </p>
             <button
               onClick={() => {
@@ -537,7 +570,7 @@ export default function VehiclesPage() {
                 setSortBy("Recommended");
                 setSearchQuery("");
               }}
-              className="mt-6 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-all duration-300"
+              className="mt-6 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition"
             >
               Clear All Filters
             </button>
@@ -546,7 +579,6 @@ export default function VehiclesPage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ staggerChildren: 0.1 }}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
             {filtered.map((v, index) => (
@@ -556,36 +588,26 @@ export default function VehiclesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ y: -8 }}
-                onClick={() => router.push(`/vehicles/${v.id}`)}
+                onClick={() => checkKycAndNavigate(v.id)}
                 className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-emerald-200 cursor-pointer"
               >
-                {/* Image Container */}
+                {/* Image */}
                 <div className="relative h-52 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                   <img
                     src={v.img}
                     alt={v.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x300?text=Vehicle";
-                    }}
+                    onError={e => { (e.target as HTMLImageElement).src = "/car-placeholder.jpg"; }}
                   />
-                  {/* Favorite Button */}
                   <button
-                    onClick={(e) => toggleFavorite(v.id, e)}
-                    className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition-all duration-200 shadow-md"
+                    onClick={e => toggleFavorite(v.id, e)}
+                    className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition shadow-md"
                   >
-                    <Heart
-                      className={`w-4 h-4 transition-colors ${favoriteIds.includes(v.id)
-                          ? "fill-red-500 text-red-500"
-                          : "text-gray-600 group-hover:text-red-500"
-                        }`}
-                    />
+                    <Heart className={`w-4 h-4 transition-colors ${favoriteIds.includes(v.id) ? "fill-red-500 text-red-500" : "text-gray-600 group-hover:text-red-500"}`} />
                   </button>
-                  {/* Badge */}
-                  {v.fuelType === 'electric' && (
+                  {v.fuelType === "electric" && (
                     <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2 py-1 bg-emerald-600/90 backdrop-blur-sm rounded-lg text-white text-xs font-semibold">
-                      <Leaf className="w-3 h-3" />
-                      Eco-Friendly
+                      <Leaf className="w-3 h-3" /> Eco-Friendly
                     </div>
                   )}
                 </div>
@@ -610,22 +632,22 @@ export default function VehiclesPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-2xl font-black text-emerald-600">₹{v.pricePerDay}</span>
+                      <span className="text-2xl font-black text-emerald-600">Rs.{v.pricePerDay}</span>
                       <span className="text-xs text-gray-400"> /day</span>
                     </div>
                   </div>
 
                   {/* Specs */}
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
                       <Users className="w-3.5 h-3.5" />
                       <span>{v.seats} seats</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
                       <Gauge className="w-3.5 h-3.5" />
                       <span>{v.range}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
                       <Fuel className="w-3.5 h-3.5" />
                       <span className="capitalize">{v.transmission}</span>
                     </div>
@@ -634,10 +656,7 @@ export default function VehiclesPage() {
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {v.tags.map(tag => (
-                      <span
-                        key={tag}
-                        className="text-[10px] font-medium bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full"
-                      >
+                      <span key={tag} className="text-[10px] font-medium bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
                         {tag}
                       </span>
                     ))}
@@ -647,9 +666,13 @@ export default function VehiclesPage() {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full mt-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300"
+                    onClick={e => { e.stopPropagation(); checkKycAndNavigate(v.id); }}
+                    disabled={kycLoading === v.id}
+                    className="w-full mt-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 disabled:opacity-70 flex items-center justify-center gap-2"
                   >
-                    View Details
+                    {kycLoading === v.id
+                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Checking...</>
+                      : "View Details"}
                   </motion.button>
                 </div>
               </motion.div>
@@ -659,6 +682,14 @@ export default function VehiclesPage() {
       </main>
 
       <Footer />
+
+      {/* KYC Modal */}
+      <KycModal
+        isOpen={showKycModal}
+        onClose={handleKycModalClose}
+        kycStatus={kycStatus}
+        userName={userName}
+      />
     </div>
   );
 }
