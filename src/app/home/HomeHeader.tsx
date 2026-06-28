@@ -321,7 +321,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/maps")}>Maps</li>
           <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/vehicles")}>Vehicles</li>
           <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/my-bookings")}>My Bookings</li>
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/about")}>About Us</li>
+          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/about1")}>About Us</li>
         </ul>
 
         {/* RIGHT: Notification and Profile */}

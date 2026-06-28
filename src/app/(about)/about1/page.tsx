@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import Header from "../component/Header";
-import Footer from "../component/Footer";
+import Footer from "../../component/Footer";
+import HomeHeader from "@/app/home/HomeHeader";
 
 interface TeamMember {
   name: string;
@@ -34,7 +34,7 @@ const teamMembers: TeamMember[] = [
 export default function AboutPage() {
   return (
     <main className="bg-white">
-      <Header />
+      <HomeHeader />
 
 
 
