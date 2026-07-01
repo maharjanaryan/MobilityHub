@@ -1,7 +1,13 @@
+// app/home/HomeHeader.tsx
 "use client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Settings, FileText, LogOut, Menu, X, Shield, IdCard, Briefcase, HelpCircle, MapPin, TrendingUp, CalendarCheck, BookOpen } from "lucide-react";
+import {
+  User, Settings, FileText, LogOut, Menu, X, Shield, IdCard,
+  Briefcase, HelpCircle, MapPin, TrendingUp, CalendarCheck,
+  BookOpen, MessageSquare, Home, Map, Car, Info, Bell,
+  CreditCard, Wallet, Star, Gift, Award
+} from "lucide-react";
 import NotificationBell from "../component/NotificationBell";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -59,6 +65,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [kycStatus, setKycStatus] = useState<{
     user: "pending" | "verified" | "rejected" | "not_submitted";
     owner: "pending" | "verified" | "rejected" | "not_submitted";
@@ -82,6 +89,36 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     }
     return null;
   }, []);
+
+  // Fetch unread chat count
+  const fetchUnreadChatCount = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/chat/unread/count`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.status === 401) {
+        // Token expired, redirect to signin
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        router.push('/signin');
+        return;
+      }
+
+      if (response.ok) {
+        const data = await response.json();
+        setUnreadChatCount(data.count || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching unread chat count:', error);
+    }
+  }, [getAccessToken, router]);
 
   // Fetch KYC status from API
   const fetchKYCStatus = useCallback(async () => {
@@ -170,10 +207,12 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     setLoading(false);
   }, [getAccessToken, userType]);
 
+  // Initial data fetch
   useEffect(() => {
     queueMicrotask(() => {
       void fetchUserData();
       void fetchKYCStatus();
+      void fetchUnreadChatCount();
     });
 
     const handleProfileUpdated = () => {
@@ -183,12 +222,17 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     window.addEventListener('profile-updated', handleProfileUpdated);
 
     // Poll every 30 seconds for KYC status updates
-    const interval = setInterval(fetchKYCStatus, 30000);
+    const kycInterval = setInterval(fetchKYCStatus, 30000);
+
+    // Poll every 15 seconds for chat updates
+    const chatInterval = setInterval(fetchUnreadChatCount, 15000);
+
     return () => {
-      clearInterval(interval);
+      clearInterval(kycInterval);
+      clearInterval(chatInterval);
       window.removeEventListener('profile-updated', handleProfileUpdated);
     };
-  }, [fetchKYCStatus, fetchUserData]);
+  }, [fetchKYCStatus, fetchUserData, fetchUnreadChatCount]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -265,6 +309,17 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     { label: "My Bookings", icon: BookOpen, onClick: () => navigateTo("/my-bookings"), divider: false },
     { label: "Booking Request", icon: CalendarCheck, onClick: () => navigateTo("/booking"), divider: false },
     {
+      label: "Messages",
+      icon: MessageSquare,
+      onClick: () => navigateTo("/chat"),
+      divider: false,
+      badge: unreadChatCount > 0 ? {
+        color: "bg-red-500 text-white",
+        label: `${unreadChatCount}`,
+        icon: ""
+      } : undefined
+    },
+    {
       label: "User KYC",
       icon: IdCard,
       onClick: () => navigateTo("/kyc/user"),
@@ -295,7 +350,9 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             <img src="/logo.png" alt="Logo" className="w-10 h-10 rounded-full object-cover" />
             <h1 className="text-xl font-bold">Mobility Hub</h1>
           </div>
-          <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+          </div>
         </div>
       </nav>
     );
@@ -315,37 +372,67 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           <h1 className="text-lg sm:text-xl font-bold truncate">Mobility Hub</h1>
         </div>
 
-        {/* CENTER: Menu */}
-        <ul className="hidden lg:flex space-x-6 text-gray-500">
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/home")}>Home</li>
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/maps")}>Maps</li>
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/vehicles")}>Vehicles</li>
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/my-bookings")}>My Bookings</li>
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/about1")}>About Us</li>
+        {/* CENTER: Menu - Icons Removed */}
+        <ul className="hidden lg:flex space-x-8 text-gray-600 font-medium">
+          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/home")}>
+            Home
+          </li>
+          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/maps")}>
+            Maps
+          </li>
+          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/vehicles")}>
+            Vehicles
+          </li>
+          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/my-bookings")}>
+            My Bookings
+          </li>
+          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/about1")}>
+            About Us
+          </li>
         </ul>
 
-        {/* RIGHT: Notification and Profile */}
+        {/* RIGHT: Chat, Notification, and Profile */}
         <div className="flex items-center space-x-2 sm:space-x-4">
+
+          {/* Chat Button */}
+          <button
+            onClick={() => navigateTo("/chat")}
+            className="relative p-2 rounded-full hover:bg-gray-200 transition-colors"
+            aria-label="Messages"
+          >
+            <MessageSquare className="w-5 h-5 text-gray-600" />
+            {unreadChatCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+                {unreadChatCount > 9 ? '9+' : unreadChatCount}
+              </span>
+            )}
+          </button>
 
           {/* Notification Bell Component */}
           <NotificationBell />
 
           {/* Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>
-            <div className="cursor-pointer" onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
+            <div
+              className="cursor-pointer flex items-center gap-2"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
               <img
                 src={userData.avatar}
                 alt="Profile"
-                className="w-10 h-10 rounded-full cursor-pointer border-2 border-gray-300 hover:border-green-500 transition-colors"
+                className="w-10 h-10 rounded-full cursor-pointer border-2 border-gray-300 hover:border-green-500 transition-colors object-cover"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = "/logo.png";
                 }}
               />
+              <span className="hidden sm:block text-sm font-medium text-gray-700">
+                {userData.name.split(' ')[0]}
+              </span>
             </div>
 
             {/* Dropdown Menu */}
             {isDropdownOpen && (
-              <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 max-h-[90vh] overflow-y-auto">
                 {/* User Info Section */}
                 <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-gray-50 border-b border-gray-200">
                   <div className="flex items-center space-x-3">
@@ -359,8 +446,11 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                     />
                     <div className="flex-1">
                       <p className="font-semibold text-gray-800">{userData.name}</p>
-                      <p className="text-sm text-gray-500">{userData.email}</p>
-                      <p className="text-xs text-green-600 mt-1 capitalize">{userData.role}</p>
+                      <p className="text-sm text-gray-500 truncate">{userData.email}</p>
+                      <p className="text-xs text-green-600 mt-1 capitalize flex items-center gap-1">
+                        <Shield className="w-3 h-3" />
+                        {userData.role}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -413,7 +503,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                         </div>
                         {item.badge && (
                           <span className={`text-xs px-2 py-0.5 rounded-full ${item.badge.color} inline-flex items-center gap-1`}>
-                            <span>{item.badge.icon}</span>
+                            {item.badge.icon && <span>{item.badge.icon}</span>}
                             {item.badge.label}
                           </span>
                         )}
@@ -428,6 +518,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             )}
           </div>
 
+          {/* Mobile Menu Toggle */}
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen((open) => !open)}
@@ -439,16 +530,19 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         </div>
 
       </div>
+
+      {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-200 bg-white">
+        <div className="lg:hidden border-t border-gray-200 bg-white shadow-lg">
           <div className="max-w-7xl mx-auto px-4 py-3 grid gap-1 text-gray-600">
+            {/* Main Navigation - Icons Removed */}
             {[
-              ["Home", "/home"],
-              ["Maps", "/maps"],
-              ["Vehicles", "/vehicles"],
-              ["My Bookings", "/my-bookings"],
-              ["About Us", "/about"],
-            ].map(([label, path]) => (
+              { label: "Home", path: "/home" },
+              { label: "Maps", path: "/maps" },
+              { label: "Vehicles", path: "/vehicles" },
+              { label: "My Bookings", path: "/my-bookings" },
+              { label: "About Us", path: "/about" },
+            ].map(({ label, path }) => (
               <button
                 key={label}
                 type="button"
@@ -458,23 +552,38 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                 {label}
               </button>
             ))}
-            {/* Mobile KYC Links */}
+
+            {/* Divider */}
+            <div className="border-t border-gray-200 my-2"></div>
+
+            {/* Quick Actions */}
+            <button
+              onClick={() => navigateTo("/chat")}
+              className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center justify-between"
+            >
+              <span>Messages</span>
+              {unreadChatCount > 0 && (
+                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                  {unreadChatCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => navigateTo("/booking")}
+              className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+            >
+              Booking Request
+            </button>
+
+            {/* KYC Section */}
             <div className="border-t border-gray-200 my-2 pt-2">
-              <button
-                onClick={() => navigateTo("/booking")}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center space-x-2"
-              >
-                <CalendarCheck size={18} />
-                <span>Booking Request</span>
-              </button>
+              <p className="text-xs font-semibold text-gray-400 px-3 py-1">KYC Verification</p>
               <button
                 onClick={() => navigateTo("/kyc/user")}
                 className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center justify-between"
               >
-                <div className="flex items-center space-x-2">
-                  <IdCard size={18} />
-                  <span>User KYC</span>
-                </div>
+                <span>User KYC</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("user").color} inline-flex items-center gap-1`}>
                   <span>{getKYCStatusBadge("user").icon}</span>
                   {getKYCStatusBadge("user").label}
@@ -484,30 +593,66 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                 onClick={() => navigateTo("/kyc/owner")}
                 className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center justify-between"
               >
-                <div className="flex items-center space-x-2">
-                  <Briefcase size={18} />
-                  <span>Owner KYC</span>
-                </div>
+                <span>Owner KYC</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("owner").color} inline-flex items-center gap-1`}>
                   <span>{getKYCStatusBadge("owner").icon}</span>
                   {getKYCStatusBadge("owner").label}
                 </span>
               </button>
+            </div>
 
-              {/* Mobile Additional Links */}
+            {/* More Options */}
+            <div className="border-t border-gray-200 my-2 pt-2">
               <button
                 onClick={() => navigateTo("/tracking")}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center space-x-2 mt-1"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
               >
-                <MapPin size={18} />
-                <span>Track My Ride</span>
+                Track My Ride
+              </button>
+              <button
+                onClick={() => navigateTo("/reports")}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+              >
+                My Reports
+              </button>
+              <button
+                onClick={() => navigateTo("/earnings")}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+              >
+                Earnings
               </button>
               <button
                 onClick={() => navigateTo("/help")}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center space-x-2"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
               >
-                <HelpCircle size={18} />
-                <span>Help & Support</span>
+                Help & Support
+              </button>
+            </div>
+
+            {/* Profile & Settings */}
+            <div className="border-t border-gray-200 my-2 pt-2">
+              <button
+                onClick={() => navigateTo("/profile")}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+              >
+                Profile
+              </button>
+              <button
+                onClick={() => navigateTo("/settings")}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+              >
+                Settings
+              </button>
+            </div>
+
+            {/* Logout */}
+            <div className="border-t border-gray-200 my-2 pt-2">
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors text-red-500 disabled:opacity-50"
+              >
+                {isLoggingOut ? "Logging out..." : "Logout"}
               </button>
             </div>
           </div>

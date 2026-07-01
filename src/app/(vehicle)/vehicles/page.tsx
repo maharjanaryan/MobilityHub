@@ -1,4 +1,4 @@
-// app/vehicles/page.tsx
+// app/(vehicle)/vehicles/page.tsx
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -7,7 +7,8 @@ import {
   Search, SlidersHorizontal, Battery, Zap, MapPin,
   Star, X, ChevronDown, Plus, Loader2, Car, Heart,
   Fuel, Users, Gauge, Filter, ArrowUpDown, TrendingUp,
-  Clock, Shield, Sparkles, Leaf, Wallet, Navigation
+  Clock, Shield, Sparkles, Leaf, Wallet, Navigation,
+  MessageSquare // Add this
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -15,6 +16,8 @@ import HomeHeader from "@/app/home/HomeHeader";
 import Footer from "@/app/component/Footer";
 import KycModal from "@/app/component/KycModal";
 
+// SVG Placeholder as Data URI
+const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23e5e7eb'/%3E%3Crect x='50' y='80' width='300' height='140' rx='10' fill='%239ca3af'/%3E%3Crect x='70' y='100' width='260' height='80' rx='5' fill='%23d1d5db'/%3E%3Ccircle cx='110' cy='200' r='30' fill='%234b5563'/%3E%3Ccircle cx='290' cy='200' r='30' fill='%234b5563'/%3E%3Crect x='100' y='100' width='50' height='30' rx='3' fill='%239ca3af'/%3E%3Crect x='250' y='100' width='50' height='30' rx='3' fill='%239ca3af'/%3E%3Ctext x='200' y='270' font-family='Arial' font-size='16' fill='%236b7280' text-anchor='middle'%3E🚗 Vehicle%3C/text%3E%3C/svg%3E";
 
 interface Vehicle {
   id: number;
@@ -36,6 +39,8 @@ interface Vehicle {
   fuelType: string;
   isAvailable: boolean;
   photos: string[];
+  ownerId?: number;
+  ownerName?: string;
 }
 
 const categories = [
@@ -67,6 +72,7 @@ export default function VehiclesPage() {
   const [showSort, setShowSort] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [kycLoading, setKycLoading] = useState<number | null>(null);
+  const [chatLoading, setChatLoading] = useState<number | null>(null);
 
   // KYC Modal state
   const [showKycModal, setShowKycModal] = useState(false);
@@ -141,7 +147,7 @@ export default function VehiclesPage() {
           model: v.model,
           name: `${v.brand} ${v.model}`,
           category: mapCategory(v.seats),
-          img: v.photos?.[0] || "/car-placeholder.jpg",
+          img: v.photos?.[0] || PLACEHOLDER_IMAGE,
           pricePerDay: v.pricePerDay,
           rating: v.averageRating || 4.5,
           range: getRangeByFuelType(v.fuelType),
@@ -153,7 +159,9 @@ export default function VehiclesPage() {
           transmission: v.transmission,
           fuelType: v.fuelType,
           isAvailable: v.isAvailable,
-          photos: v.photos || []
+          photos: v.photos || [],
+          ownerId: v.ownerId || v.owner?.id,
+          ownerName: v.owner?.username || v.owner?.fullName || "Vehicle Owner"
         })));
       }
     } catch (error) {
@@ -204,6 +212,82 @@ export default function VehiclesPage() {
     );
   };
 
+  // Start chat with vehicle owner
+  const startChatWithOwner = async (vehicleId: number, ownerId: number, ownerName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/signin");
+      return;
+    }
+
+    // Get current user
+    const user = getUserData();
+    if (!user) {
+      router.push("/signin");
+      return;
+    }
+
+    // Check if trying to chat with yourself
+    if (user.id === ownerId) {
+      alert("You cannot chat with yourself. This is your own vehicle.");
+      return;
+    }
+
+    setChatLoading(vehicleId);
+
+    try {
+      // First, check if conversation already exists
+      const checkResponse = await fetch(`http://localhost:8080/api/chat/conversations`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (checkResponse.ok) {
+        const conversations = await checkResponse.json();
+        const existingConversation = conversations.find(
+          (conv: any) => conv.otherUserId === ownerId
+        );
+
+        if (existingConversation) {
+          // Navigate to existing conversation
+          router.push(`/chat?conversationId=${existingConversation.id}`);
+          return;
+        }
+      }
+
+      // If no existing conversation, send a first message to create one
+      const messageData = {
+        receiverId: ownerId,
+        message: `Hi! I'm interested in your vehicle "${vehicles.find(v => v.id === vehicleId)?.name || 'vehicle'}". Is it still available?`
+      };
+
+      const sendResponse = await fetch('http://localhost:8080/api/chat/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(messageData)
+      });
+
+      if (sendResponse.ok) {
+        // Navigate to chat page
+        router.push('/chat');
+      } else {
+        alert('Failed to start conversation. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error starting chat:', error);
+      alert('Network error. Please try again.');
+    } finally {
+      setChatLoading(null);
+    }
+  };
+
   // Check KYC status and show modal if needed
   const checkKycAndNavigate = async (vehicleId: number) => {
     const token = getAccessToken();
@@ -247,12 +331,6 @@ export default function VehiclesPage() {
   const handleKycModalClose = () => {
     setShowKycModal(false);
     setSelectedVehicleId(null);
-  };
-
-  // Handle KYC modal action (redirect to KYC page)
-  const handleKycAction = () => {
-    setShowKycModal(false);
-    router.push("/kyc");
   };
 
   const filtered = useMemo(() => {
@@ -588,16 +666,18 @@ export default function VehiclesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ y: -8 }}
-                onClick={() => checkKycAndNavigate(v.id)}
-                className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-emerald-200 cursor-pointer"
+                className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-emerald-200"
               >
                 {/* Image */}
-                <div className="relative h-52 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                <div
+                  className="relative h-52 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden cursor-pointer"
+                  onClick={() => checkKycAndNavigate(v.id)}
+                >
                   <img
                     src={v.img}
                     alt={v.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    onError={e => { (e.target as HTMLImageElement).src = "/car-placeholder.jpg"; }}
+                    onError={e => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE; }}
                   />
                   <button
                     onClick={e => toggleFavorite(v.id, e)}
@@ -616,7 +696,10 @@ export default function VehiclesPage() {
                 <div className="p-5">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-bold text-gray-800 text-lg group-hover:text-emerald-600 transition-colors">
+                      <h3
+                        className="font-bold text-gray-800 text-lg group-hover:text-emerald-600 transition-colors cursor-pointer"
+                        onClick={() => checkKycAndNavigate(v.id)}
+                      >
                         {v.name}
                       </h3>
                       <div className="flex items-center gap-2 mt-1.5">
@@ -630,6 +713,12 @@ export default function VehiclesPage() {
                           <span>{v.location}</span>
                         </div>
                       </div>
+                      {/* Owner name */}
+                      {v.ownerName && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Owner: {v.ownerName}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <span className="text-2xl font-black text-emerald-600">Rs.{v.pricePerDay}</span>
@@ -662,18 +751,40 @@ export default function VehiclesPage() {
                     ))}
                   </div>
 
-                  {/* Button */}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={e => { e.stopPropagation(); checkKycAndNavigate(v.id); }}
-                    disabled={kycLoading === v.id}
-                    className="w-full mt-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 disabled:opacity-70 flex items-center justify-center gap-2"
-                  >
-                    {kycLoading === v.id
-                      ? <><Loader2 className="w-4 h-4 animate-spin" /> Checking...</>
-                      : "View Details"}
-                  </motion.button>
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 mt-4">
+                    {/* View Details Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => checkKycAndNavigate(v.id)}
+                      disabled={kycLoading === v.id}
+                      className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 disabled:opacity-70 flex items-center justify-center gap-2"
+                    >
+                      {kycLoading === v.id
+                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Checking...</>
+                        : "View Details"}
+                    </motion.button>
+
+                    {/* Chat with Owner Button */}
+                    {v.ownerId && v.ownerId !== getUserData()?.id && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={(e) => startChatWithOwner(v.id, v.ownerId!, v.ownerName!, e)}
+                        disabled={chatLoading === v.id}
+                        className="px-4 py-2.5 bg-blue-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300 disabled:opacity-70 flex items-center justify-center gap-2"
+                        title={`Chat with ${v.ownerName}`}
+                      >
+                        {chatLoading === v.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <MessageSquare className="w-4 h-4" />
+                        )}
+                        <span className="hidden sm:inline">Chat</span>
+                      </motion.button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             ))}
