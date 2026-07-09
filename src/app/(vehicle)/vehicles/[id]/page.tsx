@@ -1,3 +1,4 @@
+// app/vehicles/[id]/page.tsx
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -13,6 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HomeHeader from "../../../home/HomeHeader";
 import Footer from "../../../component/Footer";
+import PaymentModal from "../../../component/payment/PaymentModal";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -103,10 +105,6 @@ const formatCurrency = (value?: number | null) => {
   return `Rs. ${Number(value).toLocaleString()}`;
 };
 
-/**
- * Get Nepal date string in YYYY-MM-DD format
- * This ensures consistent date handling between frontend and backend
- */
 const getNepalDateString = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -114,9 +112,6 @@ const getNepalDateString = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-/**
- * Get tomorrow's date in Nepal timezone
- */
 const getTomorrowInNepal = (): Date => {
   const today = new Date();
   const tomorrow = new Date(today);
@@ -124,12 +119,7 @@ const getTomorrowInNepal = (): Date => {
   return tomorrow;
 };
 
-/**
- * Format date for API - sends just the date part without time
- * Backend will interpret it as start of day in Nepal timezone
- */
 const formatDateForAPI = (date: Date): string => {
-  // Send only YYYY-MM-DD format - no time, no timezone
   return getNepalDateString(date);
 };
 
@@ -162,7 +152,7 @@ function DetailSection({ title, children }: { title: string; children: React.Rea
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Calendar — stores full Date objects, supports cross-month ranges
+// Calendar component
 // ─────────────────────────────────────────────────────────────────────────────
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -287,7 +277,7 @@ function MiniCalendar({ selected, onChange, year, month, onPrev, onNext, bookedD
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Terms & Conditions Modal Component
+// Terms & Conditions Modal
 // ─────────────────────────────────────────────────────────────────────────────
 interface TermsModalProps {
   isOpen: boolean;
@@ -298,17 +288,8 @@ interface TermsModalProps {
 
 function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalProps) {
   const [accepted, setAccepted] = useState(false);
-  const [scrolledToBottom, setScrolledToBottom] = useState(false);
 
   if (!isOpen) return null;
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement;
-    const isBottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 10;
-    if (isBottom) {
-      setScrolledToBottom(true);
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -318,7 +299,6 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
         exit={{ opacity: 0, scale: 0.95 }}
         className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden"
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
@@ -329,24 +309,16 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
               <p className="text-sm text-gray-500">Please read and accept the terms below</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content */}
-        <div
-          className="flex-1 overflow-y-auto p-6 space-y-6"
-          onScroll={handleScroll}
-        >
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-amber-800">
               By proceeding with this booking, you agree to all the terms and conditions outlined below.
-              Please read carefully before accepting.
             </p>
           </div>
 
@@ -365,41 +337,12 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
 
             <section>
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-emerald-600" />
-                User Responsibilities
-              </h3>
-              <div className="mt-3 space-y-3">
-                <p className="text-sm font-semibold text-gray-700">The renter agrees to:</p>
-                <ul className="space-y-2 text-sm text-gray-600 list-disc pl-6">
-                  <li>Handle the vehicle carefully and responsibly.</li>
-                  <li>Follow all traffic laws and regulations.</li>
-                  <li>Return the vehicle in the same condition as received.</li>
-                  <li>Keep the vehicle secure during the rental period.</li>
-                </ul>
-                <p className="text-sm font-semibold text-gray-700 mt-2">The renter must not:</p>
-                <ul className="space-y-2 text-sm text-gray-600 list-disc pl-6">
-                  <li>Drive recklessly or dangerously.</li>
-                  <li>Use the vehicle for illegal activities.</li>
-                  <li>Allow another person to drive without permission.</li>
-                  <li>Use the vehicle while under the influence of alcohol or drugs.</li>
-                </ul>
-              </div>
-            </section>
-
-            <section>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-emerald-600" />
                 Security Deposit
               </h3>
               <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
                 <li>A refundable security deposit may be required before the rental starts.</li>
-                <li className="font-semibold text-gray-700">The deposit may be deducted for:</li>
-                <ul className="pl-6 space-y-1 text-sm text-gray-600 list-disc">
-                  <li>Vehicle damage</li>
-                  <li>Missing accessories or documents</li>
-                  <li>Late return charges</li>
-                  <li>Traffic fines or penalties</li>
-                </ul>
+                <li>The deposit may be deducted for vehicle damage, missing accessories, late return charges, or traffic fines.</li>
               </ul>
             </section>
 
@@ -411,73 +354,6 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
               <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
                 <li>The vehicle must be returned on or before the agreed return time.</li>
                 <li>Late returns may result in additional charges.</li>
-                <li>Failure to return the vehicle without communication may lead to account suspension or legal action.</li>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-emerald-600" />
-                Damage and Accident Policy
-              </h3>
-              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
-                <li>Any damage occurring during the rental period will be the responsibility of the renter.</li>
-                <li>In case of an accident or breakdown, the renter must immediately contact the vehicle owner and Mobility Hub support.</li>
-                <li>Repair costs caused by negligence may be charged to the renter.</li>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Fuel className="w-5 h-5 text-emerald-600" />
-                Fuel Policy
-              </h3>
-              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
-                <li>The vehicle should be returned with the same fuel level provided at pickup.</li>
-                <li>Additional fuel charges may apply if the fuel level is lower.</li>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-emerald-600" />
-                Cancellation and Refund
-              </h3>
-              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
-                <li>Users may cancel bookings before the rental start time.</li>
-                <li>Refund eligibility depends on the cancellation timing and platform policy.</li>
-                <li>No refund will be provided after the rental period begins.</li>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-emerald-600" />
-                Platform Limitation
-              </h3>
-              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
-                <li>Mobility Hub acts only as a platform connecting vehicle owners and renters.</li>
-                <li className="font-semibold text-gray-700">Mobility Hub is not responsible for:</li>
-                <ul className="pl-6 space-y-1 text-sm text-gray-600 list-disc">
-                  <li>Personal injuries</li>
-                  <li>Loss of personal belongings</li>
-                  <li>Accidents caused by user negligence</li>
-                </ul>
-              </ul>
-            </section>
-
-            <section>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <X className="w-5 h-5 text-emerald-600" />
-                Account Restriction
-              </h3>
-              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
-                <li>Mobility Hub reserves the right to suspend or terminate accounts involved in:</li>
-                <ul className="pl-6 space-y-1 text-sm text-gray-600 list-disc">
-                  <li>Fraudulent activities</li>
-                  <li>Violation of rental policies</li>
-                  <li>Vehicle misuse or repeated complaints</li>
-                </ul>
               </ul>
             </section>
 
@@ -494,7 +370,6 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
           </div>
         </div>
 
-        {/* Footer */}
         <div className="p-6 border-t border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-4 mb-4">
             <input
@@ -509,10 +384,7 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
             </label>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition"
-            >
+            <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition">
               Cancel
             </button>
             <button
@@ -524,15 +396,9 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
               ].join(" ")}
             >
               {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Processing...
-                </>
+                <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
               ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  Accept & Continue
-                </>
+                <><CheckCircle2 className="w-4 h-4" /> Accept & Continue</>
               )}
             </button>
           </div>
@@ -543,7 +409,7 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Main page
+// Main Page
 // ─────────────────────────────────────────────────────────────────────────────
 export default function VehicleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -557,6 +423,9 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   const [bookingSuccess, setBookingSuccess] = useState<BookingResponse | null>(null);
   const [showDriverModal, setShowDriverModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
+  const [pendingAmount, setPendingAmount] = useState<number>(0);
   const [driverInfo, setDriverInfo] = useState({ name: "", licenseNumber: "" });
 
   const [activeImg, setActiveImg] = useState(0);
@@ -685,7 +554,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     if (!dateRange[0] || !dateRange[1]) { alert("Please select pickup and dropoff dates"); return; }
     if (rentalDays < 1) { alert("Dropoff date must be after pickup date"); return; }
 
-    // Check if pickup is at least tomorrow
     const tomorrow = getTomorrowInNepal();
     tomorrow.setHours(0, 0, 0, 0);
     const pickup = new Date(dateRange[0]);
@@ -696,13 +564,11 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
       return;
     }
 
-    // Show terms modal first
     setShowTermsModal(true);
   };
 
   const handleAcceptTerms = () => {
     setShowTermsModal(false);
-    // Then show driver modal
     setShowDriverModal(true);
   };
 
@@ -720,11 +586,8 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
       const pickupDate = new Date(dateRange[0]);
       const dropoffDate = new Date(dateRange[1]);
 
-      // Send only the date part (YYYY-MM-DD) without time
       const pickupDateStr = formatDateForAPI(pickupDate);
       const dropoffDateStr = formatDateForAPI(dropoffDate);
-
-      console.log("Booking dates:", { pickupDateStr, dropoffDateStr });
 
       // Availability check
       const availRes = await fetch(
@@ -759,8 +622,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         paymentMethod: "PENDING",
       };
 
-      console.log("Creating booking with request:", bookingRequest);
-
       const res = await fetch("http://localhost:8080/api/bookings", {
         method: "POST",
         headers: {
@@ -785,17 +646,32 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
       const result = await res.json();
       console.log("Booking created:", result);
 
-      setBookingSuccess(result);
+      // Close driver modal and show payment modal
       setShowDriverModal(false);
       setDriverInfo({ name: "", licenseNumber: "" });
-      await fetchBookedDates();
+
+      // Store booking info for payment
+      setPendingBookingId(result.id);
+      setPendingAmount(result.totalAmount);
+      setShowPaymentModal(true);
+      setBookingLoading(false);
 
     } catch (e) {
       console.error("Booking error:", e);
       alert(e instanceof Error ? e.message : "Failed to create booking. Please try again.");
-    } finally {
       setBookingLoading(false);
     }
+  };
+
+  const handlePaymentSuccess = async () => {
+    // Refresh booked dates and show success
+    await fetchBookedDates();
+    setShowPaymentModal(false);
+    setPendingBookingId(null);
+    setPendingAmount(0);
+
+    alert("Payment successful! Your booking is confirmed.");
+    router.push("/my-bookings");
   };
 
   // Loading State
@@ -841,33 +717,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   const images = [vehicle.img, ...(vehicle.extraImages ?? [])].slice(0, 5);
   const isElectric = vehicle.fuelType?.toLowerCase() === "electric";
 
-  // Success Modal
-  if (bookingSuccess) return (
-    <div className="min-h-screen bg-[#f8f9fb]">
-      <HomeHeader />
-      <div className="flex items-center justify-center min-h-[80vh] px-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="w-8 h-8 text-emerald-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Booking Request Sent!</h2>
-          <p className="text-gray-600 mb-4">Your request has been sent to the host. You'll be notified once they respond.</p>
-          <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
-            <p className="text-sm text-gray-500">Booking ID: #{bookingSuccess.bookingReference}</p>
-            <p className="text-sm text-gray-500">Status: {bookingSuccess.bookingStatus}</p>
-            <p className="text-sm text-gray-500">Total: {formatCurrency(bookingSuccess.totalAmount)}</p>
-          </div>
-          <div className="flex gap-3">
-            <button onClick={() => router.push("/my-bookings")} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition">View My Bookings</button>
-            <button onClick={() => { setBookingSuccess(null); setDateRange([null, null]); }} className="flex-1 py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition">Browse More</button>
-          </div>
-        </div>
-      </div>
-      <Footer />
-    </div>
-  );
-
-  // Main render
   return (
     <div className="min-h-screen bg-[#f8f9fb]">
       <HomeHeader />
@@ -1119,7 +968,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
               </motion.button>
 
               <p className="text-center text-[10px] text-gray-400">
-                You will not be charged until a host accepts your trip request.
+                You will be redirected to payment after confirming booking details.
               </p>
             </div>
           </div>
@@ -1184,6 +1033,21 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
         </div>
+      )}
+
+      {/* Payment Modal */}
+      {pendingBookingId && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setPendingBookingId(null);
+            setPendingAmount(0);
+          }}
+          bookingId={pendingBookingId}
+          amount={pendingAmount}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
       )}
 
       <Footer />

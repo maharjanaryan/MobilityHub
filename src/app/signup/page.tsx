@@ -150,10 +150,14 @@ export default function SignUpPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-green-50 to-green-100">
-      <div className="flex items-center justify-center px-4 py-8 sm:py-12">
+    <main
+      className="min-h-screen bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/signin.png')" }}
+    >
+      {/* Overlay for better text readability */}
+      <div className="min-h-screen flex items-center justify-center px-4 py-8 sm:py-12 bg-black/30">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 sm:p-8">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-5 sm:p-8">
             <div className="flex justify-center mb-6">
               <div className="bg-green-100 rounded-full p-3">
                 <img

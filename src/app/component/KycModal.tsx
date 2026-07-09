@@ -1,4 +1,4 @@
-// src/components/KycModal.tsx
+// app/component/KycModal.tsx
 "use client";
 
 import React from "react";
@@ -10,7 +10,9 @@ import {
   CheckCircle,
   Clock,
   ArrowRight,
-  FileText
+  FileText,
+  User,
+  IdCard
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -24,21 +26,13 @@ interface KycModalProps {
 export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycModalProps) {
   const router = useRouter();
 
+  // If KYC is verified, don't show the modal
+  if (kycStatus === "VERIFIED" || kycStatus === "APPROVED") {
+    return null;
+  }
+
   const getStatusConfig = () => {
     switch (kycStatus) {
-      case "VERIFIED":
-      case "APPROVED":
-        return {
-          icon: CheckCircle,
-          color: "emerald",
-          bgColor: "bg-emerald-50",
-          borderColor: "border-emerald-200",
-          title: "KYC Verified ✅",
-          message: "Your KYC is verified. You can now access all vehicle details and make bookings.",
-          buttonText: "Continue",
-          buttonAction: () => onClose(),
-          showAction: false
-        };
       case "PENDING":
         return {
           icon: Clock,
@@ -46,10 +40,15 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
           bgColor: "bg-amber-50",
           borderColor: "border-amber-200",
           title: "KYC Under Review ⏳",
-          message: "Your KYC verification is currently being reviewed by our team. This usually takes 24-48 hours.",
+          message: `Hi ${userName || "there"}, your KYC verification is currently being reviewed by our team. This usually takes 24-48 hours. You'll be notified once it's complete.`,
           buttonText: "Check Status",
-          buttonAction: () => router.push("/kyc-status"),
-          showAction: true
+          buttonAction: () => router.push("/kyc/status"),
+          showAction: true,
+          details: [
+            "• Our team is reviewing your documents",
+            "• You'll receive a notification once verified",
+            "• You can check status anytime"
+          ]
         };
       case "REJECTED":
         return {
@@ -58,10 +57,15 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
           bgColor: "bg-red-50",
           borderColor: "border-red-200",
           title: "KYC Rejected ❌",
-          message: "Your KYC verification was rejected. Please review the feedback and resubmit your documents.",
+          message: `Hi ${userName || "there"}, your KYC verification was rejected. Please review the feedback and resubmit your documents with correct information.`,
           buttonText: "Resubmit KYC",
-          buttonAction: () => router.push("/kyc/user"),
-          showAction: true
+          buttonAction: () => router.push("/kyc/owner"),
+          showAction: true,
+          details: [
+            "• Blurry or unclear document photos",
+            "• Document expired or invalid",
+            "• Name mismatch with account"
+          ]
         };
       default:
         return {
@@ -70,10 +74,15 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
           bgColor: "bg-blue-50",
           borderColor: "border-blue-200",
           title: "KYC Required 🔒",
-          message: "You need to complete KYC verification before you can view vehicle details or make bookings.",
+          message: `Hi ${userName || "there"}, you need to complete KYC verification before you can view vehicle details or make bookings. This is a one-time process to ensure safety and security.`,
           buttonText: "Complete KYC",
-          buttonAction: () => router.push("/kyc/user"),
-          showAction: true
+          buttonAction: () => router.push("/kyc/owner"),
+          showAction: true,
+          details: [
+            "• Government-issued ID (Passport, Driver's License, Citizenship)",
+            "• Clear, readable photos of documents",
+            "• Selfie for verification"
+          ]
         };
     }
   };
@@ -129,53 +138,23 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
               <p className="text-gray-600 leading-relaxed">{config.message}</p>
 
               {/* Additional info based on status */}
-              {kycStatus === "PENDING" && (
-                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
-                  <div className="flex items-start gap-3">
-                    <Clock className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-amber-800">What happens next?</p>
-                      <ul className="text-sm text-amber-700 mt-1 space-y-1">
-                        <li>• Our team reviews your documents</li>
-                        <li>• You'll receive a notification once verified</li>
-                        <li>• You can check status anytime</li>
-                      </ul>
-                    </div>
+              <div className={`rounded-xl p-4 border ${config.bgColor} ${config.borderColor}`}>
+                <div className="flex items-start gap-3">
+                  <FileText className={`w-5 h-5 text-${config.color}-500 mt-0.5 flex-shrink-0`} />
+                  <div>
+                    <p className={`text-sm font-medium text-${config.color}-800`}>
+                      {kycStatus === "PENDING" ? "What happens next?" :
+                        kycStatus === "REJECTED" ? "Common reasons for rejection:" :
+                          "Required Documents:"}
+                    </p>
+                    <ul className={`text-sm text-${config.color}-700 mt-1 space-y-1`}>
+                      {config.details?.map((detail, index) => (
+                        <li key={index}>{detail}</li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
-              )}
-
-              {kycStatus === "REJECTED" && (
-                <div className="bg-red-50 rounded-xl p-4 border border-red-200">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-red-800">Common reasons for rejection:</p>
-                      <ul className="text-sm text-red-700 mt-1 space-y-1">
-                        <li>• Blurry or unclear document photos</li>
-                        <li>• Document expired or invalid</li>
-                        <li>• Name mismatch with account</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {(!kycStatus || kycStatus === "NOT_SUBMITTED") && (
-                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                  <div className="flex items-start gap-3">
-                    <FileText className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-800">Required Documents:</p>
-                      <ul className="text-sm text-blue-700 mt-1 space-y-1">
-                        <li>• Government-issued ID (Passport, Driver's License, Citizenship)</li>
-                        <li>• Clear, readable photos of documents</li>
-                        <li>• Selfie for verification</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
 
             {/* Footer */}

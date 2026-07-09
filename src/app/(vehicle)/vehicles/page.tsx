@@ -8,7 +8,7 @@ import {
   Star, X, ChevronDown, Plus, Loader2, Car, Heart,
   Fuel, Users, Gauge, Filter, ArrowUpDown, TrendingUp,
   Clock, Shield, Sparkles, Leaf, Wallet, Navigation,
-  MessageSquare // Add this
+  MessageSquare
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -114,6 +114,39 @@ export default function VehiclesPage() {
       setUserName(user.fullName || user.username || "User");
     }
 
+    // Check KYC status on load and update user data
+    const checkInitialKyc = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/api/kyc/status", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          console.log("📋 Initial KYC Check:", data);
+
+          // Update user data in localStorage with KYC status
+          const user = getUserData();
+          if (user) {
+            const updatedUser = {
+              ...user,
+              ownerKycStatus: data.ownerKycStatus || user.ownerKycStatus || "NOT_SUBMITTED",
+              renterKycStatus: data.renterKycStatus || user.renterKycStatus || "NOT_SUBMITTED",
+              canList: data.canList || false,
+              canBook: data.canBook || false,
+              hasOwnerPrivileges: data.hasOwnerPrivileges || false
+            };
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
+        }
+      } catch (error) {
+        console.error("Error checking initial KYC:", error);
+      }
+    };
+
+    checkInitialKyc();
     fetchVehicles();
   }, []);
 
@@ -222,14 +255,12 @@ export default function VehiclesPage() {
       return;
     }
 
-    // Get current user
     const user = getUserData();
     if (!user) {
       router.push("/signin");
       return;
     }
 
-    // Check if trying to chat with yourself
     if (user.id === ownerId) {
       alert("You cannot chat with yourself. This is your own vehicle.");
       return;
@@ -238,7 +269,6 @@ export default function VehiclesPage() {
     setChatLoading(vehicleId);
 
     try {
-      // First, check if conversation already exists
       const checkResponse = await fetch(`http://localhost:8080/api/chat/conversations`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -253,13 +283,11 @@ export default function VehiclesPage() {
         );
 
         if (existingConversation) {
-          // Navigate to existing conversation
           router.push(`/chat?conversationId=${existingConversation.id}`);
           return;
         }
       }
 
-      // If no existing conversation, send a first message to create one
       const messageData = {
         receiverId: ownerId,
         message: `Hi! I'm interested in your vehicle "${vehicles.find(v => v.id === vehicleId)?.name || 'vehicle'}". Is it still available?`
@@ -275,7 +303,6 @@ export default function VehiclesPage() {
       });
 
       if (sendResponse.ok) {
-        // Navigate to chat page
         router.push('/chat');
       } else {
         alert('Failed to start conversation. Please try again.');
@@ -288,40 +315,105 @@ export default function VehiclesPage() {
     }
   };
 
-  // Check KYC status and show modal if needed
+  // Fixed KYC check and navigation
   const checkKycAndNavigate = async (vehicleId: number) => {
     const token = getAccessToken();
-    if (!token) { router.push("/signin"); return; }
+    if (!token) {
+      router.push("/signin");
+      return;
+    }
 
     setKycLoading(vehicleId);
     setSelectedVehicleId(vehicleId);
 
     try {
+      // First check localStorage user data (fast path)
+      const user = getUserData();
+
+      // Check if user is verified from localStorage
+      if (user) {
+        const isVerified =
+          user.ownerKycStatus === "VERIFIED" ||
+          user.renterKycStatus === "VERIFIED" ||
+          user.kycStatus === "VERIFIED" ||
+          user.canList === true ||
+          user.canBook === true ||
+          user.hasOwnerPrivileges === true;
+
+        if (isVerified) {
+          router.push(`/vehicles/${vehicleId}`);
+          return;
+        }
+      }
+
+      // If not in localStorage, check API
       const res = await fetch("http://localhost:8080/api/kyc/status", {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
       });
 
       if (res.ok) {
         const data = await res.json();
-        const status = data.kycStatus || data.status || null;
-        setKycStatus(status);
+        console.log("🔍 KYC API Response:", data);
 
-        if (status === "VERIFIED" || status === "APPROVED") {
-          // KYC is verified, navigate to vehicle details
+        // Check all possible status fields
+        const status =
+          data.ownerKycStatus ||
+          data.renterKycStatus ||
+          data.kycStatus ||
+          data.status ||
+          null;
+
+        // Check if verified (case insensitive)
+        const isVerified = status &&
+          (status.toUpperCase() === "VERIFIED" ||
+            status.toUpperCase() === "APPROVED" ||
+            status.toUpperCase() === "COMPLETED");
+
+        // Check privileges
+        const hasPrivileges =
+          data.canList === true ||
+          data.canBook === true ||
+          data.hasOwnerPrivileges === true;
+
+        if (isVerified || hasPrivileges) {
+          // Update localStorage with verified status
+          if (user) {
+            const updatedUser = {
+              ...user,
+              ownerKycStatus: "VERIFIED",
+              canList: true,
+              canBook: true,
+              hasOwnerPrivileges: true
+            };
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+          }
           router.push(`/vehicles/${vehicleId}`);
         } else {
-          // Show KYC modal for any other status
+          setKycStatus(status);
           setShowKycModal(true);
         }
       } else {
-        // If API fails, show KYC modal with default state
-        setKycStatus(null);
-        setShowKycModal(true);
+        // If API fails, check localStorage again as fallback
+        if (user && (user.ownerKycStatus === "VERIFIED" || user.renterKycStatus === "VERIFIED")) {
+          router.push(`/vehicles/${vehicleId}`);
+        } else {
+          setKycStatus(null);
+          setShowKycModal(true);
+        }
       }
     } catch (error) {
       console.error("Error checking KYC:", error);
-      setKycStatus(null);
-      setShowKycModal(true);
+      // Fallback to localStorage
+      const user = getUserData();
+      if (user && (user.ownerKycStatus === "VERIFIED" || user.renterKycStatus === "VERIFIED")) {
+        router.push(`/vehicles/${vehicleId}`);
+      } else {
+        setKycStatus(null);
+        setShowKycModal(true);
+      }
     } finally {
       setKycLoading(null);
     }
@@ -713,7 +805,6 @@ export default function VehiclesPage() {
                           <span>{v.location}</span>
                         </div>
                       </div>
-                      {/* Owner name */}
                       {v.ownerName && (
                         <p className="text-xs text-gray-400 mt-1">
                           Owner: {v.ownerName}
