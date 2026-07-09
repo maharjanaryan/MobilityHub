@@ -127,16 +127,30 @@ export default function VehiclesPage() {
           const data = await res.json();
           console.log("📋 Initial KYC Check:", data);
 
-          // Update user data in localStorage with KYC status
           const user = getUserData();
           if (user) {
+            // Get both owner and renter status
+            const ownerStatus = data.ownerKycStatus || "NOT_SUBMITTED";
+            const renterStatus = data.renterKycStatus || "NOT_SUBMITTED";
+
+            // Check if renter is VERIFIED or APPROVED (needed for viewing vehicles)
+            const isRenterVerified = renterStatus === "VERIFIED" || renterStatus === "APPROVED";
+            const isOwnerVerified = ownerStatus === "VERIFIED" || ownerStatus === "APPROVED";
+
+            console.log("📊 KYC Status Check:");
+            console.log("  - Owner Status:", ownerStatus, "→ Verified:", isOwnerVerified);
+            console.log("  - Renter Status:", renterStatus, "→ Verified:", isRenterVerified);
+            console.log("  - Renter Verified (needed for viewing):", isRenterVerified);
+
             const updatedUser = {
               ...user,
-              ownerKycStatus: data.ownerKycStatus || user.ownerKycStatus || "NOT_SUBMITTED",
-              renterKycStatus: data.renterKycStatus || user.renterKycStatus || "NOT_SUBMITTED",
-              canList: data.canList || false,
-              canBook: data.canBook || false,
-              hasOwnerPrivileges: data.hasOwnerPrivileges || false
+              ownerKycStatus: ownerStatus,
+              renterKycStatus: renterStatus,
+              kycStatus: isRenterVerified ? "VERIFIED" : "NOT_SUBMITTED",
+              canList: isOwnerVerified,
+              canBook: isRenterVerified,
+              hasOwnerPrivileges: isOwnerVerified,
+              isKycVerified: isRenterVerified // This is specifically for renter KYC
             };
             localStorage.setItem("user", JSON.stringify(updatedUser));
           }
@@ -315,8 +329,22 @@ export default function VehiclesPage() {
     }
   };
 
-  // Fixed KYC check and navigation
+  // Check if user has RENTER KYC verified (needed for viewing vehicles)
+  const hasRenterKyc = (): boolean => {
+    const user = getUserData();
+    if (!user) return false;
+
+    const renterStatus = user.renterKycStatus || user.kycStatus || "NOT_SUBMITTED";
+    return renterStatus === "VERIFIED" || renterStatus === "APPROVED";
+  };
+
+  // Fixed KYC check and navigation - Users need RENTER KYC to view vehicles
   const checkKycAndNavigate = async (vehicleId: number) => {
+    // Don't proceed if modal is already open
+    if (showKycModal) {
+      return;
+    }
+
     const token = getAccessToken();
     if (!token) {
       router.push("/signin");
@@ -327,26 +355,7 @@ export default function VehiclesPage() {
     setSelectedVehicleId(vehicleId);
 
     try {
-      // First check localStorage user data (fast path)
-      const user = getUserData();
-
-      // Check if user is verified from localStorage
-      if (user) {
-        const isVerified =
-          user.ownerKycStatus === "VERIFIED" ||
-          user.renterKycStatus === "VERIFIED" ||
-          user.kycStatus === "VERIFIED" ||
-          user.canList === true ||
-          user.canBook === true ||
-          user.hasOwnerPrivileges === true;
-
-        if (isVerified) {
-          router.push(`/vehicles/${vehicleId}`);
-          return;
-        }
-      }
-
-      // If not in localStorage, check API
+      // Always check with the API first for the most up-to-date status
       const res = await fetch("http://localhost:8080/api/kyc/status", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -356,64 +365,91 @@ export default function VehiclesPage() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("🔍 KYC API Response:", data);
+        console.log("🔍 Full KYC API Response:", data);
 
-        // Check all possible status fields
-        const status =
-          data.ownerKycStatus ||
-          data.renterKycStatus ||
-          data.kycStatus ||
-          data.status ||
-          null;
+        // Get both owner and renter status
+        const ownerStatus = data.ownerKycStatus || "NOT_SUBMITTED";
+        const renterStatus = data.renterKycStatus || "NOT_SUBMITTED";
 
-        // Check if verified (case insensitive)
-        const isVerified = status &&
-          (status.toUpperCase() === "VERIFIED" ||
-            status.toUpperCase() === "APPROVED" ||
-            status.toUpperCase() === "COMPLETED");
+        console.log("📊 KYC Status from API:");
+        console.log("  - Owner Status:", ownerStatus);
+        console.log("  - Renter Status:", renterStatus);
 
-        // Check privileges
-        const hasPrivileges =
-          data.canList === true ||
-          data.canBook === true ||
-          data.hasOwnerPrivileges === true;
+        // CRITICAL: To VIEW vehicles, user needs RENTER KYC (for booking/viewing)
+        // Owner KYC is for LISTING vehicles, not for viewing/booking
+        const isRenterVerified = renterStatus === "VERIFIED" || renterStatus === "APPROVED";
+        const isOwnerVerified = ownerStatus === "VERIFIED" || ownerStatus === "APPROVED";
 
-        if (isVerified || hasPrivileges) {
-          // Update localStorage with verified status
+        console.log("✅ Verification Result:");
+        console.log("  - Renter Verified (needed for viewing):", isRenterVerified);
+        console.log("  - Owner Verified (for listing only):", isOwnerVerified);
+
+        if (isRenterVerified) {
+          // User has renter KYC - can view vehicles
+          console.log("✅ Renter KYC verified - allowing access");
+
+          // Update localStorage with latest KYC status
+          const user = getUserData();
           if (user) {
             const updatedUser = {
               ...user,
-              ownerKycStatus: "VERIFIED",
-              canList: true,
-              canBook: true,
-              hasOwnerPrivileges: true
+              ownerKycStatus: ownerStatus,
+              renterKycStatus: renterStatus,
+              kycStatus: renterStatus,
+              canList: isOwnerVerified,
+              canBook: isRenterVerified,
+              hasOwnerPrivileges: isOwnerVerified,
+              isKycVerified: true
             };
             localStorage.setItem("user", JSON.stringify(updatedUser));
           }
+
+          // Navigate to vehicle details
           router.push(`/vehicles/${vehicleId}`);
+          return;
         } else {
-          setKycStatus(status);
+          // User does NOT have renter KYC
+          // Show appropriate message based on their status
+          let statusToShow = "NOT_SUBMITTED";
+
+          if (renterStatus === "PENDING") {
+            statusToShow = "PENDING";
+          } else if (renterStatus === "REJECTED") {
+            statusToShow = "REJECTED";
+          } else {
+            statusToShow = "NOT_SUBMITTED";
+          }
+
+          console.log("❌ Renter KYC not verified:", statusToShow);
+
+          // Store the status to show in modal
+          setKycStatus(statusToShow as any);
           setShowKycModal(true);
+          return;
         }
       } else {
-        // If API fails, check localStorage again as fallback
-        if (user && (user.ownerKycStatus === "VERIFIED" || user.renterKycStatus === "VERIFIED")) {
-          router.push(`/vehicles/${vehicleId}`);
-        } else {
-          setKycStatus(null);
-          setShowKycModal(true);
+        // API call failed - fallback to localStorage check
+        console.warn("⚠️ API call failed, checking localStorage");
+        const user = getUserData();
+        if (user) {
+          const isRenterVerified = user.renterKycStatus === "VERIFIED" || user.renterKycStatus === "APPROVED";
+          if (isRenterVerified) {
+            console.log("✅ Renter KYC verified via localStorage");
+            router.push(`/vehicles/${vehicleId}`);
+            return;
+          }
         }
-      }
-    } catch (error) {
-      console.error("Error checking KYC:", error);
-      // Fallback to localStorage
-      const user = getUserData();
-      if (user && (user.ownerKycStatus === "VERIFIED" || user.renterKycStatus === "VERIFIED")) {
-        router.push(`/vehicles/${vehicleId}`);
-      } else {
-        setKycStatus(null);
+
+        // Not verified or no data - show KYC modal
+        console.log("❌ Renter KYC not verified, showing KYC modal");
+        setKycStatus("NOT_SUBMITTED");
         setShowKycModal(true);
       }
+    } catch (error) {
+      console.error("❌ Error checking KYC:", error);
+      // On error, show KYC modal to be safe
+      setKycStatus("NOT_SUBMITTED");
+      setShowKycModal(true);
     } finally {
       setKycLoading(null);
     }
@@ -423,6 +459,14 @@ export default function VehiclesPage() {
   const handleKycModalClose = () => {
     setShowKycModal(false);
     setSelectedVehicleId(null);
+  };
+
+  // Handle vehicle click - prevents navigation if modal is open
+  const handleVehicleClick = (vehicleId: number) => {
+    if (showKycModal) {
+      return; // Don't navigate if KYC modal is open
+    }
+    checkKycAndNavigate(vehicleId);
   };
 
   const filtered = useMemo(() => {
@@ -763,7 +807,7 @@ export default function VehiclesPage() {
                 {/* Image */}
                 <div
                   className="relative h-52 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden cursor-pointer"
-                  onClick={() => checkKycAndNavigate(v.id)}
+                  onClick={() => handleVehicleClick(v.id)}
                 >
                   <img
                     src={v.img}
@@ -790,7 +834,7 @@ export default function VehiclesPage() {
                     <div>
                       <h3
                         className="font-bold text-gray-800 text-lg group-hover:text-emerald-600 transition-colors cursor-pointer"
-                        onClick={() => checkKycAndNavigate(v.id)}
+                        onClick={() => handleVehicleClick(v.id)}
                       >
                         {v.name}
                       </h3>
@@ -848,8 +892,8 @@ export default function VehiclesPage() {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => checkKycAndNavigate(v.id)}
-                      disabled={kycLoading === v.id}
+                      onClick={() => handleVehicleClick(v.id)}
+                      disabled={kycLoading === v.id || showKycModal}
                       className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 disabled:opacity-70 flex items-center justify-center gap-2"
                     >
                       {kycLoading === v.id

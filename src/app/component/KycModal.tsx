@@ -44,6 +44,7 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
           buttonText: "Check Status",
           buttonAction: () => router.push("/kyc/status"),
           showAction: true,
+          showMaybeLater: true,
           details: [
             "• Our team is reviewing your documents",
             "• You'll receive a notification once verified",
@@ -61,6 +62,7 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
           buttonText: "Resubmit KYC",
           buttonAction: () => router.push("/kyc/owner"),
           showAction: true,
+          showMaybeLater: true,
           details: [
             "• Blurry or unclear document photos",
             "• Document expired or invalid",
@@ -78,6 +80,7 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
           buttonText: "Complete KYC",
           buttonAction: () => router.push("/kyc/owner"),
           showAction: true,
+          showMaybeLater: true,
           details: [
             "• Government-issued ID (Passport, Driver's License, Citizenship)",
             "• Clear, readable photos of documents",
@@ -94,12 +97,11 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
+          {/* Backdrop - clicking on backdrop won't close the modal */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
 
@@ -110,7 +112,7 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             className={`relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border ${config.borderColor}`}
           >
-            {/* Close button */}
+            {/* Close button - only closes modal, doesn't grant access */}
             <button
               onClick={onClose}
               className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-xl transition-colors z-10"
@@ -159,34 +161,28 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
 
             {/* Footer */}
             <div className="p-6 bg-gray-50 border-t border-gray-100">
-              {config.showAction ? (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={config.buttonAction}
-                  className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  {config.buttonText}
-                  <ArrowRight className="w-4 h-4" />
-                </motion.button>
-              ) : (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={config.buttonAction}
-                  className="w-full py-3 bg-emerald-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300"
-                >
-                  {config.buttonText}
-                </motion.button>
-              )}
-
               {config.showAction && (
-                <button
-                  onClick={onClose}
-                  className="w-full mt-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  Maybe later
-                </button>
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={config.buttonAction}
+                    className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    {config.buttonText}
+                    <ArrowRight className="w-4 h-4" />
+                  </motion.button>
+
+                  {/* "Maybe later" - ONLY closes the modal, does NOT grant access */}
+                  {config.showMaybeLater && (
+                    <button
+                      onClick={onClose}
+                      className="w-full mt-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      Maybe later
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </motion.div>
