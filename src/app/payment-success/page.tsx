@@ -76,7 +76,7 @@ export default function PaymentSuccessPage() {
             Your booking has been confirmed. You will receive a confirmation email shortly.
           </p>
           <button
-            onClick={() => router.push('/bookings')}
+            onClick={() => router.push('/my-bookings')}
             className="w-full px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
           >
             View My Bookings

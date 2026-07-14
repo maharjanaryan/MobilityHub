@@ -73,6 +73,21 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
+// ✅ Helper function to get payment status color
+const getPaymentStatusColor = (paymentStatus: string) => {
+  const status = paymentStatus?.toUpperCase() || 'PENDING';
+  if (status === 'COMPLETED' || status === 'PAID' || status === 'SUCCESS') {
+    return 'text-green-600';
+  } else if (status === 'PENDING') {
+    return 'text-yellow-600';
+  } else if (status === 'FAILED') {
+    return 'text-red-600';
+  } else if (status === 'REFUNDED') {
+    return 'text-purple-600';
+  }
+  return 'text-gray-600';
+};
+
 const RejectionReason = ({ reason }: { reason?: string }) => {
   if (!reason) return null;
   return (
@@ -485,6 +500,7 @@ export default function MyBookingsPage() {
                           </div>
                         </div>
 
+                        {/* ✅ FIXED: Payment Status with Green for COMPLETED/PAID */}
                         <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600">
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3.5 h-3.5" /> {booking.pickupLocation}
@@ -492,7 +508,7 @@ export default function MyBookingsPage() {
                           <span className="flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" /> Booked: {formatDate(booking.createdAt)}
                           </span>
-                          <span className={`font-medium flex items-center gap-1 ${booking.paymentStatus?.toUpperCase() === 'PAID' ? 'text-green-600' : 'text-yellow-600'}`}>
+                          <span className={`font-medium flex items-center gap-1 ${getPaymentStatusColor(booking.paymentStatus)}`}>
                             <Wallet className="w-3.5 h-3.5" /> {booking.paymentStatus || 'PENDING'}
                           </span>
                         </div>
@@ -593,7 +609,15 @@ export default function MyBookingsPage() {
                   <div><p className="text-sm text-gray-500">Pickup Date</p><p className="font-medium">{formatDate(selectedBooking.pickupDate)}</p></div>
                   <div><p className="text-sm text-gray-500">Dropoff Date</p><p className="font-medium">{formatDate(selectedBooking.dropoffDate)}</p></div>
                   <div><p className="text-sm text-gray-500">Total Amount</p><p className="font-bold text-emerald-600 text-lg">Rs. {selectedBooking.totalAmount?.toLocaleString()}</p></div>
-                  <div><p className="text-sm text-gray-500">Payment</p><p className={`font-medium ${selectedBooking.paymentStatus?.toUpperCase() === 'PAID' ? 'text-green-600' : 'text-yellow-600'}`}>{selectedBooking.paymentStatus || 'PENDING'}</p></div>
+
+                  {/* ✅ FIXED: Payment status in modal with green for COMPLETED/PAID */}
+                  <div>
+                    <p className="text-sm text-gray-500">Payment</p>
+                    <p className={`font-medium ${getPaymentStatusColor(selectedBooking.paymentStatus)}`}>
+                      {selectedBooking.paymentStatus || 'PENDING'}
+                    </p>
+                  </div>
+
                   <div><p className="text-sm text-gray-500">Pickup Location</p><p className="font-medium">{selectedBooking.pickupLocation}</p></div>
                   <div><p className="text-sm text-gray-500">Booked On</p><p className="font-medium">{formatDate(selectedBooking.createdAt)}</p></div>
                 </div>
