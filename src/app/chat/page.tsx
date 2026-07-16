@@ -36,7 +36,11 @@ export default function ChatPage() {
     const accessToken = localStorage.getItem('accessToken');
     const userStr = localStorage.getItem('user');
 
+    // 🔍 DEBUG LOG 1 — what's actually in localStorage
+    console.log('🔍 [ChatPage] raw localStorage:', { accessToken, userStr });
+
     if (!accessToken) {
+      console.log('🔍 [ChatPage] No accessToken found — redirecting to /signin');
       router.push('/signin');
       return;
     }
@@ -52,15 +56,23 @@ export default function ChatPage() {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        setUserId(user.id || user.userId);
+        console.log('🔍 [ChatPage] parsed user object:', user);
+        const resolvedId = user.id || user.userId;
+        console.log('🔍 [ChatPage] resolved userId:', resolvedId);
+        setUserId(resolvedId);
       } catch (error) {
-        console.error('Error parsing user data:', error);
+        console.error('🔍 [ChatPage] Error parsing user data:', error);
         router.push('/signin');
       }
+    } else {
+      console.log('🔍 [ChatPage] No "user" key found in localStorage at all');
     }
 
     setLoading(false);
   }, [router, searchParams]);
+
+  // 🔍 DEBUG LOG 2 — state right before the render guard
+  console.log('🔍 [ChatPage] render state:', { userId, token, loading });
 
   if (loading) {
     return (
@@ -75,8 +87,11 @@ export default function ChatPage() {
   }
 
   if (!userId || !token) {
+    console.log('🔍 [ChatPage] BLOCKED — userId or token missing, rendering null', { userId, token });
     return null;
   }
+
+  console.log('🔍 [ChatPage] Rendering <ChatInterface /> with', { userId, token });
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">

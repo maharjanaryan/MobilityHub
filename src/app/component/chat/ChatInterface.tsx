@@ -1,4 +1,4 @@
-// components/chat/ChatInterface.tsx
+// src/app/component/chat/ChatInterface.tsx
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -40,6 +40,9 @@ interface ChatInterfaceProps {
 }
 
 export default function ChatInterface({ userId, token, initialConversationId }: ChatInterfaceProps) {
+  // 🔍 DEBUG LOG 3 — did the component even mount, and with what props?
+  console.log('🔍 [ChatInterface] MOUNTED with props:', { userId, token, initialConversationId });
+
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -52,27 +55,49 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
+  // Refs to avoid stale closures inside socket callbacks that are only
+  // registered once (on mount / when token or userId change).
+  const currentConversationRef = useRef<Conversation | null>(null);
+  const userIdRef = useRef<number>(userId);
+
+  useEffect(() => {
+    currentConversationRef.current = currentConversation;
+  }, [currentConversation]);
+
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
+
   // Fetch conversations
   useEffect(() => {
     fetchConversations();
   }, []);
 
-  // Connect to WebSocket
+  // Connect to WebSocket (runs once per token/userId)
   useEffect(() => {
+    // 🔍 DEBUG LOG 4 — does this effect run, and with what values?
+    console.log('🔍 [ChatInterface] connect effect firing with:', { token, userId });
+
     if (token && userId) {
+      console.log('🔍 [ChatInterface] Calling chatService.connect() NOW');
       chatService.connect(token, userId);
 
-      chatService.onMessage((message) => {
+      chatService.onMessage((message: Message) => {
+        console.log('🔍 [ChatInterface] onMessage fired:', message);
         handleNewMessage(message);
       });
 
-      chatService.onReadReceipt((conversationId) => {
+      chatService.onReadReceipt((conversationId: number) => {
+        console.log('🔍 [ChatInterface] onReadReceipt fired:', conversationId);
         handleReadReceipt(conversationId);
       });
 
       return () => {
+        console.log('🔍 [ChatInterface] cleanup — disconnecting');
         chatService.disconnect();
       };
+    } else {
+      console.log('🔍 [ChatInterface] SKIPPED connect — token or userId falsy', { token, userId });
     }
   }, [token, userId]);
 
@@ -87,8 +112,6 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
 
   // Scroll to bottom only when sending or receiving new messages (not on initial load)
   useEffect(() => {
-    // Only scroll to bottom if it's not the initial load
-    // and there are messages
     if (!isInitialLoad && messages.length > 0) {
       scrollToBottom();
     }
@@ -102,7 +125,7 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
       if (response.ok) {
         const data = await response.json();
         setConversations(data);
-        if (data.length > 0 && !currentConversation) {
+        if (data.length > 0 && !currentConversationRef.current) {
           setCurrentConversation(data[0]);
         }
       }
@@ -120,9 +143,7 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
       if (response.ok) {
         const data = await response.json();
         setMessages(data);
-        // After messages are loaded, mark initial load as complete
         setIsInitialLoad(false);
-        // Don't scroll to bottom on initial load - let user see from top
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -134,10 +155,13 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
   const sendMessage = async () => {
     if (!newMessage.trim() || !currentConversation) return;
 
+    const textToSend = newMessage.trim();
+    setNewMessage(''); // clear input immediately for snappy UX
+
     try {
       const messageData = {
         receiverId: currentConversation.otherUserId,
-        message: newMessage.trim()
+        message: textToSend
       };
 
       const response = await fetch('http://localhost:8080/api/chat/send', {
@@ -151,17 +175,23 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
 
       if (response.ok) {
         const sentMessage = await response.json();
-        setMessages(prev => [...prev, sentMessage]);
-        setNewMessage('');
 
-        // After sending, we want to scroll to bottom
+        setMessages(prev => {
+          if (prev.some(m => m.id === sentMessage.id)) return prev;
+          return [...prev, sentMessage];
+        });
+
         setTimeout(scrollToBottom, 100);
 
-        // Update conversation list
+        // Update conversation list (last message / ordering)
         fetchConversations();
+      } else {
+        // send failed — restore the text so the user doesn't lose it
+        setNewMessage(textToSend);
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      setNewMessage(textToSend);
     }
   };
 
@@ -176,21 +206,36 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
     }
   };
 
+  // Reads from refs instead of closed-over state, so it always sees
+  // the conversation the user currently has open, even though this
+  // function was registered once inside the socket-connect effect.
   const handleNewMessage = (message: Message) => {
-    if (currentConversation && message.conversationId === currentConversation.id) {
-      setMessages(prev => [...prev, message]);
-      // Scroll to bottom for new incoming messages
+    const active = currentConversationRef.current;
+
+    if (active && message.conversationId === active.id) {
+      setMessages(prev => {
+        if (prev.some(m => m.id === message.id)) return prev; // avoid dupes
+        return [...prev, message];
+      });
       setTimeout(scrollToBottom, 100);
+
+      // If the incoming message is in the open conversation, mark it read
+      // right away since the user is actively viewing it.
+      markMessagesAsRead(active.id);
     }
-    // Update conversation list
+
+    // Always refresh the sidebar (last message preview, unread counts, ordering)
     fetchConversations();
   };
 
   const handleReadReceipt = (conversationId: number) => {
-    if (currentConversation && conversationId === currentConversation.id) {
+    const active = currentConversationRef.current;
+    const myId = userIdRef.current;
+
+    if (active && conversationId === active.id) {
       setMessages(prev =>
         prev.map(msg =>
-          msg.senderId !== userId ? { ...msg, isRead: true } : msg
+          msg.senderId === myId ? { ...msg, isRead: true } : msg
         )
       );
     }

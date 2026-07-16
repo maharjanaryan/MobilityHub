@@ -1,13 +1,23 @@
-// services/chatService.ts
-import { Client } from '@stomp/stompjs';
+// src/app/services/chatService.ts
+import { Client, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
 class ChatService {
   private stompClient: Client | null = null;
-  private messageCallbacks: ((message: any) => void)[] = [];
-  private readReceiptCallbacks: ((conversationId: number) => void)[] = [];
+  private messageCallback: ((message: any) => void) | null = null;
+  private readReceiptCallback: ((conversationId: number) => void) | null = null;
+  private messageSubscription: StompSubscription | null = null;
+  private readSubscription: StompSubscription | null = null;
 
   connect(token: string, userId: number) {
+    console.log('🔍 [chatService] connect() called with:', { token, userId });
+
+    // Avoid opening a second connection if one is already active
+    if (this.stompClient?.active) {
+      console.log('🔍 [chatService] already active — skipping reconnect');
+      return;
+    }
+
     const socket = new SockJS('http://localhost:8080/ws');
 
     this.stompClient = new Client({
@@ -16,29 +26,45 @@ class ChatService {
         Authorization: `Bearer ${token}`
       },
       onConnect: () => {
-        console.log('Connected to WebSocket');
+        console.log('🔍 [chatService] Connected to WebSocket');
 
-        // Subscribe to user's queue for messages
-        this.stompClient?.subscribe(`/user/${userId}/queue/messages`, (message) => {
-          const msg = JSON.parse(message.body);
-          this.messageCallbacks.forEach(callback => callback(msg));
-        });
+        this.messageSubscription = this.stompClient!.subscribe(
+          '/user/queue/messages',
+          (message) => {
+            const msg = JSON.parse(message.body);
+            this.messageCallback?.(msg);
+          }
+        );
 
-        // Subscribe to read receipts
-        this.stompClient?.subscribe(`/user/${userId}/queue/messages/read`, (message) => {
-          const conversationId = JSON.parse(message.body);
-          this.readReceiptCallbacks.forEach(callback => callback(conversationId));
-        });
+        this.readSubscription = this.stompClient!.subscribe(
+          '/user/queue/messages/read',
+          (message) => {
+            const conversationId = JSON.parse(message.body);
+            this.readReceiptCallback?.(conversationId);
+          }
+        );
       },
       onStompError: (frame) => {
-        console.error('STOMP error:', frame);
+        console.error('🔍 [chatService] STOMP error:', frame);
+      },
+      onWebSocketError: (event) => {
+        console.error('🔍 [chatService] WebSocket-level error:', event);
+      },
+      onDisconnect: () => {
+        console.log('🔍 [chatService] Disconnected');
       }
     });
 
+    console.log('🔍 [chatService] activating STOMP client...');
     this.stompClient.activate();
   }
 
   disconnect() {
+    this.messageSubscription?.unsubscribe();
+    this.readSubscription?.unsubscribe();
+    this.messageSubscription = null;
+    this.readSubscription = null;
+
     if (this.stompClient) {
       this.stompClient.deactivate();
       this.stompClient = null;
@@ -55,11 +81,11 @@ class ChatService {
   }
 
   onMessage(callback: (message: any) => void) {
-    this.messageCallbacks.push(callback);
+    this.messageCallback = callback;
   }
 
   onReadReceipt(callback: (conversationId: number) => void) {
-    this.readReceiptCallbacks.push(callback);
+    this.readReceiptCallback = callback;
   }
 }
 
