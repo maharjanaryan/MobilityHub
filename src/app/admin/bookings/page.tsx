@@ -6,14 +6,9 @@ import { useRouter } from 'next/navigation';
 import {
   Calendar,
   Search,
-  Filter,
   Eye,
-  Edit,
-  Trash2,
-  MapPin,
   Clock,
   DollarSign,
-  User,
   Car,
   CheckCircle,
   XCircle,
@@ -21,13 +16,10 @@ import {
   Clock as ClockIcon,
   Download,
   RefreshCw,
-  MoreVertical,
-  Star,
   Phone,
   Mail,
   CreditCard,
   Calendar as CalendarIcon,
-  Users,
   Loader2,
   ChevronLeft,
   ChevronRight
@@ -52,7 +44,7 @@ interface Booking {
   dailyRate: number;
   totalAmount: number;
   bookingStatus: 'PENDING' | 'APPROVED' | 'CONFIRMED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'REJECTED';
-  paymentStatus: 'PENDING' | 'PAID' | 'REFUNDED';
+  paymentStatus: 'PENDING' | 'PAID' | 'REFUNDED' | 'COMPLETED';
   paymentMethod: 'CARD' | 'CASH' | 'WALLET';
   rejectionReason?: string;
   createdAt: string;
@@ -111,6 +103,7 @@ export default function BookingManagement() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [page, setPage] = useState(0);
@@ -158,7 +151,6 @@ export default function BookingManagement() {
     }
 
     try {
-      // CORRECTED: Use the correct admin endpoint from BookingController
       const response = await fetch(
         `http://localhost:8080/api/bookings/admin/bookings?page=${page}&size=${size}`,
         {
@@ -213,10 +205,57 @@ export default function BookingManagement() {
     setStats(statsData);
   };
 
+  // Handle payment confirmation
+  const handleConfirmPayment = async (bookingId: number) => {
+    setActionLoading(true);
+    const token = getAccessToken();
+    if (!token) {
+      setActionLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/bookings/admin/bookings/${bookingId}/payment/confirm`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        setToast({
+          message: 'Payment confirmed successfully! Booking can now be approved.',
+          type: 'success'
+        });
+        await fetchBookings();
+        setShowPaymentModal(false);
+        setSelectedBooking(null);
+      } else {
+        const error = await response.json();
+        setToast({
+          message: error.message || 'Failed to confirm payment',
+          type: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      setToast({ message: 'Error confirming payment', type: 'error' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleAction = async (bookingId: number, action: 'approve' | 'reject' | 'cancel' | 'complete' | 'ongoing') => {
     setActionLoading(true);
     const token = getAccessToken();
-    if (!token) return;
+    if (!token) {
+      setActionLoading(false);
+      return;
+    }
 
     try {
       let endpoint = '';
@@ -258,7 +297,7 @@ export default function BookingManagement() {
           message: `Booking ${actionLabel} successfully!`,
           type: 'success'
         });
-        fetchBookings();
+        await fetchBookings();
         setShowCancelModal(false);
         setShowConfirmModal(false);
         setSelectedBooking(null);
@@ -302,6 +341,7 @@ export default function BookingManagement() {
   const getPaymentStatusBadge = (status: string) => {
     switch (status) {
       case 'PAID':
+      case 'COMPLETED':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Paid</span>;
       case 'REFUNDED':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Refunded</span>;
@@ -616,6 +656,7 @@ export default function BookingManagement() {
                       </td>
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {/* View Details - Always visible */}
                           <button
                             onClick={() => setSelectedBooking(booking)}
                             className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
@@ -624,7 +665,24 @@ export default function BookingManagement() {
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          {booking.bookingStatus === 'PENDING' && (
+                          {/* Confirm Payment - Only for PENDING payment status and PENDING booking status */}
+                          {(booking.paymentStatus === 'PENDING' || booking.paymentStatus === 'PAID' === false) &&
+                            booking.bookingStatus === 'PENDING' && (
+                              <button
+                                onClick={() => {
+                                  setSelectedBooking(booking);
+                                  setShowPaymentModal(true);
+                                }}
+                                disabled={actionLoading}
+                                className="p-1.5 text-gray-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                                title="Confirm Payment"
+                              >
+                                <CreditCard className="w-4 h-4" />
+                              </button>
+                            )}
+
+                          {/* Approve/Reject - Only for PENDING booking status with PAID payment */}
+                          {booking.bookingStatus === 'PENDING' && booking.paymentStatus === 'PAID' && (
                             <>
                               <button
                                 onClick={() => {
@@ -649,6 +707,7 @@ export default function BookingManagement() {
                             </>
                           )}
 
+                          {/* Mark as Ongoing - Only for CONFIRMED status */}
                           {booking.bookingStatus === 'CONFIRMED' && (
                             <button
                               onClick={() => {
@@ -662,7 +721,8 @@ export default function BookingManagement() {
                             </button>
                           )}
 
-                          {(booking.bookingStatus === 'ACTIVE' || booking.bookingStatus === 'ONGOING') && (
+                          {/* Mark as Completed - Only for ACTIVE status */}
+                          {booking.bookingStatus === 'ACTIVE' && (
                             <button
                               onClick={() => {
                                 if (confirm('Mark this booking as completed?')) {
@@ -713,7 +773,7 @@ export default function BookingManagement() {
 
       {/* Booking Details Modal */}
       <AnimatePresence>
-        {selectedBooking && !showCancelModal && !showConfirmModal && (
+        {selectedBooking && !showCancelModal && !showConfirmModal && !showPaymentModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -844,6 +904,65 @@ export default function BookingManagement() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Payment Confirmation Modal */}
+      <AnimatePresence>
+        {showPaymentModal && selectedBooking && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="bg-white rounded-2xl max-w-md w-full"
+            >
+              <div className="p-6">
+                <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CreditCard className="w-6 h-6 text-yellow-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-800 text-center mb-2">
+                  Confirm Payment
+                </h3>
+                <p className="text-sm text-gray-600 text-center mb-4">
+                  Are you sure you want to confirm payment for booking <strong>{selectedBooking.bookingReference}</strong>?
+                </p>
+                <div className="bg-gray-50 rounded-lg p-3 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Amount:</span>
+                    <span className="font-semibold text-emerald-600">${selectedBooking.totalAmount}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-1">
+                    <span className="text-gray-600">Renter:</span>
+                    <span className="font-medium text-gray-800">{selectedBooking.renterName}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-1">
+                    <span className="text-gray-600">Vehicle:</span>
+                    <span className="font-medium text-gray-800">{selectedBooking.vehicleName}</span>
+                  </div>
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowPaymentModal(false);
+                      setSelectedBooking(null);
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleConfirmPayment(selectedBooking.id)}
+                    disabled={actionLoading}
+                    className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg font-medium hover:bg-yellow-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {actionLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Confirm Payment
+                  </button>
                 </div>
               </div>
             </motion.div>
