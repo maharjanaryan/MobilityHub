@@ -1,12 +1,12 @@
+// src/app/maps/page.tsx
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Header from "../component/Header";
-import vehicles from "./vehicleData";
-import type { Vehicle } from "./vehicleData";
+import { vehicleService } from "../services/vehicleService";
+import { Vehicle, VehicleType } from "../types/vehicle";
 
-type VehicleType = "car" | "bike" | "scooter" | "cycle";
 type FilterType = "all" | VehicleType;
 
 interface UserLocation {
@@ -26,8 +26,20 @@ const MapView = dynamic(() => import("./MapView"), {
   ),
 });
 
-const typeIcons: Record<VehicleType, string> = { car: "🚗", bike: "🏍️", scooter: "🛵", cycle: "🚲" };
-const typeLabels: Record<VehicleType, string> = { car: "Cars", bike: "Bikes", scooter: "Scooters", cycle: "Cycles" };
+const typeIcons: Record<VehicleType, string> = {
+  car: "🚗",
+  bike: "🏍️",
+  scooter: "🛵",
+  cycle: "🚲"
+};
+
+const typeLabels: Record<VehicleType, string> = {
+  car: "Cars",
+  bike: "Bikes",
+  scooter: "Scooters",
+  cycle: "Cycles"
+};
+
 const typeBadgeColors: Record<VehicleType, string> = {
   car: "bg-blue-50 text-blue-600 border-blue-200",
   bike: "bg-orange-50 text-orange-600 border-orange-200",
@@ -35,48 +47,160 @@ const typeBadgeColors: Record<VehicleType, string> = {
   cycle: "bg-emerald-50 text-emerald-600 border-emerald-200",
 };
 
+// Mock vehicles for fallback
+const getMockVehicles = (): Vehicle[] => {
+  return [
+    {
+      id: 1,
+      name: 'Tesla Model 3',
+      type: 'car',
+      lat: 27.7202,
+      lng: 85.3182,
+      battery: 85,
+      range: 450,
+      pricePerHour: 2500,
+      image: '/images/tesla.jpg',
+      brand: 'Tesla',
+      model: 'Model 3',
+      isAvailable: true
+    },
+    {
+      id: 2,
+      name: 'Honda Activa',
+      type: 'scooter',
+      lat: 27.7150,
+      lng: 85.3280,
+      battery: 70,
+      range: 80,
+      pricePerHour: 500,
+      image: '/images/activa.jpg',
+      brand: 'Honda',
+      model: 'Activa',
+      isAvailable: true
+    },
+    {
+      id: 3,
+      name: 'Yamaha R15',
+      type: 'bike',
+      lat: 27.7220,
+      lng: 85.3150,
+      battery: 90,
+      range: 300,
+      pricePerHour: 800,
+      image: '/images/r15.jpg',
+      brand: 'Yamaha',
+      model: 'R15',
+      isAvailable: true
+    },
+    {
+      id: 4,
+      name: 'Mountain Cycle',
+      type: 'cycle',
+      lat: 27.7100,
+      lng: 85.3300,
+      battery: 100,
+      range: 50,
+      pricePerHour: 200,
+      image: '/images/cycle.jpg',
+      brand: 'Mountain',
+      model: 'Cycle',
+      isAvailable: true
+    },
+  ];
+};
+
 export default function MapsPage() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
+  // Get user location
   useEffect(() => {
-    if (navigator.geolocation) {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => setUserLocation({ lat: 27.7172, lng: 85.324 })
+        (pos) => {
+          setUserLocation({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude
+          });
+        },
+        () => {
+          setUserLocation({ lat: 27.7172, lng: 85.324 });
+        }
       );
+    } else {
+      setUserLocation({ lat: 27.7172, lng: 85.324 });
     }
+  }, []);
+
+  // Fetch vehicles
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        setLoading(true);
+        // Use getFeaturedVehicles to get vehicles
+        const data = await vehicleService.getFeaturedVehicles(0, 50);
+        setVehicles(data);
+      } catch (error) {
+        console.error('Error fetching vehicles:', error);
+        // Fallback to mock data
+        const mockVehicles = getMockVehicles();
+        setVehicles(mockVehicles);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVehicles();
   }, []);
 
   const filteredVehicles = useMemo<Vehicle[]>(() => {
     if (activeFilter === "all") return vehicles;
     return vehicles.filter((v) => v.type === activeFilter);
-  }, [activeFilter]);
+  }, [vehicles, activeFilter]);
 
   const handleSelectVehicle = useCallback((vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
-    cardRefs.current[vehicle.id]?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    cardRefs.current[vehicle.id]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest"
+    });
   }, []);
 
   const filters: FilterType[] = ["all", "car", "bike", "scooter", "cycle"];
 
   const vehicleCounts = useMemo<Record<string, number>>(() => {
     const counts: Record<string, number> = { all: vehicles.length };
-    vehicles.forEach((v) => { counts[v.type] = (counts[v.type] || 0) + 1; });
+    vehicles.forEach((v) => {
+      counts[v.type] = (counts[v.type] || 0) + 1;
+    });
     return counts;
-  }, []);
+  }, [vehicles]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-screen">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-gray-500 text-sm font-medium">Loading vehicles...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      {/* Header - fixed height, no squeezing */}
       <div className="flex-shrink-0">
         <Header />
       </div>
 
-      {/* Main content - takes remaining space */}
       <div className="flex-1 flex overflow-hidden relative min-h-0">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -110,84 +234,147 @@ export default function MapsPage() {
                 {filteredVehicles.length} found
               </span>
             </div>
-            <p className="text-gray-400 text-xs ml-[42px]">Kathmandu &amp; Lalitpur area</p>
+            <p className="text-gray-400 text-xs ml-[42px]">
+              {userLocation ? 'Near your location' : 'Kathmandu & Lalitpur area'}
+            </p>
             <div className="flex gap-2 mt-5 flex-wrap">
               {filters.map((f) => (
-                <button key={f} onClick={() => { setActiveFilter(f); setSelectedVehicle(null); }}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 flex items-center gap-1.5 ${activeFilter === f ? "bg-green-600 text-white border-green-600 shadow-md shadow-green-200" : "bg-gray-50 text-gray-600 border-gray-200 hover:border-green-300 hover:bg-green-50 hover:text-green-700"}`}
+                <button
+                  key={f}
+                  onClick={() => {
+                    setActiveFilter(f);
+                    setSelectedVehicle(null);
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 flex items-center gap-1.5 
+                    ${activeFilter === f
+                      ? "bg-green-600 text-white border-green-600 shadow-md shadow-green-200"
+                      : "bg-gray-50 text-gray-600 border-gray-200 hover:border-green-300 hover:bg-green-50 hover:text-green-700"
+                    }`}
                 >
                   {f === "all" ? "🔋" : typeIcons[f as VehicleType]}
                   {f === "all" ? "All" : typeLabels[f as VehicleType]}
-                  <span className={`text-[10px] ml-0.5 ${activeFilter === f ? "text-green-100" : "text-gray-400"}`}>{vehicleCounts[f] || 0}</span>
+                  <span className={`text-[10px] ml-0.5 ${activeFilter === f ? "text-green-100" : "text-gray-400"}`}>
+                    {vehicleCounts[f] || 0}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Scrollable vehicle list */}
+          {/* Vehicle List */}
           <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-0">
-            {filteredVehicles.map((vehicle) => {
-              const isSelected = selectedVehicle?.id === vehicle.id;
-              return (
-                <div key={vehicle.id} ref={(el) => { cardRefs.current[vehicle.id] = el; }} onClick={() => handleSelectVehicle(vehicle)}
-                  className={`rounded-2xl p-3.5 cursor-pointer transition-all duration-200 border group ${isSelected ? "bg-green-50 border-green-300 shadow-lg ring-1 ring-green-200" : "bg-white border-gray-100 hover:border-gray-200 hover:shadow-md"}`}
-                >
-                  <div className="flex gap-3.5">
-                    <div className={`w-24 h-[72px] rounded-xl overflow-hidden shrink-0 border ${isSelected ? "border-green-200" : "border-gray-100"}`}>
-                      <img src={vehicle.image} alt={vehicle.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="text-gray-900 font-semibold text-sm truncate leading-tight">{vehicle.name}</h3>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 font-medium ${typeBadgeColors[vehicle.type]}`}>
-                          {typeIcons[vehicle.type]} {vehicle.type}
-                        </span>
+            {filteredVehicles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-64 text-center p-4">
+                <div className="text-5xl mb-4">🛵</div>
+                <h3 className="text-lg font-semibold text-gray-700">No vehicles found</h3>
+                <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
+              </div>
+            ) : (
+              filteredVehicles.map((vehicle) => {
+                const isSelected = selectedVehicle?.id === vehicle.id;
+                return (
+                  <div
+                    key={vehicle.id}
+                    ref={(el) => { cardRefs.current[vehicle.id] = el; }}
+                    onClick={() => handleSelectVehicle(vehicle)}
+                    className={`rounded-2xl p-3.5 cursor-pointer transition-all duration-200 border group 
+                      ${isSelected
+                        ? "bg-green-50 border-green-300 shadow-lg ring-1 ring-green-200"
+                        : "bg-white border-gray-100 hover:border-gray-200 hover:shadow-md"
+                      }`}
+                  >
+                    <div className="flex gap-3.5">
+                      <div className={`w-24 h-[72px] rounded-xl overflow-hidden shrink-0 border ${isSelected ? "border-green-200" : "border-gray-100"}`}>
+                        <img
+                          src={vehicle.image}
+                          alt={vehicle.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/images/default-vehicle.jpg';
+                          }}
+                        />
                       </div>
-                      <div className="flex items-center gap-3 mt-2">
-                        <div className="flex items-center gap-1.5 flex-1">
-                          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all ${vehicle.battery > 70 ? "bg-green-500" : vehicle.battery > 40 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${vehicle.battery}%` }} />
-                          </div>
-                          <span className="text-[10px] text-gray-500 font-medium shrink-0">{vehicle.battery}%</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="text-gray-900 font-semibold text-sm truncate leading-tight">
+                            {vehicle.name}
+                          </h3>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 font-medium ${typeBadgeColors[vehicle.type]}`}>
+                            {typeIcons[vehicle.type]} {vehicle.type}
+                          </span>
                         </div>
-                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5 shrink-0">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                          </svg>
-                          {vehicle.range}km
-                        </span>
-                      </div>
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="text-green-700 font-bold text-sm">
-                          Rs.{vehicle.pricePerHour}<span className="text-gray-400 font-normal text-[10px]"> /hr</span>
-                        </span>
-                        {isSelected && (
-                          <button className="bg-green-600 hover:bg-green-500 text-white text-[11px] px-3 py-1.5 rounded-lg font-semibold transition-colors shadow-sm">
-                            Rent Now →
-                          </button>
-                        )}
+                        <div className="flex items-center gap-3 mt-2">
+                          <div className="flex items-center gap-1.5 flex-1">
+                            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${vehicle.battery > 70 ? "bg-green-500" :
+                                  vehicle.battery > 40 ? "bg-yellow-500" :
+                                    "bg-red-500"
+                                  }`}
+                                style={{ width: `${vehicle.battery}%` }}
+                              />
+                            </div>
+                            <span className="text-[10px] text-gray-500 font-medium shrink-0">
+                              {vehicle.battery}%
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-gray-400 flex items-center gap-0.5 shrink-0">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                            {vehicle.range}km
+                          </span>
+                          {vehicle.distanceFromUser && (
+                            <span className="text-[10px] text-blue-500 flex items-center gap-0.5 shrink-0">
+                              📍 {vehicle.distanceFromUser.toFixed(1)}km
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-2 flex items-center justify-between">
+                          <span className="text-green-700 font-bold text-sm">
+                            Rs.{vehicle.pricePerHour}
+                            <span className="text-gray-400 font-normal text-[10px]"> /hr</span>
+                          </span>
+                          {isSelected && (
+                            <button
+                              className="bg-green-600 hover:bg-green-500 text-white text-[11px] px-3 py-1.5 rounded-lg font-semibold transition-colors shadow-sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('Rent vehicle:', vehicle.id);
+                              }}
+                            >
+                              Rent Now →
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
-          {/* Footer - fixed at bottom */}
+          {/* Footer */}
           <div className="flex-shrink-0 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
             <div className="flex items-center justify-between text-xs text-gray-400">
               <span>Powered by OpenStreetMap</span>
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />Live
+                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                Live
               </span>
             </div>
           </div>
         </div>
 
-        {/* Map container */}
+        {/* Map Container */}
         <div className="flex-1 relative min-h-0">
-          <MapView vehicles={filteredVehicles} selectedVehicle={selectedVehicle} onSelectVehicle={handleSelectVehicle} userLocation={userLocation} />
+          <MapView
+            vehicles={filteredVehicles}
+            selectedVehicle={selectedVehicle}
+            onSelectVehicle={handleSelectVehicle}
+            userLocation={userLocation}
+          />
         </div>
       </div>
     </div>

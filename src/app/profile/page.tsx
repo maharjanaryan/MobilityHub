@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import HomeHeader from "../home/HomeHeader";
 import Footer from "../component/Footer";
+import VehicleDetailModal from "../component/VehicleDetailModal";
 import {
   User, Mail, Phone, MapPin, Calendar, Car,
   Clock, Star, ChevronRight, Edit3, Camera, Shield,
   Lock, Award, TrendingUp, X,
-  Loader2, CheckCircle, AlertCircle, Save, Trash2
+  Loader2, CheckCircle, AlertCircle, Save, Trash2,
+  Plus, Eye, Fuel, Gauge, Users
 } from "lucide-react";
 
 interface UserProfileData {
@@ -30,6 +32,29 @@ interface UserProfileData {
   ownerKycStatus: string;
   canBook: boolean;
   canList: boolean;
+}
+
+interface Vehicle {
+  id: number;
+  brand: string;
+  model: string;
+  year: number;
+  color: string;
+  licensePlate: string;
+  fuelType: string;
+  transmission: string;
+  seats: number;
+  pricePerDay: number;
+  isAvailable: boolean;
+  isVerified: boolean;
+  rejectionReason?: string;
+  photos: string[];
+  city: string;
+  createdAt: string;
+  description?: string;
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
 }
 
 interface EditProfileFormData {
@@ -71,14 +96,7 @@ const rideHistory = [
   { id: 3, vehicle: "BMW i4 eDrive40", date: "May 6, 2026", duration: "3h 00m", distance: "120 km", cost: "Rs 1,800", status: "Completed", rating: 5 },
 ];
 
-const achievements = [
-  { title: "Green Pioneer", desc: "Complete 100+ rides", progress: 100, icon: "🌿" },
-  { title: "Eco Warrior", desc: "Save 1 ton of CO₂", progress: 100, icon: "🏆" },
-  { title: "Road Master", desc: "Travel 5,000 km", progress: 65, icon: "🛣️" },
-  { title: "Star Rider", desc: "Maintain 4.8+ rating", progress: 100, icon: "⭐" },
-];
-
-type TabKey = "overview" | "rides" | "achievements";
+type TabKey = "overview" | "rides" | "vehicles";
 
 const API_BASE_URL = "http://localhost:8080";
 
@@ -119,6 +137,43 @@ const extractAvatarUrl = (data: unknown) => {
   if (typeof nested?.url === "string") return nested.url;
 
   return null;
+};
+
+// Helper function for fuel type icon
+const getFuelTypeIcon = (fuelType: string) => {
+  const icons: Record<string, string> = {
+    electric: '🔋',
+    hybrid: '⚡',
+    petrol: '⛽',
+    diesel: '🛢️'
+  };
+  return icons[fuelType?.toLowerCase()] || '⛽';
+};
+
+// Helper function for vehicle status badge
+const getVehicleStatusBadge = (vehicle: Vehicle) => {
+  if (!vehicle.isVerified) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+        <Clock className="w-3 h-3 mr-1" />
+        Pending
+      </span>
+    );
+  }
+  if (vehicle.isAvailable) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <CheckCircle className="w-3 h-3 mr-1" />
+        Available
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+      <XCircle className="w-3 h-3 mr-1" />
+      Unavailable
+    </span>
+  );
 };
 
 // Modal Component
@@ -335,7 +390,6 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -344,7 +398,6 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
             className="fixed inset-0 bg-black/60 backdrop-blur-md z-50"
           />
 
-          {/* Modal */}
           <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -353,9 +406,7 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
               transition={{ type: "spring", duration: 0.4, bounce: 0.3 }}
               className="relative w-full max-w-lg pointer-events-auto"
             >
-              {/* Card */}
               <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                {/* Header with gradient */}
                 <div className="relative bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -376,9 +427,7 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
                   </p>
                 </div>
 
-                {/* Form Body */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
-                  {/* Success Message */}
                   {success && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
@@ -390,7 +439,6 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
                     </motion.div>
                   )}
 
-                  {/* Full Name Field */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Full Name <span className="text-red-500">*</span>
@@ -412,7 +460,6 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
                     </div>
                   </div>
 
-                  {/* First & Last Name Row */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -450,7 +497,6 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
                     </div>
                   </div>
 
-                  {/* Phone Number Field */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Phone Number
@@ -472,7 +518,6 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
                     <p className="text-xs text-gray-500 mt-1 ml-1">Enter 10-digit phone number</p>
                   </div>
 
-                  {/* Email Field */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Email Address <span className="text-red-500">*</span>
@@ -492,7 +537,6 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
                     </div>
                   </div>
 
-                  {/* Error Message */}
                   {error && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
@@ -504,7 +548,6 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
                     </motion.div>
                   )}
 
-                  {/* Action Buttons */}
                   <div className="flex gap-3 pt-2">
                     <button
                       type="button"
@@ -533,7 +576,6 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
                   </div>
                 </form>
 
-                {/* Decorative Elements */}
                 <div className="absolute top-20 right-0 w-32 h-32 bg-green-100 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
                 <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-100 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
               </div>
@@ -652,7 +694,9 @@ export default function ProfilePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [userData, setUserData] = useState<UserProfileData>(defaultUserData);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [vehiclesLoading, setVehiclesLoading] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
@@ -660,6 +704,8 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [avatarError, setAvatarError] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const getAccessToken = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -711,6 +757,39 @@ export default function ProfilePage() {
     }
   }, [getAccessToken, router]);
 
+  const fetchUserVehicles = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+
+    setVehiclesLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/vehicles/owner/my-vehicles`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        router.push('/signin');
+        return;
+      }
+
+      if (!response.ok) throw new Error('Failed to fetch vehicles');
+
+      const data = await response.json();
+      setVehicles(data || []);
+    } catch (err: any) {
+      console.error('Error fetching vehicles:', err);
+      setToast({ message: 'Failed to load vehicles', type: 'error' });
+    } finally {
+      setVehiclesLoading(false);
+    }
+  }, [getAccessToken, router]);
+
   useEffect(() => {
     const token = getAccessToken();
     if (!token) {
@@ -721,6 +800,13 @@ export default function ProfilePage() {
       void fetchUserProfile();
     });
   }, [getAccessToken, router, fetchUserProfile]);
+
+  // Fetch vehicles when switching to vehicles tab
+  useEffect(() => {
+    if (activeTab === 'vehicles') {
+      void fetchUserVehicles();
+    }
+  }, [activeTab, fetchUserVehicles]);
 
   const handleUpdateProfile = async (formData: EditProfileFormData) => {
     const token = getAccessToken();
@@ -867,6 +953,16 @@ export default function ProfilePage() {
     }
   };
 
+  const openVehicleDetail = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
+    setDetailModalOpen(true);
+  };
+
+  const closeVehicleDetail = () => {
+    setDetailModalOpen(false);
+    setSelectedVehicle(null);
+  };
+
   const getAvatarSrc = () => {
     if (avatarError) return "/logo.png";
     if (!userData.avatarUrl) return "/logo.png";
@@ -885,7 +981,7 @@ export default function ProfilePage() {
   const tabs: { key: TabKey; label: string }[] = [
     { key: "overview", label: "Overview" },
     { key: "rides", label: "Ride History" },
-    { key: "achievements", label: "Achievements" },
+    { key: "vehicles", label: "My Vehicles" },
   ];
 
   if (loading) {
@@ -933,6 +1029,17 @@ export default function ProfilePage() {
         onClose={() => setPasswordModalOpen(false)}
         onChangePassword={handleChangePassword}
         loading={saving}
+      />
+
+      {/* Vehicle Detail Modal */}
+      <VehicleDetailModal
+        isOpen={detailModalOpen}
+        onClose={closeVehicleDetail}
+        vehicle={selectedVehicle}
+        onRent={(vehicle) => {
+          alert(`Renting ${vehicle.brand} ${vehicle.model}`);
+          closeVehicleDetail();
+        }}
       />
 
       <main className="flex-1 profile-page">
@@ -1075,7 +1182,7 @@ export default function ProfilePage() {
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
             {activeTab === "overview" && <OverviewTab userData={userData} />}
             {activeTab === "rides" && <RidesTab />}
-            {activeTab === "achievements" && <AchievementsTab />}
+            {activeTab === "vehicles" && <VehiclesTab vehicles={vehicles} loading={vehiclesLoading} onViewDetails={openVehicleDetail} />}
           </motion.div>
         </div>
       </main>
@@ -1167,23 +1274,145 @@ function RidesTab() {
   );
 }
 
-// Achievements Tab
-function AchievementsTab() {
+// Vehicles Tab
+function VehiclesTab({ vehicles, loading, onViewDetails }: {
+  vehicles: Vehicle[];
+  loading: boolean;
+  onViewDetails: (vehicle: Vehicle) => void;
+}) {
+  const router = useRouter();
+
+  if (loading) {
+    return (
+      <div style={cardStyle}>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin text-green-600 mx-auto mb-4" />
+            <p className="text-gray-600 text-sm">Loading your vehicles...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (vehicles.length === 0) {
+    return (
+      <div style={cardStyle}>
+        <div className="text-center py-16">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Car className="w-10 h-10 text-gray-400" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">No Vehicles Listed</h3>
+          <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+            You haven't listed any vehicles yet. Start earning by sharing your vehicle with the community.
+          </p>
+          <button
+            onClick={() => router.push('/vehicles/add')}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold"
+          >
+            <Plus className="w-4 h-4" />
+            Add Your First Vehicle
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-      {achievements.map((a, i) => (
-        <motion.div key={a.title} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} style={cardStyle}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
-            <div style={{ width: 52, height: 52, borderRadius: 16, background: a.progress === 100 ? "linear-gradient(135deg, #f0fdf4, #dcfce7)" : "#f9fafb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", border: a.progress === 100 ? "2px solid #86efac" : "2px solid #e5e7eb" }}>{a.icon}</div>
-            <div><p style={{ color: "#0d1117", fontWeight: 700, fontSize: "1rem", margin: 0 }}>{a.title}</p><p style={{ color: "#9ca3af", fontSize: "0.78rem", margin: "2px 0 0" }}>{a.desc}</p></div>
-            {a.progress === 100 && <span style={{ marginLeft: "auto", background: "#f0fdf4", color: "#16a34a", fontSize: "0.7rem", fontWeight: 700, padding: "4px 12px", borderRadius: 99 }}>Unlocked ✓</span>}
+    <div style={cardStyle}>
+      <div className="flex items-center justify-between mb-6">
+        <h3 style={cardTitleStyle}>My Vehicles ({vehicles.length})</h3>
+        <button
+          onClick={() => router.push('/vehicles/add')}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
+        >
+          <Plus className="w-4 h-4" />
+          Add Vehicle
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {vehicles.map((vehicle) => (
+          <div
+            key={vehicle.id}
+            className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+          >
+            <div className="relative h-40 bg-gray-100">
+              {vehicle.photos && vehicle.photos.length > 0 ? (
+                <img
+                  src={vehicle.photos[0]}
+                  alt={`${vehicle.brand} ${vehicle.model}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/logo.png';
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                  <Car className="w-12 h-12 text-gray-400" />
+                </div>
+              )}
+              <div className="absolute top-3 right-3">
+                {getVehicleStatusBadge(vehicle)}
+              </div>
+              {vehicle.rejectionReason && (
+                <div className="absolute bottom-0 left-0 right-0 bg-red-50/95 backdrop-blur-sm p-1.5 px-3">
+                  <p className="text-xs text-red-700 truncate">
+                    <strong>Rejected:</strong> {vehicle.rejectionReason}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <h4 className="font-semibold text-gray-800">
+                    {vehicle.brand} {vehicle.model}
+                  </h4>
+                  <p className="text-sm text-gray-500">
+                    {vehicle.year} • {vehicle.color}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-bold text-green-600">₹{vehicle.pricePerDay}</p>
+                  <p className="text-xs text-gray-500">per day</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="flex items-center gap-1 text-xs text-gray-600">
+                  <Users className="w-3 h-3" />
+                  {vehicle.seats}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-gray-600">
+                  <span>{getFuelTypeIcon(vehicle.fuelType)}</span>
+                  {vehicle.fuelType}
+                </div>
+                <div className="flex items-center gap-1 text-xs text-gray-600">
+                  <Gauge className="w-3 h-3" />
+                  {vehicle.transmission}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <span className="text-xs text-gray-500">
+                  <MapPin className="w-3 h-3 inline mr-1" />
+                  {vehicle.city || 'Location not set'}
+                </span>
+                <button
+                  onClick={() => onViewDetails(vehicle)}
+                  className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1 transition-colors"
+                >
+                  <Eye className="w-4 h-4" />
+                  View Details
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
-          <div style={{ background: "#f3f4f6", borderRadius: 99, height: 8, overflow: "hidden" }}>
-            <motion.div initial={{ width: 0 }} animate={{ width: `${a.progress}%` }} transition={{ duration: 1, delay: i * 0.15 }} style={{ height: "100%", borderRadius: 99, background: "linear-gradient(90deg, #16a34a, #86efac)" }} />
-          </div>
-          <p style={{ color: "#6b7280", fontSize: "0.72rem", textAlign: "right", margin: "6px 0 0" }}>{a.progress}%</p>
-        </motion.div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
+// src/app/maps/MapView.tsx
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -11,18 +12,14 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import type { Vehicle } from "./vehicleData";
+import type { Vehicle } from "../types/vehicle";
 
-// Fix default marker icon issue in Leaflet + webpack
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Fix default marker icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
 type VehicleType = "car" | "bike" | "scooter" | "cycle";
@@ -32,7 +29,6 @@ interface UserLocation {
   lng: number;
 }
 
-// Custom icon creator using emoji
 function createVehicleIcon(type: VehicleType, isSelected: boolean): L.DivIcon {
   const emojis: Record<VehicleType, string> = {
     car: "🚗",
@@ -67,7 +63,6 @@ function createVehicleIcon(type: VehicleType, isSelected: boolean): L.DivIcon {
   });
 }
 
-// User location icon
 function createUserIcon(): L.DivIcon {
   return L.divIcon({
     html: `<div style="
@@ -96,7 +91,6 @@ interface FlyToProps {
   ) => void;
 }
 
-// Component to fly to selected vehicle and fetch route
 function FlyToVehicleAndRoute({
   selectedVehicle,
   userLocation,
@@ -204,15 +198,12 @@ export default function MapView({
         onRouteFound={handleRouteFound}
       />
 
-      {/* Route polyline */}
       {routeCoords && (
         <>
-          {/* Shadow line */}
           <Polyline
             positions={routeCoords}
             pathOptions={{ color: "#000000", weight: 7, opacity: 0.15 }}
           />
-          {/* Main route line */}
           <Polyline
             positions={routeCoords}
             pathOptions={{
@@ -227,7 +218,6 @@ export default function MapView({
         </>
       )}
 
-      {/* Route info badge */}
       {routeCoords && routeInfo.distance && (
         <RouteInfoBadge
           distance={routeInfo.distance}
@@ -235,7 +225,6 @@ export default function MapView({
         />
       )}
 
-      {/* User location marker */}
       {userLocation && (
         <Marker
           position={[userLocation.lat, userLocation.lng]}
@@ -249,7 +238,6 @@ export default function MapView({
         </Marker>
       )}
 
-      {/* Vehicle markers */}
       {vehicles.map((vehicle) => {
         const isSelected = selectedVehicle?.id === vehicle.id;
         return (
@@ -331,13 +319,7 @@ export default function MapView({
   );
 }
 
-interface RouteInfoBadgeProps {
-  distance: string;
-  duration: number | null;
-}
-
-// Route info badge displayed on the map
-function RouteInfoBadge({ distance, duration }: RouteInfoBadgeProps) {
+function RouteInfoBadge({ distance, duration }: { distance: string; duration: number | null }) {
   const map = useMap();
 
   useEffect(() => {

@@ -54,6 +54,7 @@ interface Vehicle {
   zipCode: string;
   isAvailable: boolean;
   isVerified: boolean;
+  rejectionReason?: string; // ← ADD THIS
   description: string;
   photos: string[];
   totalRentals: number;
@@ -155,12 +156,18 @@ export default function VehicleManagement() {
         const allVehicles = data.content || [];
         setVehicles(allVehicles);
 
+        // Calculate stats properly - pending excludes rejected
+        const pending = allVehicles.filter((v: Vehicle) => !v.isVerified && !v.rejectionReason).length;
+        const rejected = allVehicles.filter((v: Vehicle) => !v.isVerified && v.rejectionReason).length;
+        const verified = allVehicles.filter((v: Vehicle) => v.isVerified).length;
+        const available = allVehicles.filter((v: Vehicle) => v.isAvailable && v.isVerified).length;
+
         setStats({
           total: allVehicles.length,
-          pending: allVehicles.filter((v: Vehicle) => !v.isVerified).length,
-          verified: allVehicles.filter((v: Vehicle) => v.isVerified).length,
-          rejected: 0,
-          available: allVehicles.filter((v: Vehicle) => v.isAvailable && v.isVerified).length
+          pending: pending,
+          verified: verified,
+          rejected: rejected,
+          available: available
         });
       }
     } catch (error) {
@@ -180,7 +187,8 @@ export default function VehicleManagement() {
 
       if (response.ok) {
         const data = await response.json();
-        setPendingVehicles(data);
+        // Only show vehicles that are pending (not verified and no rejection reason)
+        setPendingVehicles(data.filter((v: Vehicle) => !v.isVerified && !v.rejectionReason));
       }
     } catch (error) {
       console.error('Error fetching pending vehicles:', error);
@@ -257,6 +265,16 @@ export default function VehicleManagement() {
   };
 
   const getStatusBadge = (vehicle: Vehicle) => {
+    // Check if vehicle is rejected
+    if (!vehicle.isVerified && vehicle.rejectionReason) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          <XCircle className="w-3 h-3 mr-1" />
+          Rejected
+        </span>
+      );
+    }
+    // Check if vehicle is pending
     if (!vehicle.isVerified) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -265,6 +283,7 @@ export default function VehicleManagement() {
         </span>
       );
     }
+    // Check if vehicle is available
     if (vehicle.isAvailable) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -292,8 +311,9 @@ export default function VehicleManagement() {
   };
 
   const filteredVehicles = vehicles.filter(vehicle => {
-    if (filterStatus === 'pending') return !vehicle.isVerified;
+    if (filterStatus === 'pending') return !vehicle.isVerified && !vehicle.rejectionReason;
     if (filterStatus === 'verified') return vehicle.isVerified;
+    if (filterStatus === 'rejected') return !vehicle.isVerified && vehicle.rejectionReason;
     if (filterStatus === 'available') return vehicle.isAvailable && vehicle.isVerified;
     return true;
   }).filter(vehicle => {
@@ -374,6 +394,17 @@ export default function VehicleManagement() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
           <div className="flex items-center justify-between mb-2">
+            <div className="text-gray-500 text-sm">Rejected</div>
+            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
+              <XCircle className="w-5 h-5 text-red-600" />
+            </div>
+          </div>
+          <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.rejected}</div>
+          <div className="text-xs text-gray-500 mt-2">Rejected vehicles</div>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+          <div className="flex items-center justify-between mb-2">
             <div className="text-gray-500 text-sm">Available Now</div>
             <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
               <CheckCircle className="w-5 h-5 text-emerald-600" />
@@ -381,17 +412,6 @@ export default function VehicleManagement() {
           </div>
           <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.available}</div>
           <div className="text-xs text-gray-500 mt-2">Ready for booking</div>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 text-sm">Pending KYC</div>
-            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-            </div>
-          </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800">0</div>
-          <div className="text-xs text-gray-500 mt-2">Owners pending KYC</div>
         </div>
       </div>
 
@@ -418,6 +438,7 @@ export default function VehicleManagement() {
                 <option value="all">All Status</option>
                 <option value="pending">Pending Verification</option>
                 <option value="verified">Verified</option>
+                <option value="rejected">Rejected</option>
                 <option value="available">Available</option>
               </select>
               <button
@@ -545,6 +566,14 @@ export default function VehicleManagement() {
                 <div className="absolute top-3 right-3">
                   {getStatusBadge(vehicle)}
                 </div>
+                {/* Display rejection reason if rejected */}
+                {vehicle.rejectionReason && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-red-50/95 backdrop-blur-sm p-2 border-t border-red-200">
+                    <p className="text-xs text-red-700 truncate">
+                      <strong>Rejected:</strong> {vehicle.rejectionReason}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
@@ -594,7 +623,9 @@ export default function VehicleManagement() {
                     <Eye className="w-4 h-4" />
                     <span>View Details</span>
                   </button>
-                  {!vehicle.isVerified && (
+
+                  {/* Show approve/reject for pending vehicles */}
+                  {!vehicle.isVerified && !vehicle.rejectionReason && (
                     <>
                       <button
                         onClick={() => {
@@ -620,6 +651,22 @@ export default function VehicleManagement() {
                       </button>
                     </>
                   )}
+
+                  {/* Show re-verify button for rejected vehicles */}
+                  {!vehicle.isVerified && vehicle.rejectionReason && (
+                    <button
+                      onClick={() => {
+                        setSelectedVehicle(vehicle);
+                        setVerifyAction('approve');
+                        setShowVerifyModal(true);
+                      }}
+                      className="flex-1 px-3 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 transition-colors flex items-center justify-center space-x-1"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Re-verify</span>
+                    </button>
+                  )}
+
                   <button
                     onClick={() => {
                       setSelectedVehicle(vehicle);
@@ -657,6 +704,13 @@ export default function VehicleManagement() {
               </button>
             </div>
             <div className="p-4 md:p-6">
+              {/* Show rejection reason if rejected */}
+              {selectedVehicle.rejectionReason && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm font-medium text-red-800">Rejection Reason:</p>
+                  <p className="text-sm text-red-700">{selectedVehicle.rejectionReason}</p>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <div className="relative h-64 bg-gray-100 rounded-xl overflow-hidden mb-3">
@@ -731,7 +785,8 @@ export default function VehicleManagement() {
                     </div>
                   </div>
                   <div className="flex space-x-3 pt-4">
-                    {!selectedVehicle.isVerified && (
+                    {/* Show approve/reject for pending vehicles */}
+                    {!selectedVehicle.isVerified && !selectedVehicle.rejectionReason && (
                       <>
                         <button
                           onClick={() => {
@@ -753,6 +808,20 @@ export default function VehicleManagement() {
                         </button>
                       </>
                     )}
+
+                    {/* Show re-verify button for rejected vehicles */}
+                    {!selectedVehicle.isVerified && selectedVehicle.rejectionReason && (
+                      <button
+                        onClick={() => {
+                          setVerifyAction('approve');
+                          setShowVerifyModal(true);
+                        }}
+                        className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg font-medium hover:bg-yellow-700 transition-colors"
+                      >
+                        Re-verify Vehicle
+                      </button>
+                    )}
+
                     <button
                       onClick={() => setShowDeleteModal(true)}
                       className="flex-1 px-4 py-2 border border-red-300 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors"

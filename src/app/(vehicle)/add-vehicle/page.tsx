@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import HomeHeader from '../../home/HomeHeader';
 import Footer from '../../component/Footer';
+import LocationPicker from '../../component/LocationPicker';
 
 // Define the KYC status response interface
 interface KYCStatusResponse {
@@ -183,7 +184,6 @@ export default function AddVehiclePage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploadError, setUploadError] = useState<string>('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
-  const [redirectCountdown, setRedirectCountdown] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
     // Basic Information
@@ -204,11 +204,11 @@ export default function AddVehiclePage() {
     // Features
     features: [] as string[],
 
-    // Pricing
-    pricePerDay: 0,
-    pricePerWeek: 0,
-    pricePerMonth: 0,
-    securityDeposit: 500,
+    // Pricing - Using strings to prevent NaN
+    pricePerDay: '',
+    pricePerWeek: '',
+    pricePerMonth: '',
+    securityDeposit: '',
 
     // Location
     address: '',
@@ -256,6 +256,26 @@ export default function AddVehiclePage() {
     { value: 'manual', label: 'Manual' }
   ];
 
+  // Helper function to safely parse number inputs
+  const parseNumberInput = (value: string | number): number => {
+    if (value === '' || value === null || value === undefined) return 0;
+    const parsed = typeof value === 'string' ? parseFloat(value) : value;
+    return isNaN(parsed) ? 0 : parsed;
+  };
+
+  // Helper function to handle number input changes
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+    const value = e.target.value;
+    if (value === '' || value === '-') {
+      setFormData(prev => ({ ...prev, [field]: value }));
+      return;
+    }
+    const num = parseFloat(value);
+    if (!isNaN(num)) {
+      setFormData(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
   // Convert File to base64 string
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -285,9 +305,7 @@ export default function AddVehiclePage() {
   };
 
   const removeImage = (index: number) => {
-    // Revoke the object URL to avoid memory leaks
     URL.revokeObjectURL(imagePreviews[index]);
-
     setUploadedImages(uploadedImages.filter((_, i) => i !== index));
     setImagePreviews(imagePreviews.filter((_, i) => i !== index));
   };
@@ -301,44 +319,63 @@ export default function AddVehiclePage() {
     }));
   };
 
+  const handleLocationSelect = (lat: number, lng: number, address: string) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: lat.toString(),
+      longitude: lng.toString(),
+      address: address
+    }));
+  };
+
   const showNotification = (type: 'success' | 'error' | 'warning' | 'info', message: string, autoRedirect?: boolean, redirectPath?: string) => {
     setNotification({ type, message });
 
     if (autoRedirect && redirectPath) {
-      let countdown = 3;
-      setRedirectCountdown(countdown);
-
-      const interval = setInterval(() => {
-        countdown--;
-        setRedirectCountdown(countdown);
-
-        if (countdown <= 0) {
-          clearInterval(interval);
-          router.push(redirectPath);
-        }
-      }, 1000);
+      setTimeout(() => {
+        router.push(redirectPath);
+      }, 3000);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
-    if (uploadedImages.length === 0) {
-      showNotification('error', 'Please upload at least one photo of your vehicle', false);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setUploadError('');
+    console.log('=== FORM SUBMISSION STARTED ===');
+    console.log('Form Data:', formData);
 
     try {
-      const token = localStorage.getItem('accessToken');
-
-      if (!token) {
-        showNotification('error', 'Authentication failed. Please login again.', true, '/signin');
+      // Validate required fields
+      if (uploadedImages.length === 0) {
+        showNotification('error', 'Please upload at least one photo of your vehicle', false);
         return;
       }
+
+      // Validate pricing
+      const pricePerDay = parseNumberInput(formData.pricePerDay);
+      const securityDeposit = parseNumberInput(formData.securityDeposit);
+
+      if (pricePerDay <= 0) {
+        showNotification('warning', 'Please set a valid price per day', false);
+        return;
+      }
+
+      if (securityDeposit <= 0) {
+        showNotification('warning', 'Please set a valid security deposit', false);
+        return;
+      }
+
+      setIsSubmitting(true);
+      setUploadError('');
+
+      const token = localStorage.getItem('accessToken');
+      if (!token) {
+        showNotification('error', 'Authentication failed. Please login again.', true, '/signin');
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log('Token found:', token.substring(0, 20) + '...');
 
       // Convert images to base64 strings
       let base64Images: string[] = [];
@@ -352,42 +389,64 @@ export default function AddVehiclePage() {
         return;
       }
 
-      // Prepare the request body according to the API schema
+      // Prepare the request body
       const requestBody: any = {
-        brand: formData.brand,
-        model: formData.model,
+        brand: formData.brand.trim(),
+        model: formData.model.trim(),
         year: formData.year,
-        color: formData.color,
-        licensePlate: formData.licensePlate,
+        color: formData.color.trim(),
+        licensePlate: formData.licensePlate.trim().toUpperCase(),
         fuelType: formData.fuelType,
         transmission: formData.transmission,
         seats: formData.seats,
         doors: formData.doors,
-        luggageCapacity: formData.luggageCapacity,
+        luggageCapacity: formData.luggageCapacity || 0,
         features: formData.features,
-        pricePerDay: formData.pricePerDay,
-        securityDeposit: formData.securityDeposit,
-        address: formData.address,
-        city: formData.city,
-        state: formData.state,
-        zipCode: formData.zipCode,
+        pricePerDay: pricePerDay,
+        securityDeposit: securityDeposit,
+        address: formData.address.trim(),
+        city: formData.city.trim(),
+        state: formData.state.trim(),
+        zipCode: formData.zipCode.trim(),
         minRentalDays: formData.minimumRentalDays,
         maxRentalDays: formData.maximumRentalDays,
-        description: formData.description,
+        description: formData.description.trim(),
         photos: base64Images
       };
 
-      // Add optional fields only if they have values
-      if (formData.vin) requestBody.vin = formData.vin;
-      if (formData.pricePerWeek > 0) requestBody.pricePerWeek = formData.pricePerWeek;
-      if (formData.pricePerMonth > 0) requestBody.pricePerMonth = formData.pricePerMonth;
-      if (formData.latitude) requestBody.latitude = parseFloat(formData.latitude);
-      if (formData.longitude) requestBody.longitude = parseFloat(formData.longitude);
-      if (formData.availableFrom) requestBody.availableFrom = new Date(formData.availableFrom).toISOString();
-      if (formData.availableTo) requestBody.availableTo = new Date(formData.availableTo).toISOString();
-      if (formData.terms) requestBody.terms = formData.terms;
+      // Add optional fields
+      if (formData.vin && formData.vin.trim()) {
+        requestBody.vin = formData.vin.trim().toUpperCase();
+      }
 
-      console.log('Sending vehicle data...');
+      const pricePerWeek = parseNumberInput(formData.pricePerWeek);
+      if (pricePerWeek > 0) {
+        requestBody.pricePerWeek = pricePerWeek;
+      }
+
+      const pricePerMonth = parseNumberInput(formData.pricePerMonth);
+      if (pricePerMonth > 0) {
+        requestBody.pricePerMonth = pricePerMonth;
+      }
+
+      if (formData.latitude && formData.latitude.trim()) {
+        requestBody.latitude = parseFloat(formData.latitude);
+      }
+      if (formData.longitude && formData.longitude.trim()) {
+        requestBody.longitude = parseFloat(formData.longitude);
+      }
+      if (formData.availableFrom) {
+        requestBody.availableFrom = new Date(formData.availableFrom).toISOString();
+      }
+      if (formData.availableTo) {
+        requestBody.availableTo = new Date(formData.availableTo).toISOString();
+      }
+      if (formData.terms && formData.terms.trim()) {
+        requestBody.terms = formData.terms.trim();
+      }
+
+      console.log('Sending request to:', 'http://localhost:8080/api/vehicles');
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
       const response = await fetch('http://localhost:8080/api/vehicles', {
         method: 'POST',
@@ -398,31 +457,40 @@ export default function AddVehiclePage() {
         body: JSON.stringify(requestBody),
       });
 
+      console.log('Response status:', response.status);
+
       if (response.status === 401 || response.status === 403) {
         showNotification('error', 'Session expired. Please login again.', true, '/signin');
+        setIsSubmitting(false);
         return;
       }
 
+      let responseData;
+      try {
+        responseData = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        throw new Error('Invalid response from server');
+      }
+
+      console.log('Response data:', responseData);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        const errorMessage = errorData.message || errorData.error || 'Failed to add vehicle';
+        const errorMessage = responseData.message || responseData.error || 'Failed to add vehicle';
         throw new Error(errorMessage);
       }
 
-      const data: VehicleResponse = await response.json();
-      console.log('Vehicle added successfully:', data);
-
-      // Show success notification and redirect to owner vehicles page
+      console.log('Vehicle added successfully:', responseData);
       showNotification(
         'success',
-        data.message || 'Vehicle added successfully! Redirecting to your vehicles...',
+        responseData.message || 'Vehicle added successfully! Redirecting to your vehicles...',
         true,
         '/vehicles'
       );
 
-    } catch (error) {
-      console.error('Error adding vehicle:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add vehicle. Please try again.';
+    } catch (error: any) {
+      console.error('Error in handleSubmit:', error);
+      const errorMessage = error.message || 'Failed to add vehicle. Please try again.';
       showNotification('error', errorMessage, false);
     } finally {
       setIsSubmitting(false);
@@ -452,8 +520,6 @@ export default function AddVehiclePage() {
           credentials: 'include',
         });
 
-        console.log('Response status:', response.status);
-
         if (response.status === 401 || response.status === 403) {
           console.log('Unauthorized, redirecting to login');
           router.push('/signin');
@@ -468,7 +534,6 @@ export default function AddVehiclePage() {
         console.log('KYC Status Response:', data);
 
         const ownerStatus = mapKYCStatus(data.ownerKycStatus);
-        console.log('Mapped owner KYC status:', ownerStatus);
 
         if (data.canList === true) {
           console.log('User can list vehicles (canList=true)');
@@ -487,7 +552,6 @@ export default function AddVehiclePage() {
 
     fetchKycStatus();
 
-    // Cleanup function to revoke object URLs
     return () => {
       imagePreviews.forEach(preview => URL.revokeObjectURL(preview));
     };
@@ -506,11 +570,14 @@ export default function AddVehiclePage() {
         return;
       }
     } else if (currentStep === 4) {
-      if (formData.pricePerDay <= 0) {
+      const pricePerDay = parseNumberInput(formData.pricePerDay);
+      const securityDeposit = parseNumberInput(formData.securityDeposit);
+
+      if (pricePerDay <= 0) {
         showNotification('warning', 'Please set a valid price per day', false);
         return;
       }
-      if (formData.securityDeposit <= 0) {
+      if (securityDeposit <= 0) {
         showNotification('warning', 'Please set a valid security deposit', false);
         return;
       }
@@ -770,7 +837,12 @@ export default function AddVehiclePage() {
                       type="number"
                       required
                       value={formData.year}
-                      onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) })}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val)) {
+                          setFormData({ ...formData, year: val });
+                        }
+                      }}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       min="1990"
                       max={new Date().getFullYear() + 1}
@@ -849,7 +921,12 @@ export default function AddVehiclePage() {
                       type="number"
                       required
                       value={formData.seats}
-                      onChange={(e) => setFormData({ ...formData, seats: parseInt(e.target.value) })}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val)) {
+                          setFormData({ ...formData, seats: val });
+                        }
+                      }}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       min="1"
                       max="15"
@@ -861,7 +938,12 @@ export default function AddVehiclePage() {
                       type="number"
                       required
                       value={formData.doors}
-                      onChange={(e) => setFormData({ ...formData, doors: parseInt(e.target.value) })}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val)) {
+                          setFormData({ ...formData, doors: val });
+                        }
+                      }}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       min="2"
                       max="5"
@@ -872,7 +954,12 @@ export default function AddVehiclePage() {
                     <input
                       type="number"
                       value={formData.luggageCapacity}
-                      onChange={(e) => setFormData({ ...formData, luggageCapacity: parseInt(e.target.value) })}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val)) {
+                          setFormData({ ...formData, luggageCapacity: val });
+                        }
+                      }}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       min="0"
                       max="10"
@@ -936,7 +1023,7 @@ export default function AddVehiclePage() {
                         type="number"
                         required
                         value={formData.pricePerDay}
-                        onChange={(e) => setFormData({ ...formData, pricePerDay: parseFloat(e.target.value) })}
+                        onChange={(e) => handleNumberChange(e, 'pricePerDay')}
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="0"
                         min="0"
@@ -951,7 +1038,7 @@ export default function AddVehiclePage() {
                       <input
                         type="number"
                         value={formData.pricePerWeek}
-                        onChange={(e) => setFormData({ ...formData, pricePerWeek: parseFloat(e.target.value) })}
+                        onChange={(e) => handleNumberChange(e, 'pricePerWeek')}
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="0"
                         min="0"
@@ -966,7 +1053,7 @@ export default function AddVehiclePage() {
                       <input
                         type="number"
                         value={formData.pricePerMonth}
-                        onChange={(e) => setFormData({ ...formData, pricePerMonth: parseFloat(e.target.value) })}
+                        onChange={(e) => handleNumberChange(e, 'pricePerMonth')}
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="0"
                         min="0"
@@ -982,7 +1069,7 @@ export default function AddVehiclePage() {
                         type="number"
                         required
                         value={formData.securityDeposit}
-                        onChange={(e) => setFormData({ ...formData, securityDeposit: parseFloat(e.target.value) })}
+                        onChange={(e) => handleNumberChange(e, 'securityDeposit')}
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="0"
                         min="0"
@@ -995,7 +1082,12 @@ export default function AddVehiclePage() {
                     <input
                       type="number"
                       value={formData.minimumRentalDays}
-                      onChange={(e) => setFormData({ ...formData, minimumRentalDays: parseInt(e.target.value) })}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val) && val >= 1) {
+                          setFormData({ ...formData, minimumRentalDays: val });
+                        }
+                      }}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       min="1"
                       max="30"
@@ -1006,7 +1098,12 @@ export default function AddVehiclePage() {
                     <input
                       type="number"
                       value={formData.maximumRentalDays}
-                      onChange={(e) => setFormData({ ...formData, maximumRentalDays: parseInt(e.target.value) })}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (!isNaN(val) && val >= 1) {
+                          setFormData({ ...formData, maximumRentalDays: val });
+                        }
+                      }}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       min="1"
                       max="365"
@@ -1019,8 +1116,24 @@ export default function AddVehiclePage() {
             {/* Step 5: Location */}
             {currentStep === 5 && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Pickup Location</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">📍 Pickup Location</h2>
+                <p className="text-gray-600 mb-6">
+                  Select the exact location where renters can pick up the vehicle.
+                  Click on the map, search for a location, or use your current location.
+                </p>
+
+                <LocationPicker
+                  onLocationSelect={handleLocationSelect}
+                  initialLat={formData.latitude || 27.7172}
+                  initialLng={formData.longitude || 85.324}
+                  initialAddress={formData.address || ''}
+                  height={450}
+                />
+
+                <input type="hidden" name="latitude" value={formData.latitude} />
+                <input type="hidden" name="longitude" value={formData.longitude} />
+
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-6">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Street Address *</label>
                     <input
@@ -1029,8 +1142,11 @@ export default function AddVehiclePage() {
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      placeholder="Street address"
+                      placeholder="Street address (auto-filled from map)"
                     />
+                    <p className="text-xs text-gray-400 mt-1">
+                      The address will be automatically filled when you click on the map
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
@@ -1171,7 +1287,6 @@ export default function AddVehiclePage() {
       </div>
       <Footer />
 
-      {/* Notification Popup */}
       {notification && (
         <NotificationPopup
           type={notification.type}
