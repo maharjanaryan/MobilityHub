@@ -12,7 +12,8 @@ import {
   Clock, Star, ChevronRight, Edit3, Camera, Shield,
   Lock, Award, TrendingUp, X,
   Loader2, CheckCircle, AlertCircle, Save, Trash2,
-  Plus, Eye, Fuel, Gauge, Users
+  Plus, Eye, Fuel, Gauge, Users,
+  XCircle
 } from "lucide-react";
 
 interface UserProfileData {
