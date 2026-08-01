@@ -1,9 +1,13 @@
-// src/app/maps/page.tsx
+// app/maps/page.tsx
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, LogIn, ArrowLeft, Car, AlertCircle } from "lucide-react";
 import Header from "../component/Header";
+import HomeHeader from "../home/HomeHeader";
 import { vehicleService } from "../services/vehicleService";
 import { Vehicle, VehicleType } from "../types/vehicle";
 
@@ -12,6 +16,118 @@ type FilterType = "all" | VehicleType;
 interface UserLocation {
   lat: number;
   lng: number;
+}
+
+// Login Required Modal Component
+function LoginRequiredModal({
+  isOpen,
+  onClose,
+  onLogin,
+  onBack,
+  vehicleName
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onLogin: () => void;
+  onBack: () => void;
+  vehicleName: string;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50"
+            onClick={onClose}
+          />
+
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
+              className="relative w-full max-w-md pointer-events-auto"
+            >
+              <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
+                <div className="relative bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                        <LogIn className="w-5 h-5 text-white" />
+                      </div>
+                      <h2 className="text-xl font-bold text-white">Login Required</h2>
+                    </div>
+                    <button
+                      onClick={onClose}
+                      className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 transition-all duration-200 flex items-center justify-center group"
+                    >
+                      <X className="w-4 h-4 text-white group-hover:rotate-90 transition-transform duration-200" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <AlertCircle className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-800">
+                        Authentication Required
+                      </p>
+                      <p className="text-sm text-amber-700">
+                        You need to be logged in to rent a vehicle.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                        <Car className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">You're trying to rent:</p>
+                        <p className="font-semibold text-gray-800">{vehicleName}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <button
+                      onClick={onLogin}
+                      className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                    >
+                      <LogIn className="w-5 h-5" />
+                      Sign In to Continue
+                    </button>
+
+                    <button
+                      onClick={onBack}
+                      className="w-full py-2.5 border-2 border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Go Back
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-gray-400 text-center mt-4">
+                    By continuing, you agree to our Terms of Service and Privacy Policy
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>
+  );
 }
 
 const MapView = dynamic(() => import("./MapView"), {
@@ -47,76 +163,131 @@ const typeBadgeColors: Record<VehicleType, string> = {
   cycle: "bg-emerald-50 text-emerald-600 border-emerald-200",
 };
 
-// Mock vehicles for fallback
-const getMockVehicles = (): Vehicle[] => {
-  return [
-    {
-      id: 1,
-      name: 'Tesla Model 3',
-      type: 'car',
-      lat: 27.7202,
-      lng: 85.3182,
-      battery: 85,
-      range: 450,
-      pricePerHour: 2500,
-      image: '/images/tesla.jpg',
-      brand: 'Tesla',
-      model: 'Model 3',
-      isAvailable: true
-    },
-    {
-      id: 2,
-      name: 'Honda Activa',
-      type: 'scooter',
-      lat: 27.7150,
-      lng: 85.3280,
-      battery: 70,
-      range: 80,
-      pricePerHour: 500,
-      image: '/images/activa.jpg',
-      brand: 'Honda',
-      model: 'Activa',
-      isAvailable: true
-    },
-    {
-      id: 3,
-      name: 'Yamaha R15',
-      type: 'bike',
-      lat: 27.7220,
-      lng: 85.3150,
-      battery: 90,
-      range: 300,
-      pricePerHour: 800,
-      image: '/images/r15.jpg',
-      brand: 'Yamaha',
-      model: 'R15',
-      isAvailable: true
-    },
-    {
-      id: 4,
-      name: 'Mountain Cycle',
-      type: 'cycle',
-      lat: 27.7100,
-      lng: 85.3300,
-      battery: 100,
-      range: 50,
-      pricePerHour: 200,
-      image: '/images/cycle.jpg',
-      brand: 'Mountain',
-      model: 'Cycle',
-      isAvailable: true
-    },
-  ];
-};
-
 export default function MapsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingVehicleId, setPendingVehicleId] = useState<number | null>(null);
   const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  // Get highlighted vehicle from URL params
+  const highlightVehicleId = searchParams.get('vehicleId');
+  const highlightLat = searchParams.get('lat');
+  const highlightLng = searchParams.get('lng');
+  const shouldHighlight = searchParams.get('highlight') === 'true';
+
+  // Check authentication status
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('accessToken');
+      setIsAuthenticated(!!token);
+    }
+  }, []);
+
+  // Handle highlighted vehicle from URL
+  useEffect(() => {
+    if (shouldHighlight && highlightVehicleId && highlightLat && highlightLng) {
+      // Check if vehicle already exists in vehicles list
+      const existingVehicle = vehicles.find(v => v.id === parseInt(highlightVehicleId));
+
+      if (existingVehicle) {
+        setSelectedVehicle(existingVehicle);
+        // Scroll to the vehicle in sidebar after a delay
+        setTimeout(() => {
+          cardRefs.current[existingVehicle.id]?.scrollIntoView({
+            behavior: "smooth",
+            block: "center"
+          });
+        }, 500);
+      } else {
+        // If not in list, create a temporary vehicle from params
+        const tempVehicle: Vehicle = {
+          id: parseInt(highlightVehicleId),
+          name: 'Selected Vehicle',
+          type: 'car',
+          lat: parseFloat(highlightLat),
+          lng: parseFloat(highlightLng),
+          battery: 80,
+          range: 300,
+          pricePerHour: 0,
+          image: '/images/default-vehicle.jpg',
+          brand: 'Selected',
+          model: 'Vehicle',
+          isAvailable: true
+        };
+
+        // Try to get more details from sessionStorage
+        const storedData = sessionStorage.getItem('selectedVehicle');
+        if (storedData) {
+          try {
+            const data = JSON.parse(storedData);
+            tempVehicle.name = data.name || tempVehicle.name;
+            tempVehicle.type = data.type || 'car';
+            tempVehicle.pricePerHour = data.pricePerHour || tempVehicle.pricePerHour;
+            tempVehicle.image = data.image || tempVehicle.image;
+            tempVehicle.brand = data.brand || tempVehicle.brand;
+            tempVehicle.model = data.model || tempVehicle.model;
+          } catch (e) {
+            console.error('Error parsing stored vehicle data:', e);
+          }
+        }
+
+        // Add to vehicles list temporarily
+        setVehicles(prev => [...prev, tempVehicle]);
+        setSelectedVehicle(tempVehicle);
+      }
+
+      // Clear sessionStorage after use
+      sessionStorage.removeItem('selectedVehicle');
+    }
+  }, [shouldHighlight, highlightVehicleId, highlightLat, highlightLng, vehicles]);
+
+  // Handle rent now click
+  const handleRentNow = useCallback((e: React.MouseEvent, vehicleId: number) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      router.push(`/vehicles/${vehicleId}`);
+    } else {
+      setPendingVehicleId(vehicleId);
+      setShowLoginModal(true);
+    }
+  }, [router]);
+
+  // Handle login from modal
+  const handleLogin = useCallback(() => {
+    if (pendingVehicleId) {
+      localStorage.setItem('redirectAfterLogin', `/vehicles/${pendingVehicleId}`);
+    }
+    setShowLoginModal(false);
+    setPendingVehicleId(null);
+    router.push('/signin');
+  }, [pendingVehicleId, router]);
+
+  // Handle back from modal
+  const handleBack = useCallback(() => {
+    setShowLoginModal(false);
+    setPendingVehicleId(null);
+    setSelectedVehicle(null);
+  }, []);
+
+  // Get the vehicle name for the modal
+  const getVehicleName = useCallback(() => {
+    if (pendingVehicleId) {
+      const vehicle = vehicles.find(v => v.id === pendingVehicleId);
+      return vehicle ? `${vehicle.brand || ''} ${vehicle.model || ''}`.trim() || vehicle.name : 'this vehicle';
+    }
+    return 'this vehicle';
+  }, [pendingVehicleId, vehicles]);
 
   // Get user location
   useEffect(() => {
@@ -142,14 +313,12 @@ export default function MapsPage() {
     const fetchVehicles = async () => {
       try {
         setLoading(true);
-        // Use getFeaturedVehicles to get vehicles
         const data = await vehicleService.getFeaturedVehicles(0, 50);
         setVehicles(data);
       } catch (error) {
         console.error('Error fetching vehicles:', error);
-        // Fallback to mock data
-        const mockVehicles = getMockVehicles();
-        setVehicles(mockVehicles);
+        // No mock data - just set empty array
+        setVehicles([]);
       } finally {
         setLoading(false);
       }
@@ -184,7 +353,7 @@ export default function MapsPage() {
   if (loading) {
     return (
       <div className="flex flex-col h-screen">
-        <Header />
+        {isAuthenticated ? <HomeHeader /> : <Header />}
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
@@ -197,8 +366,17 @@ export default function MapsPage() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
+      {/* Login Required Modal */}
+      <LoginRequiredModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLogin={handleLogin}
+        onBack={handleBack}
+        vehicleName={getVehicleName()}
+      />
+
       <div className="flex-shrink-0">
-        <Header />
+        {isAuthenticated ? <HomeHeader /> : <Header />}
       </div>
 
       <div className="flex-1 flex overflow-hidden relative min-h-0">
@@ -303,33 +481,24 @@ export default function MapsPage() {
                             {typeIcons[vehicle.type]} {vehicle.type}
                           </span>
                         </div>
+
                         <div className="flex items-center gap-3 mt-2">
-                          <div className="flex items-center gap-1.5 flex-1">
-                            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${vehicle.battery > 70 ? "bg-green-500" :
-                                  vehicle.battery > 40 ? "bg-yellow-500" :
-                                    "bg-red-500"
-                                  }`}
-                                style={{ width: `${vehicle.battery}%` }}
-                              />
-                            </div>
-                            <span className="text-[10px] text-gray-500 font-medium shrink-0">
-                              {vehicle.battery}%
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-gray-400 flex items-center gap-0.5 shrink-0">
+                          <span className="text-xs text-gray-400 flex items-center gap-1">
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                             </svg>
                             {vehicle.range}km
                           </span>
                           {vehicle.distanceFromUser && (
-                            <span className="text-[10px] text-blue-500 flex items-center gap-0.5 shrink-0">
-                              📍 {vehicle.distanceFromUser.toFixed(1)}km
-                            </span>
+                            <>
+                              <span className="text-xs text-gray-300">•</span>
+                              <span className="text-[10px] text-blue-500 flex items-center gap-0.5">
+                                📍 {vehicle.distanceFromUser.toFixed(1)}km
+                              </span>
+                            </>
                           )}
                         </div>
+
                         <div className="mt-2 flex items-center justify-between">
                           <span className="text-green-700 font-bold text-sm">
                             Rs.{vehicle.pricePerHour}
@@ -338,10 +507,7 @@ export default function MapsPage() {
                           {isSelected && (
                             <button
                               className="bg-green-600 hover:bg-green-500 text-white text-[11px] px-3 py-1.5 rounded-lg font-semibold transition-colors shadow-sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                console.log('Rent vehicle:', vehicle.id);
-                              }}
+                              onClick={(e) => handleRentNow(e, vehicle.id)}
                             >
                               Rent Now →
                             </button>

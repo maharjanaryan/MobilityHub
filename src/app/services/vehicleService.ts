@@ -22,29 +22,116 @@ const getPriceValue = (price: any): number => {
   return 0;
 };
 
-// Helper to map fuel type to vehicle type
-const mapFuelTypeToVehicleType = (fuelType: string): 'car' | 'bike' | 'scooter' | 'cycle' => {
-  const mapping: Record<string, 'car' | 'bike' | 'scooter' | 'cycle'> = {
-    'petrol': 'car',
-    'diesel': 'car',
-    'electric': 'car',
-    'hybrid': 'car',
-    'cng': 'car',
-    'lpg': 'car'
-  };
-  return mapping[fuelType?.toLowerCase()] || 'car';
+// Helper to map vehicle type based on multiple factors - IMPROVED
+const mapToVehicleType = (
+  fuelType: string,
+  seats?: number,
+  transmission?: string,
+  brand?: string,
+  model?: string
+): 'car' | 'bike' | 'scooter' | 'cycle' => {
+  const fuelTypeLower = fuelType?.toLowerCase() || '';
+  const brandLower = brand?.toLowerCase() || '';
+  const modelLower = model?.toLowerCase() || '';
+
+  // Check if it's a cycle based on brand/model
+  if (brandLower.includes('cycle') || modelLower.includes('cycle') ||
+    brandLower.includes('bicycle') || modelLower.includes('bicycle')) {
+    return 'cycle';
+  }
+
+  // Check if it's a scooter based on model names
+  const scooterModels = ['activa', 'chetak', 'ather', 'ola', 'iqube', 'scooter', 'scooty', 'vespa', 'access', 'burgman'];
+  if (scooterModels.some(m => modelLower.includes(m) || brandLower.includes(m))) {
+    return 'scooter';
+  }
+
+  // Check if it's a bike based on brand
+  const bikeBrands = ['yamaha', 'suzuki', 'kawasaki', 'ducati', 'ktm', 'bajaj', 'tvs', 'hero', 'royal enfield', 'aprilia', 'harley-davidson', 'triumph', 'revolt', 'tork'];
+  if (bikeBrands.some(b => brandLower.includes(b))) {
+    // Check if it's a scooter brand
+    const scooterBrands = ['vespa', 'ather', 'ola'];
+    if (scooterBrands.some(b => brandLower.includes(b))) {
+      return 'scooter';
+    }
+    return 'bike';
+  }
+
+  // Check by seats
+  if (seats) {
+    if (seats <= 2) {
+      // If seats are 2 or less, it's a bike or scooter
+      if (transmission?.toLowerCase() === 'automatic' ||
+        fuelTypeLower.includes('electric') && seats <= 2) {
+        return 'scooter';
+      }
+      return 'bike';
+    }
+    if (seats >= 4) {
+      return 'car';
+    }
+  }
+
+  // Check by fuel type for two-wheelers
+  if (fuelTypeLower === 'cycle' || fuelTypeLower === 'bicycle') {
+    return 'cycle';
+  }
+  if (fuelTypeLower === 'motorcycle' || fuelTypeLower === 'bike') {
+    return 'bike';
+  }
+  if (fuelTypeLower === 'scooter' || fuelTypeLower === 'scooty') {
+    return 'scooter';
+  }
+
+  // Default mapping for car fuel types
+  const carFuelTypes = ['petrol', 'diesel', 'hybrid', 'cng', 'lpg'];
+  if (carFuelTypes.includes(fuelTypeLower)) {
+    // If seats are 2 or less with car fuel type, it might be a bike
+    if (seats && seats <= 2) {
+      return 'bike';
+    }
+    return 'car';
+  }
+
+  // For electric vehicles, determine by seats
+  if (fuelTypeLower === 'electric') {
+    if (seats && seats <= 2) {
+      // Check if it's a scooter brand
+      const scooterBrands = ['ather', 'ola', 'simple', 'bajaj'];
+      if (scooterBrands.some(b => brandLower.includes(b))) {
+        return 'scooter';
+      }
+      return 'bike';
+    }
+    return 'car';
+  }
+
+  // Default to car
+  return 'car';
 };
 
 // Helper function to map API response to frontend Vehicle type
 const mapApiToVehicle = (apiVehicle: VehicleApiResponse): Vehicle => {
+  // Determine vehicle type using enhanced mapping
+  const vehicleType = mapToVehicleType(
+    apiVehicle.fuelType,
+    apiVehicle.seats,
+    apiVehicle.transmission,
+    apiVehicle.brand,
+    apiVehicle.model
+  );
+
+  // Determine if it's a two-wheeler for battery/range defaults
+  const isTwoWheeler = vehicleType === 'bike' || vehicleType === 'scooter' || vehicleType === 'cycle';
+
   return {
     id: apiVehicle.id,
     name: `${apiVehicle.brand} ${apiVehicle.model}`,
-    type: mapFuelTypeToVehicleType(apiVehicle.fuelType),
+    type: vehicleType,
     lat: apiVehicle.latitude || 27.7172,
     lng: apiVehicle.longitude || 85.324,
     battery: Math.floor(Math.random() * 100),
-    range: Math.floor(Math.random() * 200) + 50,
+    range: isTwoWheeler ? Math.floor(Math.random() * 150) + 50 : Math.floor(Math.random() * 200) + 50,
     pricePerHour: getPriceValue(apiVehicle.pricePerDay),
     image: apiVehicle.photos && apiVehicle.photos.length > 0
       ? apiVehicle.photos[0]

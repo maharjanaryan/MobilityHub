@@ -1,25 +1,14 @@
-// app/vehicles/add/page.tsx
+// app/(vehicle)/add-vehicle/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Car,
-  Upload,
   X,
-  Plus,
-  ChevronDown,
-  ChevronUp,
   AlertCircle,
   CheckCircle,
   Info,
-  Calendar,
-  Fuel,
-  Gauge,
-  Users,
-  MapPin,
-  DollarSign,
-  Image as ImageIcon,
   Camera,
   Trash2,
   Move,
@@ -27,13 +16,15 @@ import {
   Wifi,
   Snowflake,
   Coffee,
-  Battery,
   Shield,
   Music,
-  Wind,
   Smartphone,
-  Briefcase,
-  Clock
+  Users,
+  MapPin,
+  DollarSign,
+  Clock,
+  Gauge,
+  Fuel
 } from 'lucide-react';
 import HomeHeader from '../../home/HomeHeader';
 import Footer from '../../component/Footer';
@@ -69,7 +60,7 @@ interface VehicleResponse {
   vehicle?: any;
 }
 
-// Notification Popup Component
+// Notification Popup Component - NOT exported as default
 function NotificationPopup({
   type,
   message,
@@ -174,6 +165,7 @@ function NotificationPopup({
   );
 }
 
+// Main component - ONLY ONE DEFAULT EXPORT
 export default function AddVehiclePage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -186,45 +178,32 @@ export default function AddVehiclePage() {
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
 
   const [formData, setFormData] = useState({
-    // Basic Information
     brand: '',
     model: '',
     year: new Date().getFullYear(),
     color: '',
     licensePlate: '',
     vin: '',
-
-    // Vehicle Details
     fuelType: 'petrol',
     transmission: 'automatic',
     seats: 5,
     doors: 4,
     luggageCapacity: 2,
-
-    // Features
     features: [] as string[],
-
-    // Pricing - Using strings to prevent NaN
     pricePerDay: '',
     pricePerWeek: '',
     pricePerMonth: '',
     securityDeposit: '',
-
-    // Location
     address: '',
     city: '',
     state: '',
     zipCode: '',
     latitude: '',
     longitude: '',
-
-    // Availability
     availableFrom: '',
     availableTo: '',
     minimumRentalDays: 1,
     maximumRentalDays: 30,
-
-    // Description
     description: '',
     terms: ''
   });
@@ -256,14 +235,12 @@ export default function AddVehiclePage() {
     { value: 'manual', label: 'Manual' }
   ];
 
-  // Helper function to safely parse number inputs
   const parseNumberInput = (value: string | number): number => {
     if (value === '' || value === null || value === undefined) return 0;
     const parsed = typeof value === 'string' ? parseFloat(value) : value;
     return isNaN(parsed) ? 0 : parsed;
   };
 
-  // Helper function to handle number input changes
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     const value = e.target.value;
     if (value === '' || value === '-') {
@@ -276,7 +253,6 @@ export default function AddVehiclePage() {
     }
   };
 
-  // Convert File to base64 string
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -286,7 +262,6 @@ export default function AddVehiclePage() {
     });
   };
 
-  // Convert multiple files to base64 strings
   const filesToBase64 = async (files: File[]): Promise<string[]> => {
     const base64Promises = files.map(file => fileToBase64(file));
     return await Promise.all(base64Promises);
@@ -297,7 +272,6 @@ export default function AddVehiclePage() {
     if (files) {
       const newFiles = Array.from(files);
       const newPreviews = newFiles.map(file => URL.createObjectURL(file));
-
       setUploadedImages([...uploadedImages, ...newFiles]);
       setImagePreviews([...imagePreviews, ...newPreviews]);
       setUploadError('');
@@ -330,7 +304,6 @@ export default function AddVehiclePage() {
 
   const showNotification = (type: 'success' | 'error' | 'warning' | 'info', message: string, autoRedirect?: boolean, redirectPath?: string) => {
     setNotification({ type, message });
-
     if (autoRedirect && redirectPath) {
       setTimeout(() => {
         router.push(redirectPath);
@@ -345,13 +318,11 @@ export default function AddVehiclePage() {
     console.log('Form Data:', formData);
 
     try {
-      // Validate required fields
       if (uploadedImages.length === 0) {
         showNotification('error', 'Please upload at least one photo of your vehicle', false);
         return;
       }
 
-      // Validate pricing
       const pricePerDay = parseNumberInput(formData.pricePerDay);
       const securityDeposit = parseNumberInput(formData.securityDeposit);
 
@@ -377,7 +348,6 @@ export default function AddVehiclePage() {
 
       console.log('Token found:', token.substring(0, 20) + '...');
 
-      // Convert images to base64 strings
       let base64Images: string[] = [];
       try {
         base64Images = await filesToBase64(uploadedImages);
@@ -389,7 +359,6 @@ export default function AddVehiclePage() {
         return;
       }
 
-      // Prepare the request body
       const requestBody: any = {
         brand: formData.brand.trim(),
         model: formData.model.trim(),
@@ -414,7 +383,6 @@ export default function AddVehiclePage() {
         photos: base64Images
       };
 
-      // Add optional fields
       if (formData.vin && formData.vin.trim()) {
         requestBody.vin = formData.vin.trim().toUpperCase();
       }
@@ -558,7 +526,6 @@ export default function AddVehiclePage() {
   }, [router]);
 
   const nextStep = () => {
-    // Validate current step before proceeding
     if (currentStep === 1) {
       if (!formData.brand || !formData.model || !formData.year || !formData.color || !formData.licensePlate) {
         showNotification('warning', 'Please fill in all required fields in Basic Information', false);
@@ -871,9 +838,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      VIN (Vehicle Identification Number)
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">VIN</label>
                     <input
                       type="text"
                       value={formData.vin}
@@ -916,7 +881,7 @@ export default function AddVehiclePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of Seats *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Seats *</label>
                     <input
                       type="number"
                       required
@@ -933,7 +898,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of Doors *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Doors *</label>
                     <input
                       type="number"
                       required
@@ -950,7 +915,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Luggage Capacity (bags)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Luggage Capacity</label>
                     <input
                       type="number"
                       value={formData.luggageCapacity}
@@ -968,14 +933,14 @@ export default function AddVehiclePage() {
                 </div>
 
                 <div className="mt-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Vehicle Description *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
                   <textarea
                     required
                     rows={5}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="Describe your vehicle's condition, special features, and any important details renters should know..."
+                    placeholder="Describe your vehicle..."
                   />
                 </div>
               </div>
@@ -984,9 +949,8 @@ export default function AddVehiclePage() {
             {/* Step 3: Features */}
             {currentStep === 3 && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Features & Amenities</h2>
-                <p className="text-gray-600 mb-6">Select all the features your vehicle offers</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">Features</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {availableFeatures.map(feature => {
                     const Icon = feature.icon;
                     const isSelected = formData.features.includes(feature.id);
@@ -995,14 +959,13 @@ export default function AddVehiclePage() {
                         key={feature.id}
                         type="button"
                         onClick={() => toggleFeature(feature.id)}
-                        className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${isSelected
+                        className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${isSelected
                           ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                           : 'border-gray-200 hover:border-gray-300 text-gray-600'
                           }`}
                       >
-                        <Icon className="w-5 h-5" />
-                        <span className="text-sm font-medium">{feature.label}</span>
-                        {isSelected && <CheckCircle className="w-4 h-4 ml-auto" />}
+                        <Icon className="w-4 h-4" />
+                        <span className="text-sm">{feature.label}</span>
                       </button>
                     );
                   })}
@@ -1016,69 +979,57 @@ export default function AddVehiclePage() {
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">Pricing</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Day ($) *</label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <input
-                        type="number"
-                        required
-                        value={formData.pricePerDay}
-                        onChange={(e) => handleNumberChange(e, 'pricePerDay')}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        placeholder="0"
-                        min="0"
-                        step="5"
-                      />
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Day *</label>
+                    <input
+                      type="number"
+                      required
+                      value={formData.pricePerDay}
+                      onChange={(e) => handleNumberChange(e, 'pricePerDay')}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="0"
+                      min="0"
+                      step="5"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Week ($)</label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <input
-                        type="number"
-                        value={formData.pricePerWeek}
-                        onChange={(e) => handleNumberChange(e, 'pricePerWeek')}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        placeholder="0"
-                        min="0"
-                        step="10"
-                      />
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Week</label>
+                    <input
+                      type="number"
+                      value={formData.pricePerWeek}
+                      onChange={(e) => handleNumberChange(e, 'pricePerWeek')}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="0"
+                      min="0"
+                      step="10"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Month ($)</label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <input
-                        type="number"
-                        value={formData.pricePerMonth}
-                        onChange={(e) => handleNumberChange(e, 'pricePerMonth')}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        placeholder="0"
-                        min="0"
-                        step="50"
-                      />
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Month</label>
+                    <input
+                      type="number"
+                      value={formData.pricePerMonth}
+                      onChange={(e) => handleNumberChange(e, 'pricePerMonth')}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="0"
+                      min="0"
+                      step="50"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Security Deposit ($) *</label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <input
-                        type="number"
-                        required
-                        value={formData.securityDeposit}
-                        onChange={(e) => handleNumberChange(e, 'securityDeposit')}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        placeholder="0"
-                        min="0"
-                        step="50"
-                      />
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Security Deposit *</label>
+                    <input
+                      type="number"
+                      required
+                      value={formData.securityDeposit}
+                      onChange={(e) => handleNumberChange(e, 'securityDeposit')}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="0"
+                      min="0"
+                      step="50"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Rental Days</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Min Rental Days</label>
                     <input
                       type="number"
                       value={formData.minimumRentalDays}
@@ -1094,7 +1045,7 @@ export default function AddVehiclePage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Rental Days</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Max Rental Days</label>
                     <input
                       type="number"
                       value={formData.maximumRentalDays}
@@ -1119,7 +1070,6 @@ export default function AddVehiclePage() {
                 <h2 className="text-xl font-semibold text-gray-800 mb-6">📍 Pickup Location</h2>
                 <p className="text-gray-600 mb-6">
                   Select the exact location where renters can pick up the vehicle.
-                  Click on the map, search for a location, or use your current location.
                 </p>
 
                 <LocationPicker
@@ -1142,11 +1092,8 @@ export default function AddVehiclePage() {
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      placeholder="Street address (auto-filled from map)"
+                      placeholder="Street address"
                     />
-                    <p className="text-xs text-gray-400 mt-1">
-                      The address will be automatically filled when you click on the map
-                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
@@ -1188,8 +1135,8 @@ export default function AddVehiclePage() {
             {/* Step 6: Photos */}
             {currentStep === 6 && (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Vehicle Photos</h2>
-                <p className="text-gray-600 mb-6">Upload clear photos of your vehicle (at least 5 photos recommended)</p>
+                <h2 className="text-xl font-semibold text-gray-800 mb-6">Photos</h2>
+                <p className="text-gray-600 mb-6">Upload photos of your vehicle (at least 1 photo required)</p>
 
                 {uploadError && (
                   <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
@@ -1197,23 +1144,20 @@ export default function AddVehiclePage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative group">
-                      <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
-                        <img src={preview} alt={`Vehicle ${index + 1}`} className="w-full h-full object-cover" />
-                      </div>
+                    <div key={index} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group">
+                      <img src={preview} alt={`Vehicle ${index + 1}`} className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
-
-                  <label className="aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all">
+                  <label className="aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all">
                     <input
                       type="file"
                       accept="image/*"
@@ -1224,21 +1168,6 @@ export default function AddVehiclePage() {
                     <Camera className="w-8 h-8 text-gray-400 mb-2" />
                     <span className="text-sm text-gray-500">Upload Photo</span>
                   </label>
-                </div>
-
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <Info className="w-5 h-5 text-blue-600 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-800">Photo Tips</p>
-                      <ul className="text-xs text-blue-700 mt-1 space-y-1">
-                        <li>• Include exterior shots from all angles</li>
-                        <li>• Take clear photos of the interior (seats, dashboard, trunk)</li>
-                        <li>• Highlight any special features or damage</li>
-                        <li>• Ensure good lighting and clean vehicle</li>
-                      </ul>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}

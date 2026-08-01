@@ -4,10 +4,10 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, SlidersHorizontal, Battery, Zap, MapPin,
-  Star, X, ChevronDown, Plus, Loader2, Car, Heart,
+  Search, Battery, Zap, MapPin,
+  Star, X, ChevronDown, Plus, Loader2, Car,
   Fuel, Users, Gauge, Filter, ArrowUpDown, TrendingUp,
-  Clock, Shield, Sparkles, Leaf, Wallet, Navigation,
+  Clock, Sparkles, Leaf, Wallet,
   MessageSquare
 } from "lucide-react";
 import Link from "next/link";
@@ -41,6 +41,8 @@ interface Vehicle {
   photos: string[];
   ownerId?: number;
   ownerName?: string;
+  lat?: number;
+  lng?: number;
 }
 
 const categories = [
@@ -51,7 +53,6 @@ const categories = [
   { name: "Cycles", icon: Leaf, color: "green" }
 ];
 
-const locations = ["All Locations", "Kathmandu", "Lalitpur", "Bhaktapur", "Pokhara"];
 const sortOptions = [
   { label: "Recommended", icon: TrendingUp },
   { label: "Price: Low to High", icon: ArrowUpDown },
@@ -70,7 +71,6 @@ export default function VehiclesPage() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 50000]);
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
-  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [kycLoading, setKycLoading] = useState<number | null>(null);
   const [chatLoading, setChatLoading] = useState<number | null>(null);
 
@@ -101,6 +101,26 @@ export default function VehiclesPage() {
     return null;
   };
 
+  // ✅ Navigate to map with vehicle location
+  const navigateToMapWithVehicle = (vehicle: Vehicle, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // Store vehicle data in sessionStorage for the maps page
+    const vehicleData = {
+      id: vehicle.id,
+      name: vehicle.name,
+      lat: vehicle.lat || 27.7172,
+      lng: vehicle.lng || 85.324,
+      pricePerHour: vehicle.pricePerDay,
+      image: vehicle.img,
+      type: vehicle.category?.toLowerCase().slice(0, -1) || 'car'
+    };
+    sessionStorage.setItem('selectedVehicle', JSON.stringify(vehicleData));
+
+    // Navigate to maps page with vehicle coordinates
+    router.push(`/maps?vehicleId=${vehicle.id}&lat=${vehicle.lat || 27.7172}&lng=${vehicle.lng || 85.324}&highlight=true`);
+  };
+
   useEffect(() => {
     const token = getAccessToken();
     if (!token) {
@@ -108,13 +128,11 @@ export default function VehiclesPage() {
       return;
     }
 
-    // Get user data for modal
     const user = getUserData();
     if (user) {
       setUserName(user.fullName || user.username || "User");
     }
 
-    // Check KYC status on load and update user data
     const checkInitialKyc = async () => {
       try {
         const res = await fetch("http://localhost:8080/api/kyc/status", {
@@ -125,22 +143,12 @@ export default function VehiclesPage() {
         });
         if (res.ok) {
           const data = await res.json();
-          console.log("📋 Initial KYC Check:", data);
-
           const user = getUserData();
           if (user) {
-            // Get both owner and renter status
             const ownerStatus = data.ownerKycStatus || "NOT_SUBMITTED";
             const renterStatus = data.renterKycStatus || "NOT_SUBMITTED";
-
-            // Check if renter is VERIFIED or APPROVED (needed for viewing vehicles)
             const isRenterVerified = renterStatus === "VERIFIED" || renterStatus === "APPROVED";
             const isOwnerVerified = ownerStatus === "VERIFIED" || ownerStatus === "APPROVED";
-
-            console.log("📊 KYC Status Check:");
-            console.log("  - Owner Status:", ownerStatus, "→ Verified:", isOwnerVerified);
-            console.log("  - Renter Status:", renterStatus, "→ Verified:", isRenterVerified);
-            console.log("  - Renter Verified (needed for viewing):", isRenterVerified);
 
             const updatedUser = {
               ...user,
@@ -150,7 +158,7 @@ export default function VehiclesPage() {
               canList: isOwnerVerified,
               canBook: isRenterVerified,
               hasOwnerPrivileges: isOwnerVerified,
-              isKycVerified: isRenterVerified // This is specifically for renter KYC
+              isKycVerified: isRenterVerified
             };
             localStorage.setItem("user", JSON.stringify(updatedUser));
           }
@@ -208,7 +216,9 @@ export default function VehiclesPage() {
           isAvailable: v.isAvailable,
           photos: v.photos || [],
           ownerId: v.ownerId || v.owner?.id,
-          ownerName: v.owner?.username || v.owner?.fullName || "Vehicle Owner"
+          ownerName: v.owner?.username || v.owner?.fullName || "Vehicle Owner",
+          lat: v.latitude || v.lat || 27.7172,
+          lng: v.longitude || v.lng || 85.324
         })));
       }
     } catch (error) {
@@ -250,13 +260,6 @@ export default function VehiclesPage() {
     if (vehicle.pricePerDay < 1000) tags.push("Budget");
     if (vehicle.pricePerDay > 5000) tags.push("Premium");
     return tags.slice(0, 3);
-  };
-
-  const toggleFavorite = (id: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setFavoriteIds(prev =>
-      prev.includes(id) ? prev.filter(fid => fid !== id) : [...prev, id]
-    );
   };
 
   // Start chat with vehicle owner
@@ -329,21 +332,8 @@ export default function VehiclesPage() {
     }
   };
 
-  // Check if user has RENTER KYC verified (needed for viewing vehicles)
-  const hasRenterKyc = (): boolean => {
-    const user = getUserData();
-    if (!user) return false;
-
-    const renterStatus = user.renterKycStatus || user.kycStatus || "NOT_SUBMITTED";
-    return renterStatus === "VERIFIED" || renterStatus === "APPROVED";
-  };
-
-  // Fixed KYC check and navigation - Users need RENTER KYC to view vehicles
   const checkKycAndNavigate = async (vehicleId: number) => {
-    // Don't proceed if modal is already open
-    if (showKycModal) {
-      return;
-    }
+    if (showKycModal) return;
 
     const token = getAccessToken();
     if (!token) {
@@ -355,7 +345,6 @@ export default function VehiclesPage() {
     setSelectedVehicleId(vehicleId);
 
     try {
-      // Always check with the API first for the most up-to-date status
       const res = await fetch("http://localhost:8080/api/kyc/status", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -365,89 +354,36 @@ export default function VehiclesPage() {
 
       if (res.ok) {
         const data = await res.json();
-        console.log("🔍 Full KYC API Response:", data);
-
-        // Get both owner and renter status
-        const ownerStatus = data.ownerKycStatus || "NOT_SUBMITTED";
         const renterStatus = data.renterKycStatus || "NOT_SUBMITTED";
-
-        console.log("📊 KYC Status from API:");
-        console.log("  - Owner Status:", ownerStatus);
-        console.log("  - Renter Status:", renterStatus);
-
-        // CRITICAL: To VIEW vehicles, user needs RENTER KYC (for booking/viewing)
-        // Owner KYC is for LISTING vehicles, not for viewing/booking
         const isRenterVerified = renterStatus === "VERIFIED" || renterStatus === "APPROVED";
-        const isOwnerVerified = ownerStatus === "VERIFIED" || ownerStatus === "APPROVED";
-
-        console.log("✅ Verification Result:");
-        console.log("  - Renter Verified (needed for viewing):", isRenterVerified);
-        console.log("  - Owner Verified (for listing only):", isOwnerVerified);
 
         if (isRenterVerified) {
-          // User has renter KYC - can view vehicles
-          console.log("✅ Renter KYC verified - allowing access");
-
-          // Update localStorage with latest KYC status
-          const user = getUserData();
-          if (user) {
-            const updatedUser = {
-              ...user,
-              ownerKycStatus: ownerStatus,
-              renterKycStatus: renterStatus,
-              kycStatus: renterStatus,
-              canList: isOwnerVerified,
-              canBook: isRenterVerified,
-              hasOwnerPrivileges: isOwnerVerified,
-              isKycVerified: true
-            };
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-          }
-
-          // Navigate to vehicle details
           router.push(`/vehicles/${vehicleId}`);
           return;
         } else {
-          // User does NOT have renter KYC
-          // Show appropriate message based on their status
           let statusToShow = "NOT_SUBMITTED";
+          if (renterStatus === "PENDING") statusToShow = "PENDING";
+          else if (renterStatus === "REJECTED") statusToShow = "REJECTED";
+          else statusToShow = "NOT_SUBMITTED";
 
-          if (renterStatus === "PENDING") {
-            statusToShow = "PENDING";
-          } else if (renterStatus === "REJECTED") {
-            statusToShow = "REJECTED";
-          } else {
-            statusToShow = "NOT_SUBMITTED";
-          }
-
-          console.log("❌ Renter KYC not verified:", statusToShow);
-
-          // Store the status to show in modal
           setKycStatus(statusToShow as any);
           setShowKycModal(true);
           return;
         }
       } else {
-        // API call failed - fallback to localStorage check
-        console.warn("⚠️ API call failed, checking localStorage");
         const user = getUserData();
         if (user) {
           const isRenterVerified = user.renterKycStatus === "VERIFIED" || user.renterKycStatus === "APPROVED";
           if (isRenterVerified) {
-            console.log("✅ Renter KYC verified via localStorage");
             router.push(`/vehicles/${vehicleId}`);
             return;
           }
         }
-
-        // Not verified or no data - show KYC modal
-        console.log("❌ Renter KYC not verified, showing KYC modal");
         setKycStatus("NOT_SUBMITTED");
         setShowKycModal(true);
       }
     } catch (error) {
       console.error("❌ Error checking KYC:", error);
-      // On error, show KYC modal to be safe
       setKycStatus("NOT_SUBMITTED");
       setShowKycModal(true);
     } finally {
@@ -455,17 +391,13 @@ export default function VehiclesPage() {
     }
   };
 
-  // Handle KYC modal close
   const handleKycModalClose = () => {
     setShowKycModal(false);
     setSelectedVehicleId(null);
   };
 
-  // Handle vehicle click - prevents navigation if modal is open
   const handleVehicleClick = (vehicleId: number) => {
-    if (showKycModal) {
-      return; // Don't navigate if KYC modal is open
-    }
+    if (showKycModal) return;
     checkKycAndNavigate(vehicleId);
   };
 
@@ -588,7 +520,6 @@ export default function VehiclesPage() {
           {/* Filters Row */}
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-10">
             <div className="flex flex-wrap justify-between items-center gap-4">
-              {/* Categories */}
               <div className="flex flex-wrap gap-2">
                 {categories.map(cat => {
                   const Icon = cat.icon;
@@ -608,19 +539,7 @@ export default function VehiclesPage() {
                 })}
               </div>
 
-              {/* Controls */}
               <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => setSelectedLocation(prev =>
-                    prev === "All Locations" ? "Kathmandu" : "All Locations"
-                  )}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white/10 backdrop-blur-sm rounded-xl text-sm font-medium hover:bg-white/20 transition-all duration-300"
-                >
-                  <MapPin className="w-4 h-4" />
-                  {selectedLocation}
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${showFilters ? "bg-emerald-500 text-white" : "bg-white/10 hover:bg-white/20"
@@ -815,12 +734,21 @@ export default function VehiclesPage() {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     onError={e => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE; }}
                   />
+
+                  {/* ✅ LOCATION ICON - Navigates to Map with Vehicle Highlighted */}
                   <button
-                    onClick={e => toggleFavorite(v.id, e)}
-                    className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition shadow-md"
+                    onClick={(e) => navigateToMapWithVehicle(v, e)}
+                    className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition shadow-md group/location"
+                    title="View on Map"
                   >
-                    <Heart className={`w-4 h-4 transition-colors ${favoriteIds.includes(v.id) ? "fill-red-500 text-red-500" : "text-gray-600 group-hover:text-red-500"}`} />
+                    <MapPin className="w-4 h-4 text-emerald-600 group-hover/location:text-emerald-700 transition-colors" />
                   </button>
+
+                  {/* Map label on hover */}
+                  <span className="absolute top-14 right-3 text-[10px] bg-black/70 text-white px-2 py-1 rounded-lg opacity-0 group-hover/location:opacity-100 transition-opacity duration-200 pointer-events-none">
+                    View on Map
+                  </span>
+
                   {v.fuelType === "electric" && (
                     <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2 py-1 bg-emerald-600/90 backdrop-blur-sm rounded-lg text-white text-xs font-semibold">
                       <Leaf className="w-3 h-3" /> Eco-Friendly

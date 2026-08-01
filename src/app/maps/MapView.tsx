@@ -1,7 +1,7 @@
 // src/app/maps/MapView.tsx
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -99,12 +99,18 @@ function FlyToVehicleAndRoute({
   const map = useMap();
 
   useEffect(() => {
+    if (!map) return;
+
     if (selectedVehicle && userLocation) {
-      const bounds = L.latLngBounds(
-        [userLocation.lat, userLocation.lng],
-        [selectedVehicle.lat, selectedVehicle.lng]
-      );
-      map.flyToBounds(bounds.pad(0.3), { duration: 0.8 });
+      try {
+        const bounds = L.latLngBounds(
+          [userLocation.lat, userLocation.lng],
+          [selectedVehicle.lat, selectedVehicle.lng]
+        );
+        map.flyToBounds(bounds.pad(0.3), { duration: 0.8 });
+      } catch (error) {
+        console.warn('Error flying to bounds:', error);
+      }
 
       const fetchRoute = async () => {
         try {
@@ -135,9 +141,13 @@ function FlyToVehicleAndRoute({
 
       fetchRoute();
     } else if (selectedVehicle) {
-      map.flyTo([selectedVehicle.lat, selectedVehicle.lng], 16, {
-        duration: 0.8,
-      });
+      try {
+        map.flyTo([selectedVehicle.lat, selectedVehicle.lng], 16, {
+          duration: 0.8,
+        });
+      } catch (error) {
+        console.warn('Error flying to vehicle:', error);
+      }
       onRouteFound(null, null, null);
     } else {
       onRouteFound(null, null, null);
@@ -154,6 +164,107 @@ interface MapViewProps {
   userLocation: UserLocation | null;
 }
 
+// Route Info Badge - Simplified and Safe
+function RouteInfoBadge({ distance, duration }: { distance: string; duration: number | null }) {
+  const map = useMap();
+  const controlRef = useRef<L.Control | null>(null);
+
+  useEffect(() => {
+    // Don't proceed if map is not available
+    if (!map) {
+      console.warn('Map not available for RouteInfoBadge');
+      return;
+    }
+
+    // Clean up existing control
+    const cleanup = () => {
+      if (controlRef.current) {
+        try {
+          controlRef.current.remove();
+        } catch (e) {
+          // Ignore removal errors
+        }
+        controlRef.current = null;
+      }
+    };
+
+    cleanup();
+
+    // Only add control if we have valid data
+    if (!distance || !duration) {
+      return;
+    }
+
+    // Use a timeout to ensure map is ready
+    const timeoutId = setTimeout(() => {
+      try {
+        // Check if map is still valid
+        if (!map || !map.getContainer()) {
+          console.warn('Map container not ready');
+          return;
+        }
+
+        // Create the control
+        const CustomControl = L.Control.extend({
+          onAdd: function () {
+            try {
+              // Create container div safely
+              const container = L.DomUtil.create('div', 'route-info-container');
+              container.style.cssText = `
+                background: #ffffff;
+                border-radius: 12px;
+                padding: 12px 18px;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+                font-family: system-ui, sans-serif;
+                border: 1px solid #e5e7eb;
+                min-width: 140px;
+                pointer-events: none;
+                user-select: none;
+              `;
+
+              // Set inner HTML safely
+              container.innerHTML = `
+                <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                  Route Info
+                </div>
+                <div style="display: flex; gap: 16px; align-items: center;">
+                  <div>
+                    <div style="font-size: 18px; font-weight: 700; color: #111827;">${distance} km</div>
+                    <div style="font-size: 11px; color: #9ca3af;">Distance</div>
+                  </div>
+                  <div style="width: 1px; height: 30px; background: #e5e7eb;"></div>
+                  <div>
+                    <div style="font-size: 18px; font-weight: 700; color: #111827;">${duration} min</div>
+                    <div style="font-size: 11px; color: #9ca3af;">Est. Time</div>
+                  </div>
+                </div>
+              `;
+
+              return container;
+            } catch (error) {
+              console.error('Error creating route info badge:', error);
+              return L.DomUtil.create('div', 'route-info-error');
+            }
+          }
+        });
+
+        const control = new CustomControl({ position: 'topright' });
+        control.addTo(map);
+        controlRef.current = control;
+      } catch (error) {
+        console.error('Error adding route info badge:', error);
+      }
+    }, 150); // Small delay to ensure map is ready
+
+    return () => {
+      clearTimeout(timeoutId);
+      cleanup();
+    };
+  }, [map, distance, duration]);
+
+  return null;
+}
+
 export default function MapView({
   vehicles,
   selectedVehicle,
@@ -165,13 +276,13 @@ export default function MapView({
     ? [userLocation.lat, userLocation.lng]
     : defaultCenter;
 
-  const [routeCoords, setRouteCoords] = React.useState<RouteCoords>(null);
-  const [routeInfo, setRouteInfo] = React.useState<{
+  const [routeCoords, setRouteCoords] = useState<RouteCoords>(null);
+  const [routeInfo, setRouteInfo] = useState<{
     distance: string | null;
     duration: number | null;
   }>({ distance: null, duration: null });
 
-  const handleRouteFound = React.useCallback(
+  const handleRouteFound = useCallback(
     (coords: RouteCoords, distance: string | null, duration: number | null) => {
       setRouteCoords(coords);
       setRouteInfo({ distance, duration });
@@ -186,6 +297,10 @@ export default function MapView({
       className="w-full h-full"
       zoomControl={false}
       style={{ background: "#f8fafc" }}
+      whenReady={() => {
+        // Map is ready
+        console.log('Map is ready');
+      }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
@@ -317,51 +432,4 @@ export default function MapView({
       })}
     </MapContainer>
   );
-}
-
-function RouteInfoBadge({ distance, duration }: { distance: string; duration: number | null }) {
-  const map = useMap();
-
-  useEffect(() => {
-    const control = new L.Control({ position: "topright" });
-
-    control.onAdd = function () {
-      const div = L.DomUtil.create("div");
-      div.innerHTML = `
-        <div style="
-          background: #ffffff;
-          border-radius: 12px;
-          padding: 12px 18px;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-          font-family: system-ui, sans-serif;
-          border: 1px solid #e5e7eb;
-          min-width: 140px;
-        ">
-          <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
-            Route Info
-          </div>
-          <div style="display: flex; gap: 16px; align-items: center;">
-            <div>
-              <div style="font-size: 18px; font-weight: 700; color: #111827;">${distance} km</div>
-              <div style="font-size: 11px; color: #9ca3af;">Distance</div>
-            </div>
-            <div style="width: 1px; height: 30px; background: #e5e7eb;"></div>
-            <div>
-              <div style="font-size: 18px; font-weight: 700; color: #111827;">${duration} min</div>
-              <div style="font-size: 11px; color: #9ca3af;">Walking</div>
-            </div>
-          </div>
-        </div>
-      `;
-      return div;
-    };
-
-    control.addTo(map);
-
-    return () => {
-      control.remove();
-    };
-  }, [map, distance, duration]);
-
-  return null;
 }

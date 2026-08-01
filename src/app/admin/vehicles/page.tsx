@@ -54,7 +54,7 @@ interface Vehicle {
   zipCode: string;
   isAvailable: boolean;
   isVerified: boolean;
-  rejectionReason?: string; // ← ADD THIS
+  rejectionReason?: string;
   description: string;
   photos: string[];
   totalRentals: number;
@@ -156,7 +156,6 @@ export default function VehicleManagement() {
         const allVehicles = data.content || [];
         setVehicles(allVehicles);
 
-        // Calculate stats properly - pending excludes rejected
         const pending = allVehicles.filter((v: Vehicle) => !v.isVerified && !v.rejectionReason).length;
         const rejected = allVehicles.filter((v: Vehicle) => !v.isVerified && v.rejectionReason).length;
         const verified = allVehicles.filter((v: Vehicle) => v.isVerified).length;
@@ -187,7 +186,6 @@ export default function VehicleManagement() {
 
       if (response.ok) {
         const data = await response.json();
-        // Only show vehicles that are pending (not verified and no rejection reason)
         setPendingVehicles(data.filter((v: Vehicle) => !v.isVerified && !v.rejectionReason));
       }
     } catch (error) {
@@ -265,7 +263,6 @@ export default function VehicleManagement() {
   };
 
   const getStatusBadge = (vehicle: Vehicle) => {
-    // Check if vehicle is rejected
     if (!vehicle.isVerified && vehicle.rejectionReason) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -274,7 +271,6 @@ export default function VehicleManagement() {
         </span>
       );
     }
-    // Check if vehicle is pending
     if (!vehicle.isVerified) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -283,7 +279,6 @@ export default function VehicleManagement() {
         </span>
       );
     }
-    // Check if vehicle is available
     if (vehicle.isAvailable) {
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -308,6 +303,11 @@ export default function VehicleManagement() {
       diesel: '🛢️'
     };
     return icons[fuelType?.toLowerCase()] || '⛽';
+  };
+
+  // ✅ Open vehicle details when image is clicked
+  const handleImageClick = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
   };
 
   const filteredVehicles = vehicles.filter(vehicle => {
@@ -337,7 +337,6 @@ export default function VehicleManagement() {
 
   return (
     <>
-      {/* Toast Notifications */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Header Stats */}
@@ -465,9 +464,17 @@ export default function VehicleManagement() {
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {pendingVehicles.map((vehicle) => (
               <div key={vehicle.id} className="bg-white rounded-2xl shadow-sm border border-yellow-200 hover:shadow-lg transition-all overflow-hidden">
-                <div className="relative h-48 bg-gray-100">
+                {/* ✅ Image clickable - opens details modal */}
+                <div
+                  className="relative h-48 bg-gray-100 cursor-pointer"
+                  onClick={() => handleImageClick(vehicle)}
+                >
                   {vehicle.photos && vehicle.photos[0] ? (
-                    <img src={vehicle.photos[0]} alt={`${vehicle.brand} ${vehicle.model}`} className="w-full h-full object-cover" />
+                    <img
+                      src={vehicle.photos[0]}
+                      alt={`${vehicle.brand} ${vehicle.model}`}
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gray-100">
                       <Car className="w-12 h-12 text-gray-400" />
@@ -555,9 +562,17 @@ export default function VehicleManagement() {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredVehicles.map((vehicle) => (
             <div key={vehicle.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all overflow-hidden">
-              <div className="relative h-48 bg-gray-100">
+              {/* ✅ Image clickable - opens details modal */}
+              <div
+                className="relative h-48 bg-gray-100 cursor-pointer"
+                onClick={() => handleImageClick(vehicle)}
+              >
                 {vehicle.photos && vehicle.photos[0] ? (
-                  <img src={vehicle.photos[0]} alt={`${vehicle.brand} ${vehicle.model}`} className="w-full h-full object-cover" />
+                  <img
+                    src={vehicle.photos[0]}
+                    alt={`${vehicle.brand} ${vehicle.model}`}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gray-100">
                     <Car className="w-12 h-12 text-gray-400" />
@@ -566,7 +581,6 @@ export default function VehicleManagement() {
                 <div className="absolute top-3 right-3">
                   {getStatusBadge(vehicle)}
                 </div>
-                {/* Display rejection reason if rejected */}
                 {vehicle.rejectionReason && (
                   <div className="absolute bottom-0 left-0 right-0 bg-red-50/95 backdrop-blur-sm p-2 border-t border-red-200">
                     <p className="text-xs text-red-700 truncate">
@@ -624,7 +638,6 @@ export default function VehicleManagement() {
                     <span>View Details</span>
                   </button>
 
-                  {/* Show approve/reject for pending vehicles */}
                   {!vehicle.isVerified && !vehicle.rejectionReason && (
                     <>
                       <button
@@ -652,7 +665,6 @@ export default function VehicleManagement() {
                     </>
                   )}
 
-                  {/* Show re-verify button for rejected vehicles */}
                   {!vehicle.isVerified && vehicle.rejectionReason && (
                     <button
                       onClick={() => {
@@ -704,7 +716,6 @@ export default function VehicleManagement() {
               </button>
             </div>
             <div className="p-4 md:p-6">
-              {/* Show rejection reason if rejected */}
               {selectedVehicle.rejectionReason && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm font-medium text-red-800">Rejection Reason:</p>
@@ -785,7 +796,6 @@ export default function VehicleManagement() {
                     </div>
                   </div>
                   <div className="flex space-x-3 pt-4">
-                    {/* Show approve/reject for pending vehicles */}
                     {!selectedVehicle.isVerified && !selectedVehicle.rejectionReason && (
                       <>
                         <button
@@ -809,7 +819,6 @@ export default function VehicleManagement() {
                       </>
                     )}
 
-                    {/* Show re-verify button for rejected vehicles */}
                     {!selectedVehicle.isVerified && selectedVehicle.rejectionReason && (
                       <button
                         onClick={() => {
@@ -836,7 +845,7 @@ export default function VehicleManagement() {
         </div>
       )}
 
-      {/* Verify Modal (Approve/Reject) */}
+      {/* Verify Modal */}
       {showVerifyModal && selectedVehicle && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full">
