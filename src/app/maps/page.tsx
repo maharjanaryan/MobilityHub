@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, LogIn, ArrowLeft, Car, AlertCircle } from "lucide-react";
+import { X, LogIn, ArrowLeft, Car } from "lucide-react";
 import Header from "../component/Header";
 import HomeHeader from "../home/HomeHeader";
 import { vehicleService } from "../services/vehicleService";
@@ -18,7 +18,7 @@ interface UserLocation {
   lng: number;
 }
 
-// Login Required Modal Component
+// Simple Login Required Modal Component
 function LoginRequiredModal({
   isOpen,
   onClose,
@@ -38,88 +38,77 @@ function LoginRequiredModal({
     <AnimatePresence>
       {isOpen && (
         <>
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50"
+            className="fixed inset-0 bg-black/50 z-[1000]"
             onClick={onClose}
           />
 
-          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+          {/* Modal */}
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center px-4 pointer-events-none">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", duration: 0.5, bounce: 0.3 }}
-              className="relative w-full max-w-md pointer-events-auto"
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-sm pointer-events-auto"
             >
-              <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                <div className="relative bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                        <LogIn className="w-5 h-5 text-white" />
-                      </div>
-                      <h2 className="text-xl font-bold text-white">Login Required</h2>
+              <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="px-6 pt-5 pb-3 flex items-center justify-between border-b border-gray-100">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 bg-red-50 rounded-full flex items-center justify-center">
+                      <LogIn className="w-4 h-4 text-red-500" />
                     </div>
-                    <button
-                      onClick={onClose}
-                      className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 transition-all duration-200 flex items-center justify-center group"
-                    >
-                      <X className="w-4 h-4 text-white group-hover:rotate-90 transition-transform duration-200" />
-                    </button>
+                    <h3 className="text-base font-semibold text-gray-900">Login Required</h3>
                   </div>
+                  <button
+                    onClick={onClose}
+                    className="w-7 h-7 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center"
+                  >
+                    <X className="w-4 h-4 text-gray-500" />
+                  </button>
                 </div>
 
-                <div className="p-6">
-                  <div className="flex items-center gap-4 mb-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
-                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <AlertCircle className="w-6 h-6 text-amber-600" />
+                {/* Body */}
+                <div className="px-6 py-5">
+                  <div className="flex items-start gap-3 mb-5">
+                    <div className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-amber-800">
-                        Authentication Required
+                      <p className="text-sm font-medium text-gray-800">
+                        Please sign in to rent
                       </p>
-                      <p className="text-sm text-amber-700">
-                        You need to be logged in to rent a vehicle.
+                      <p className="text-sm text-gray-500">
+                        <span className="font-medium text-gray-700">{vehicleName}</span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                        <Car className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">You're trying to rent:</p>
-                        <p className="font-semibold text-gray-800">{vehicleName}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
+                  {/* Buttons */}
+                  <div className="space-y-2.5">
                     <button
                       onClick={onLogin}
-                      className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                      className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
                     >
-                      <LogIn className="w-5 h-5" />
-                      Sign In to Continue
+                      <LogIn className="w-4 h-4" />
+                      Sign In
                     </button>
 
                     <button
                       onClick={onBack}
-                      className="w-full py-2.5 border-2 border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                      className="w-full py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
                     >
                       <ArrowLeft className="w-4 h-4" />
                       Go Back
                     </button>
                   </div>
-
-                  <p className="text-xs text-gray-400 text-center mt-4">
-                    By continuing, you agree to our Terms of Service and Privacy Policy
-                  </p>
                 </div>
               </div>
             </motion.div>
@@ -194,12 +183,10 @@ export default function MapsPage() {
   // Handle highlighted vehicle from URL
   useEffect(() => {
     if (shouldHighlight && highlightVehicleId && highlightLat && highlightLng) {
-      // Check if vehicle already exists in vehicles list
       const existingVehicle = vehicles.find(v => v.id === parseInt(highlightVehicleId));
 
       if (existingVehicle) {
         setSelectedVehicle(existingVehicle);
-        // Scroll to the vehicle in sidebar after a delay
         setTimeout(() => {
           cardRefs.current[existingVehicle.id]?.scrollIntoView({
             behavior: "smooth",
@@ -207,7 +194,6 @@ export default function MapsPage() {
           });
         }, 500);
       } else {
-        // If not in list, create a temporary vehicle from params
         const tempVehicle: Vehicle = {
           id: parseInt(highlightVehicleId),
           name: 'Selected Vehicle',
@@ -223,7 +209,6 @@ export default function MapsPage() {
           isAvailable: true
         };
 
-        // Try to get more details from sessionStorage
         const storedData = sessionStorage.getItem('selectedVehicle');
         if (storedData) {
           try {
@@ -239,12 +224,10 @@ export default function MapsPage() {
           }
         }
 
-        // Add to vehicles list temporarily
         setVehicles(prev => [...prev, tempVehicle]);
         setSelectedVehicle(tempVehicle);
       }
 
-      // Clear sessionStorage after use
       sessionStorage.removeItem('selectedVehicle');
     }
   }, [shouldHighlight, highlightVehicleId, highlightLat, highlightLng, vehicles]);
@@ -317,7 +300,6 @@ export default function MapsPage() {
         setVehicles(data);
       } catch (error) {
         console.error('Error fetching vehicles:', error);
-        // No mock data - just set empty array
         setVehicles([]);
       } finally {
         setLoading(false);
