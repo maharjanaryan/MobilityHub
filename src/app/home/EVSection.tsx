@@ -1,60 +1,29 @@
+// components/EVSection.tsx
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Zap, Clock, Leaf,
   ArrowRight, Battery,
 } from "lucide-react";
+import { vehicleService } from "../services/vehicleService";
+import { Vehicle } from "../types/vehicle";
 
-const vehicles = [
-  {
-    id: 1,
-    name: "Lucid Air Touring",
-    img: "/Car.jpg",
-    badge: "PREMIUM CHOICE",
-    match: 98,
-    rating: 4.9,
-    dist: "0.3 mi",
-    range: "516 mi",
-    charge: 95,
-    price: "Rs 120",
-    tags: ["Autopilot", "Luxury Interior"],
-    description: "Top-rated for interior luxury and efficiency. Best available range for your upcoming Tahoe trip.",
-    featured: true,
-  },
-  {
-    id: 2,
-    name: "Hyundai IONIQ 5",
-    img: "/ioniq.png",
-    badge: "SUPERFAST CHARGE",
-    match: 92,
-    rating: 4.7,
-    dist: "0.4 miles from you",
-    station: "Market Street Station",
-    charge: 85,
-    price: "Rs 80",
-    tags: ["85% Charge", "Autopilot"],
-    featured: false,
-  },
-  {
-    id: 3,
-    name: "BMW i4 eDrive40",
-    img: "/BMW.png",
-    badge: "HIGHLY RATED",
-    match: 89,
-    rating: 4.8,
-    dist: "1.2 miles from you",
-    station: "Presidio Gate",
-    charge: 78,
-    price: "Rs 100",
-    tags: ["Premium Audio", "Climate Control"],
-    featured: false,
-  },
-];
+// Route type definition
+interface Route {
+  name: string;
+  img: string;
+  duration: string;
+  stations: string;
+  dist: string;
+  difficulty: string;
+  avatars: number;
+}
 
-const routes = [
+// Static routes data (can also be fetched from API if needed)
+const routes: Route[] = [
   {
     name: "Pokhara",
     img: "/pokhara.png",
@@ -75,14 +44,158 @@ const routes = [
   },
 ];
 
+// Chart data
 const chartBars = [45, 62, 78, 91, 70, 85, 95];
 const chartDays = ["M", "T", "W", "T", "F", "S", "S"];
 
 export default function EVSection() {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [availableCount, setAvailableCount] = useState(0);
 
-  const featuredCar = vehicles.find((v) => v.featured)!;
-  const sideCars = vehicles.filter((v) => !v.featured);
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch EV vehicles from database using the correct method
+        const response = await vehicleService.searchVehicles({
+          fuelType: 'ELECTRIC',
+          page: 0,
+          size: 10,
+          sortBy: 'recent'
+        });
+
+        // The response is already an array of Vehicle objects from the service
+        const evVehicles = response || [];
+        setVehicles(evVehicles);
+
+        // Count available vehicles
+        const available = evVehicles.filter(v => v.isAvailable !== false).length;
+        setAvailableCount(available);
+
+      } catch (err) {
+        console.error('Error fetching EV vehicles:', err);
+        setError('Failed to load electric vehicles. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchVehicles();
+  }, []);
+
+  // Filter vehicles by category
+  const getFilteredVehicles = () => {
+    if (activeCategory === "All") return vehicles;
+    // Map categories to vehicle types
+    const categoryMap: { [key: string]: string[] } = {
+      "Cars": ["car"],
+      "Bikes": ["bike"],
+      "Scooters": ["scooter"],
+      "Cycles": ["cycle"]
+    };
+    const types = categoryMap[activeCategory] || [];
+    return vehicles.filter(v => types.includes(v.type || ''));
+  };
+
+  const filteredVehicles = getFilteredVehicles();
+  const featuredCar = filteredVehicles.find((v) => v.isAvailable !== false) || filteredVehicles[0];
+  const sideCars = filteredVehicles.filter((v) => v.id !== featuredCar?.id).slice(0, 2);
+
+  // Loading state
+  if (loading) {
+    return (
+      <section style={{
+        background: "#f7f8f9",
+        padding: "72px 0 80px",
+        fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+      }}>
+        <div className="evs2-wrap">
+          <div className="evs2-header-row">
+            <h2 className="evs2-section-title">Electric vehicles near you</h2>
+            <div className="evs2-available-pill">
+              <span className="evs2-dot-pulse" />
+              Loading...
+            </div>
+          </div>
+          <div className="evs2-grid" style={{ marginBottom: 20 }}>
+            <div className="evs2-featured" style={{ background: "#e5e7eb", minHeight: "460px" }}>
+              <div style={{ padding: "28px", display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+                <p style={{ color: "#6b7280" }}>Loading vehicles...</p>
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {[1, 2].map((i) => (
+                <div key={i} className="evs2-side-card" style={{ background: "#e5e7eb", height: "120px" }}>
+                  <div style={{ padding: "14px 16px", flex: 1 }}>
+                    <p style={{ color: "#6b7280" }}>Loading...</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <section style={{
+        background: "#f7f8f9",
+        padding: "72px 0 80px",
+        fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+      }}>
+        <div className="evs2-wrap">
+          <div style={{ textAlign: "center", padding: "40px", background: "#fff", borderRadius: "16px" }}>
+            <p style={{ color: "#dc2626", fontSize: "1.1rem", marginBottom: "16px" }}>⚠️ {error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                padding: "10px 24px",
+                background: "#16a34a",
+                color: "#fff",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: 600
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // No vehicles state
+  if (vehicles.length === 0) {
+    return (
+      <section style={{
+        background: "#f7f8f9",
+        padding: "72px 0 80px",
+        fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+      }}>
+        <div className="evs2-wrap">
+          <div style={{ textAlign: "center", padding: "60px 20px", background: "#fff", borderRadius: "16px" }}>
+            <Leaf size={48} style={{ color: "#16a34a", marginBottom: "16px" }} />
+            <h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0d1117", marginBottom: "8px" }}>
+              No Electric Vehicles Available
+            </h3>
+            <p style={{ color: "#6b7280" }}>
+              Check back later for new EV listings in your area.
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section style={{
@@ -265,7 +378,7 @@ export default function EVSection() {
           <h2 className="evs2-section-title">Electric vehicles near you</h2>
           <div className="evs2-available-pill">
             <span className="evs2-dot-pulse" />
-            14 Available Now
+            {availableCount} Available Now
           </div>
         </div>
 
@@ -283,31 +396,47 @@ export default function EVSection() {
 
         <div className="evs2-grid" style={{ marginBottom: 20 }}>
 
-          <motion.div
-            className="evs2-featured"
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="evs2-featured-img">
-              <Image src={featuredCar.img} alt={featuredCar.name} fill style={{ objectFit: "cover" }} />
-            </div>
-            <div className="evs2-featured-overlay" />
-            <span className="evs2-featured-badge">{featuredCar.badge}</span>
-
-            <div className="evs2-featured-body">
-              <div className="evs2-match-badge">
-                <span className="evs2-match-label">{featuredCar.match}% Match</span>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <circle cx="7" cy="7" r="6" stroke="rgba(167,243,208,0.5)" strokeWidth="1.5" />
-                  <circle cx="7" cy="7" r="2" fill="#4ade80" />
-                </svg>
+          {featuredCar && (
+            <motion.div
+              className="evs2-featured"
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="evs2-featured-img">
+                <Image
+                  src={featuredCar.image || "/placeholder-car.jpg"}
+                  alt={featuredCar.name || "Featured Vehicle"}
+                  fill
+                  style={{ objectFit: "cover" }}
+                />
               </div>
-              <h3 className="evs2-featured-name">{featuredCar.name}</h3>
-              <p className="evs2-featured-desc">{featuredCar.description}</p>
-              <button className="evs2-reserve-btn">Reserve Now</button>
-            </div>
-          </motion.div>
+              <div className="evs2-featured-overlay" />
+              <span className="evs2-featured-badge">
+                {featuredCar.isAvailable ? "⭐ AVAILABLE" : "PREMIUM CHOICE"}
+              </span>
+
+              <div className="evs2-featured-body">
+                <div className="evs2-match-badge">
+                  <span className="evs2-match-label">
+                    {featuredCar.isAvailable ? "✅ Available Now" : "🔴 Currently Unavailable"}
+                  </span>
+                </div>
+                <h3 className="evs2-featured-name">
+                  {featuredCar.brand} {featuredCar.model}
+                </h3>
+                <p className="evs2-featured-desc">
+                  {featuredCar.description || `Experience the ${featuredCar.brand} ${featuredCar.model}. ${featuredCar.year || ''} model with ${featuredCar.seats || 4} seats.`}
+                </p>
+                <button
+                  className="evs2-reserve-btn"
+                  onClick={() => window.location.href = `/vehicles/${featuredCar.id}`}
+                >
+                  Reserve Now - ${featuredCar.pricePerHour}/day
+                </button>
+              </div>
+            </motion.div>
+          )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {sideCars.map((car, i) => (
@@ -317,22 +446,39 @@ export default function EVSection() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15 + i * 0.12, duration: 0.45 }}
+                onClick={() => window.location.href = `/vehicles/${car.id}`}
               >
                 <div className="evs2-side-img-wrap">
-                  <Image src={car.img} alt={car.name} fill style={{ objectFit: "cover" }} />
+                  <Image
+                    src={car.image || "/placeholder-car.jpg"}
+                    alt={`${car.brand} ${car.model}`}
+                    fill
+                    style={{ objectFit: "cover" }}
+                  />
                 </div>
                 <div className="evs2-side-body">
                   <div className="evs2-side-badge">
                     <Zap size={10} style={{ color: "#16a34a" }} />
-                    {car.badge}
-                    <span className="evs2-side-badge-star" style={{ marginLeft: "auto" }}>☆</span>
+                    {car.isAvailable ? "Available Now" : "Unavailable"}
+                    <span className="evs2-side-badge-star" style={{ marginLeft: "auto" }}>
+                      {car.isAvailable ? "●" : "○"}
+                    </span>
                   </div>
-                  <h3 className="evs2-side-name">{car.name}</h3>
-                  <p className="evs2-side-meta">{car.dist} • {(car as any).station}</p>
+                  <h3 className="evs2-side-name">{car.brand} {car.model}</h3>
+                  <p className="evs2-side-meta">
+                    {car.year || ''} • {car.range ? `${car.range} mi range` : ''}
+                  </p>
                   <div className="evs2-side-tags">
-                    {car.tags.map((tag) => (
-                      <span key={tag} className="evs2-side-tag">{tag}</span>
-                    ))}
+                    {car.transmission && (
+                      <span className="evs2-side-tag">{car.transmission}</span>
+                    )}
+                    {car.fuelType && (
+                      <span className="evs2-side-tag">{car.fuelType}</span>
+                    )}
+                    <span className="evs2-side-tag">${car.pricePerHour}/day</span>
+                    {car.battery && (
+                      <span className="evs2-side-tag">🔋 {car.battery}%</span>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -393,7 +539,20 @@ export default function EVSection() {
                 ))}
               </div>
 
-              <button className="evs2-eco-btn" style={{ fontSize: "0.78rem", padding: "8px 16px" }}>
+              <button className="evs2-eco-btn" style={{
+                fontSize: "0.78rem",
+                padding: "8px 16px",
+                background: "rgba(74,222,128,0.1)",
+                border: "1px solid rgba(74,222,128,0.3)",
+                borderRadius: "8px",
+                color: "#4ade80",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
+              }}>
                 View Full Report <ArrowRight size={12} />
               </button>
             </motion.div>

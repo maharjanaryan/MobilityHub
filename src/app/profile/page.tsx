@@ -72,6 +72,8 @@ interface ChangePasswordFormData {
   confirmPassword: string;
 }
 
+type TabKey = "overview" | "rides" | "vehicles";
+
 const defaultUserData: UserProfileData = {
   id: 0,
   username: "",
@@ -97,50 +99,21 @@ const rideHistory = [
   { id: 3, vehicle: "BMW i4 eDrive40", date: "May 6, 2026", duration: "3h 00m", distance: "120 km", cost: "Rs 1,800", status: "Completed", rating: 5 },
 ];
 
-type TabKey = "overview" | "rides" | "vehicles";
-
 const API_BASE_URL = "http://localhost:8080";
 
+// Utility functions
 const normalizeAvatarUrl = (url?: string | null) => {
   if (!url) return "/logo.png";
-  if (url.startsWith("http") || url.startsWith("data:image") || url.startsWith("/logo.png")) {
-    return url;
-  }
+  if (url.startsWith("http") || url.startsWith("data:image") || url.startsWith("/logo.png")) return url;
   return `${API_BASE_URL}${url.startsWith("/") ? url : `/${url}`}`;
 };
 
 const readApiResponse = async (response: Response) => {
   const text = await response.text();
   if (!text) return null;
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return text;
-  }
+  try { return JSON.parse(text); } catch { return text; }
 };
 
-const extractAvatarUrl = (data: unknown) => {
-  if (!data) return null;
-  if (typeof data === "string") return data;
-  if (typeof data !== "object") return null;
-
-  const response = data as Record<string, unknown>;
-  const nested = response.data && typeof response.data === "object"
-    ? response.data as Record<string, unknown>
-    : null;
-
-  if (typeof response.data === "string") return response.data;
-  if (typeof response.avatarUrl === "string") return response.avatarUrl;
-  if (typeof response.profilePictureUrl === "string") return response.profilePictureUrl;
-  if (typeof response.url === "string") return response.url;
-  if (typeof nested?.avatarUrl === "string") return nested.avatarUrl;
-  if (typeof nested?.url === "string") return nested.url;
-
-  return null;
-};
-
-// Helper function for fuel type icon
 const getFuelTypeIcon = (fuelType: string) => {
   const icons: Record<string, string> = {
     electric: '🔋',
@@ -151,9 +124,7 @@ const getFuelTypeIcon = (fuelType: string) => {
   return icons[fuelType?.toLowerCase()] || '⛽';
 };
 
-// Helper function for vehicle status badge - FIXED
 const getVehicleStatusBadge = (vehicle: Vehicle) => {
-  // First check if vehicle is rejected
   if (!vehicle.isVerified && vehicle.rejectionReason) {
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
@@ -162,7 +133,6 @@ const getVehicleStatusBadge = (vehicle: Vehicle) => {
       </span>
     );
   }
-  // Then check if vehicle is pending
   if (!vehicle.isVerified) {
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -171,7 +141,6 @@ const getVehicleStatusBadge = (vehicle: Vehicle) => {
       </span>
     );
   }
-  // Then check if vehicle is available
   if (vehicle.isAvailable) {
     return (
       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -185,6 +154,26 @@ const getVehicleStatusBadge = (vehicle: Vehicle) => {
       <XCircle className="w-3 h-3 mr-1" />
       Unavailable
     </span>
+  );
+};
+
+// Toast Notification Component
+const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 100 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 100 }}
+      className={`fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}
+    >
+      {type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+      {message}
+    </motion.div>
   );
 };
 
@@ -218,14 +207,7 @@ const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose:
 };
 
 // Avatar Upload Modal
-const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, currentAvatar }: {
-  isOpen: boolean;
-  onClose: () => void;
-  onUpload: (file: File) => Promise<void>;
-  onDelete?: () => Promise<void>;
-  loading: boolean;
-  currentAvatar: string;
-}) => {
+const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, currentAvatar }: any) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -269,15 +251,11 @@ const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, curre
   };
 
   const handleRemove = () => {
-    if (preview) {
-      URL.revokeObjectURL(preview);
-    }
+    if (preview) URL.revokeObjectURL(preview);
     setSelectedFile(null);
     setPreview(null);
     setError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleClose = () => {
@@ -286,11 +264,7 @@ const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, curre
   };
 
   useEffect(() => {
-    return () => {
-      if (preview) {
-        URL.revokeObjectURL(preview);
-      }
-    };
+    return () => { if (preview) URL.revokeObjectURL(preview); };
   }, [preview]);
 
   return (
@@ -302,9 +276,7 @@ const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, curre
               src={preview || currentAvatar || "/logo.png"}
               alt="Preview"
               className="w-32 h-32 rounded-full object-cover border-4 border-green-500"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "/logo.png";
-              }}
+              onError={(e) => { (e.target as HTMLImageElement).src = "/logo.png"; }}
             />
             {preview && (
               <button
@@ -368,13 +340,7 @@ const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, curre
 };
 
 // Edit Profile Modal
-const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
-  isOpen: boolean;
-  onClose: () => void;
-  userData: UserProfileData;
-  onSave: (data: EditProfileFormData) => Promise<void>;
-  loading: boolean;
-}) => {
+const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) => {
   const [formData, setFormData] = useState<EditProfileFormData>({
     fullName: userData.fullName || '',
     firstName: userData.firstName || '',
@@ -600,12 +566,7 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: {
 };
 
 // Change Password Modal
-const ChangePasswordModal = ({ isOpen, onClose, onChangePassword, loading }: {
-  isOpen: boolean;
-  onClose: () => void;
-  onChangePassword: (data: ChangePasswordFormData) => Promise<void>;
-  loading: boolean;
-}) => {
+const ChangePasswordModal = ({ isOpen, onClose, onChangePassword, loading }: any) => {
   const [formData, setFormData] = useState<ChangePasswordFormData>({
     currentPassword: '',
     newPassword: '',
@@ -682,26 +643,6 @@ const ChangePasswordModal = ({ isOpen, onClose, onChangePassword, loading }: {
   );
 };
 
-// Toast Notification Component
-const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 3000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 100 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 100 }}
-      className={`fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}
-    >
-      {type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-      {message}
-    </motion.div>
-  );
-};
-
 export default function ProfilePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
@@ -726,19 +667,15 @@ export default function ProfilePage() {
     return null;
   }, []);
 
+  // API Calls
   const fetchUserProfile = useCallback(async (showLoader = true) => {
     const token = getAccessToken();
     if (!token) return;
 
-    if (showLoader) {
-      setLoading(true);
-    }
+    if (showLoader) setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
 
       if (response.status === 401) {
@@ -763,23 +700,21 @@ export default function ProfilePage() {
       console.error('Error fetching profile:', err);
       setToast({ message: 'Failed to load profile', type: 'error' });
     } finally {
-      if (showLoader) {
-        setLoading(false);
-      }
+      if (showLoader) setLoading(false);
     }
   }, [getAccessToken, router]);
 
   const fetchUserVehicles = useCallback(async () => {
     const token = getAccessToken();
-    if (!token) return;
+    if (!token || userData.ownerKycStatus !== 'VERIFIED') {
+      setVehicles([]);
+      return;
+    }
 
     setVehiclesLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/vehicles/owner/my-vehicles`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       });
 
       if (response.status === 401) {
@@ -793,14 +728,15 @@ export default function ProfilePage() {
       if (!response.ok) throw new Error('Failed to fetch vehicles');
 
       const data = await response.json();
-      setVehicles(data || []);
+      const vehiclesArray = Array.isArray(data) ? data : data?.data || data?.vehicles || [];
+      setVehicles(vehiclesArray);
     } catch (err: any) {
       console.error('Error fetching vehicles:', err);
-      setToast({ message: 'Failed to load vehicles', type: 'error' });
+      setVehicles([]);
     } finally {
       setVehiclesLoading(false);
     }
-  }, [getAccessToken, router]);
+  }, [getAccessToken, router, userData.ownerKycStatus]);
 
   useEffect(() => {
     const token = getAccessToken();
@@ -808,18 +744,16 @@ export default function ProfilePage() {
       router.push('/signin');
       return;
     }
-    queueMicrotask(() => {
-      void fetchUserProfile();
-    });
+    queueMicrotask(() => { void fetchUserProfile(); });
   }, [getAccessToken, router, fetchUserProfile]);
 
-  // Fetch vehicles when switching to vehicles tab
   useEffect(() => {
     if (activeTab === 'vehicles') {
       void fetchUserVehicles();
     }
   }, [activeTab, fetchUserVehicles]);
 
+  // Handlers
   const handleUpdateProfile = async (formData: EditProfileFormData) => {
     const token = getAccessToken();
     if (!token) return;
@@ -828,10 +762,7 @@ export default function ProfilePage() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(formData),
       });
 
@@ -860,10 +791,7 @@ export default function ProfilePage() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/change-password`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(formData),
       });
 
@@ -901,21 +829,21 @@ export default function ProfilePage() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/upload-avatar`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData,
       });
 
       const data = await readApiResponse(response);
 
       if (response.ok && (data?.success !== false)) {
-        const newAvatarUrl = normalizeAvatarUrl(extractAvatarUrl(data));
+        // Extract avatar URL from response
+        const newAvatarUrl = data?.avatarUrl || data?.data?.avatarUrl || data?.data?.url || data?.url;
         if (newAvatarUrl) {
-          setUserData(prev => ({ ...prev, avatarUrl: newAvatarUrl }));
+          const normalized = normalizeAvatarUrl(newAvatarUrl);
+          setUserData(prev => ({ ...prev, avatarUrl: normalized }));
           const storedUser = localStorage.getItem('user');
           const parsedUser = storedUser ? JSON.parse(storedUser) : {};
-          localStorage.setItem('user', JSON.stringify({ ...parsedUser, avatarUrl: newAvatarUrl }));
+          localStorage.setItem('user', JSON.stringify({ ...parsedUser, avatarUrl: normalized }));
           window.dispatchEvent(new Event('profile-updated'));
           setAvatarError(false);
         }
@@ -940,9 +868,7 @@ export default function ProfilePage() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/avatar`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
       const data = await readApiResponse(response);
@@ -1043,7 +969,6 @@ export default function ProfilePage() {
         loading={saving}
       />
 
-      {/* Vehicle Detail Modal */}
       <VehicleDetailModal
         isOpen={detailModalOpen}
         onClose={closeVehicleDetail}
@@ -1194,7 +1119,14 @@ export default function ProfilePage() {
           <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
             {activeTab === "overview" && <OverviewTab userData={userData} />}
             {activeTab === "rides" && <RidesTab />}
-            {activeTab === "vehicles" && <VehiclesTab vehicles={vehicles} loading={vehiclesLoading} onViewDetails={openVehicleDetail} />}
+            {activeTab === "vehicles" && (
+              <VehiclesTab
+                vehicles={vehicles}
+                loading={vehiclesLoading}
+                onViewDetails={openVehicleDetail}
+                userData={userData}
+              />
+            )}
           </motion.div>
         </div>
       </main>
@@ -1287,12 +1219,38 @@ function RidesTab() {
 }
 
 // Vehicles Tab
-function VehiclesTab({ vehicles, loading, onViewDetails }: {
+function VehiclesTab({ vehicles, loading, onViewDetails, userData }: {
   vehicles: Vehicle[];
   loading: boolean;
   onViewDetails: (vehicle: Vehicle) => void;
+  userData: UserProfileData;
 }) {
   const router = useRouter();
+
+  if (userData.ownerKycStatus !== 'VERIFIED') {
+    return (
+      <div style={cardStyle}>
+        <div className="text-center py-16">
+          <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Shield className="w-10 h-10 text-yellow-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-800 mb-2">Owner KYC Required</h3>
+          <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+            {userData.ownerKycStatus === 'SUBMITTED' && 'Your Owner KYC is currently under review. You\'ll be able to manage vehicles once verified.'}
+            {userData.ownerKycStatus === 'REJECTED' && 'Your Owner KYC was rejected. Please resubmit your documents for verification.'}
+            {userData.ownerKycStatus === 'NOT_SUBMITTED' && 'Complete your Owner KYC verification to list and manage your vehicles.'}
+          </p>
+          <button
+            onClick={() => router.push('/kyc/owner')}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-600 text-white rounded-xl hover:bg-yellow-700 transition-colors font-semibold"
+          >
+            <Shield className="w-4 h-4" />
+            Complete KYC
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -1319,7 +1277,7 @@ function VehiclesTab({ vehicles, loading, onViewDetails }: {
             You haven't listed any vehicles yet. Start earning by sharing your vehicle with the community.
           </p>
           <button
-            onClick={() => router.push('/vehicles/add')}
+            onClick={() => router.push('/add-vehicle')}
             className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold"
           >
             <Plus className="w-4 h-4" />
@@ -1335,7 +1293,7 @@ function VehiclesTab({ vehicles, loading, onViewDetails }: {
       <div className="flex items-center justify-between mb-6">
         <h3 style={cardTitleStyle}>My Vehicles ({vehicles.length})</h3>
         <button
-          onClick={() => router.push('/vehicles/add')}
+          onClick={() => router.push('/add-vehicle')}
           className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
         >
           <Plus className="w-4 h-4" />
