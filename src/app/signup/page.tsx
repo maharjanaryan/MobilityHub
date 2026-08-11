@@ -157,9 +157,9 @@ export default function SignUpPage() {
       {/* Overlay for better text readability */}
       <div className="min-h-screen flex items-center justify-center px-4 py-8 sm:py-12 bg-black/30">
         <div className="w-full max-w-md">
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-5 sm:p-8">
+          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-5 sm:p-8">
             <div className="flex justify-center mb-6">
-              <div className="bg-green-100 rounded-full p-3">
+              <div className="bg-green-100 dark:bg-green-900/20 rounded-full p-3">
                 <img
                   src="/logo.png"
                   alt="Logo"
@@ -171,12 +171,12 @@ export default function SignUpPage() {
                 />
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">Create Account</h1>
-            <p className="text-sm text-center text-gray-500 mb-6">Join us today and get started</p>
+            <h1 className="text-2xl font-bold text-center text-gray-800 dark:text-gray-100 mb-2">Create Account</h1>
+            <p className="text-sm text-center text-gray-500 dark:text-gray-400 mb-6">Join us today and get started</p>
 
             {/* Error Message */}
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 text-red-600 dark:text-red-300 text-sm rounded-lg">
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -196,7 +196,7 @@ export default function SignUpPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     First Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -208,12 +208,12 @@ export default function SignUpPage() {
                       setError('');
                     }}
                     placeholder="First Name"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                     disabled={isLoading}
                   />
                 </div>
                 <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Last Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -225,14 +225,14 @@ export default function SignUpPage() {
                       setError('');
                     }}
                     placeholder="Last Name"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                     disabled={isLoading}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Email <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -244,13 +244,13 @@ export default function SignUpPage() {
                     setError('');
                   }}
                   placeholder="Enter Your Email Address"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                   disabled={isLoading}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Phone Number <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -262,16 +262,16 @@ export default function SignUpPage() {
                     setError('');
                   }}
                   placeholder="Phone Number"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                   disabled={isLoading}
                 />
-                <p className="text-gray-500 text-xs mt-1">
+                <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
                   Include country code (e.g., +1 for US)
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Password <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -283,16 +283,16 @@ export default function SignUpPage() {
                     setError('');
                   }}
                   placeholder="Password"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                   disabled={isLoading}
                 />
-                <p className="text-gray-500 text-xs mt-1">
+                <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">
                   Must be at least 8 characters with 1 uppercase letter and 1 number
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Confirm Password <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -304,7 +304,7 @@ export default function SignUpPage() {
                     setError('');
                   }}
                   placeholder="Confirm Password"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                   disabled={isLoading}
                 />
               </div>
@@ -322,11 +322,11 @@ export default function SignUpPage() {
                     className="rounded text-green-600 focus:ring-green-500"
                     disabled={isLoading}
                   />
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
                     I agree to the{' '}
-                    <Link href="/terms" className="text-green-600 hover:underline">Terms of Service</Link>
+                    <Link href="/terms" className="text-green-600 dark:text-green-300 hover:underline">Terms of Service</Link>
                     {' '}and{' '}
-                    <Link href="/privacy" className="text-green-600 hover:underline">Privacy Policy</Link>
+                    <Link href="/privacy" className="text-green-600 dark:text-green-300 hover:underline">Privacy Policy</Link>
                     <span className="text-red-500">*</span>
                   </span>
                 </label>
@@ -352,15 +352,15 @@ export default function SignUpPage() {
             </form>
 
             <div className="flex items-center my-6">
-              <div className="flex-grow border-t border-gray-100" />
-              <span className="mx-3 text-xs text-gray-400">or</span>
-              <div className="flex-grow border-t border-gray-100" />
+              <div className="flex-grow border-t border-gray-100 dark:border-gray-800" />
+              <span className="mx-3 text-xs text-gray-400 dark:text-gray-400">or</span>
+              <div className="flex-grow border-t border-gray-100 dark:border-gray-800" />
             </div>
 
             <button
               onClick={handleGoogleSignUp}
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 rounded-lg py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -371,9 +371,9 @@ export default function SignUpPage() {
               {isLoading ? 'Redirecting...' : 'Sign up with Google'}
             </button>
 
-            <p className="text-center text-xs text-gray-500 mt-6">
+            <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-6">
               Already have an account?{' '}
-              <Link href="/signin" className="text-green-600 font-medium hover:underline">Sign in</Link>
+              <Link href="/signin" className="text-green-600 dark:text-green-300 font-medium hover:underline">Sign in</Link>
             </p>
           </div>
         </div>

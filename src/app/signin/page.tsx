@@ -149,28 +149,28 @@ export default function SignInPage() {
       {/* Optional: Add overlay for better text readability */}
       <div className="min-h-screen flex items-center justify-center px-4 py-8 sm:py-12 bg-black/30">
         <div className="w-full max-w-md">
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-md border border-gray-100 p-5 sm:p-8">
+          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 p-5 sm:p-8">
             <div className="flex justify-center mb-6">
               <img src="/logo.png" alt="Logo" className="rounded-full w-10 h-10 object-cover" />
             </div>
-            <p className="text-sm text-center text-gray-500 mb-6">Sign in to your account</p>
+            <p className="text-sm text-center text-gray-500 dark:text-gray-400 mb-6">Sign in to your account</p>
 
             {/* Success Message */}
             {successMessage && (
-              <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-600 text-sm rounded-lg">
+              <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-300 text-sm rounded-lg">
                 {successMessage}
               </div>
             )}
 
             {/* Error Message */}
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 text-sm rounded-lg">
                 <div className="mb-2">{error}</div>
                 {error.includes('verify your email') && (
                   <button
                     onClick={handleResendVerification}
                     disabled={loading}
-                    className="text-green-600 hover:underline font-medium text-xs disabled:opacity-50"
+                    className="text-green-600 dark:text-green-300 hover:underline font-medium text-xs disabled:opacity-50"
                   >
                     Resend verification email →
                   </button>
@@ -180,19 +180,19 @@ export default function SignInPage() {
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   placeholder="Enter you Email address"
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -200,12 +200,12 @@ export default function SignInPage() {
                     value={password}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                     placeholder="Enter your Password"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent pr-10"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent pr-10 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                   />
                   <button
                     type="button"
                     onClick={togglePasswordVisibility}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
                   >
                     {showPassword ? (
                       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -229,9 +229,9 @@ export default function SignInPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRememberMe(e.target.checked)}
                     className="rounded text-green-600 focus:ring-green-500"
                   />
-                  <span className="text-gray-600">Remember me</span>
+                  <span className="text-gray-600 dark:text-gray-300">Remember me</span>
                 </label>
-                <Link href="/forgot-password" className="text-green-600 hover:underline">
+                <Link href="/forgot-password" className="text-green-600 dark:text-green-300 hover:underline">
                   Forgot password?
                 </Link>
               </div>
@@ -245,15 +245,15 @@ export default function SignInPage() {
             </form>
 
             <div className="flex items-center my-6">
-              <div className="flex-grow border-t border-gray-100" />
-              <span className="mx-3 text-xs text-gray-400">or</span>
-              <div className="flex-grow border-t border-gray-100" />
+              <div className="flex-grow border-t border-gray-100 dark:border-gray-700" />
+              <span className="mx-3 text-xs text-gray-400 dark:text-gray-500">or</span>
+              <div className="flex-grow border-t border-gray-100 dark:border-gray-700" />
             </div>
 
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700 rounded-lg py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -264,9 +264,9 @@ export default function SignInPage() {
               Sign in with Google
             </button>
 
-            <p className="text-center text-xs text-gray-500 mt-6">
+            <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-6">
               Don&apos;t have an account?{' '}
-              <Link href="/signup" className="text-green-600 font-medium hover:underline">
+              <Link href="/signup" className="text-green-600 dark:text-green-300 font-medium hover:underline">
                 Sign up
               </Link>
             </p>

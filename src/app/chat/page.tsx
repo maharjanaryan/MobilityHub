@@ -18,7 +18,7 @@ function ChatLoading() {
     <div className="flex items-center justify-center h-[calc(100vh-200px)]">
       <div className="text-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto"></div>
-        <p className="mt-4 text-gray-500">Loading chat...</p>
+        <p className="mt-4 text-gray-500 dark:text-gray-400">Loading chat...</p>
       </div>
     </div>
   );
@@ -76,7 +76,7 @@ export default function ChatPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
         <HomeHeader />
         <div className="flex-1 flex items-center justify-center">
           <ChatLoading />
@@ -94,7 +94,7 @@ export default function ChatPage() {
   console.log('🔍 [ChatPage] Rendering <ChatInterface /> with', { userId, token });
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       <HomeHeader />
       <div className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full">
         <ChatInterface

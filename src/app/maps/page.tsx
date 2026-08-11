@@ -56,37 +56,37 @@ function LoginRequiredModal({
               transition={{ duration: 0.2 }}
               className="relative w-full max-w-sm pointer-events-auto"
             >
-              <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
+              <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden">
                 {/* Header */}
-                <div className="px-6 pt-5 pb-3 flex items-center justify-between border-b border-gray-100">
+                <div className="px-6 pt-5 pb-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 bg-red-50 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center">
                       <LogIn className="w-4 h-4 text-red-500" />
                     </div>
-                    <h3 className="text-base font-semibold text-gray-900">Login Required</h3>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">Login Required</h3>
                   </div>
                   <button
                     onClick={onClose}
-                    className="w-7 h-7 rounded-full hover:bg-gray-100 transition-colors flex items-center justify-center"
+                    className="w-7 h-7 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center justify-center"
                   >
-                    <X className="w-4 h-4 text-gray-500" />
+                    <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                   </button>
                 </div>
 
                 {/* Body */}
                 <div className="px-6 py-5">
                   <div className="flex items-start gap-3 mb-5">
-                    <div className="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/20 rounded-full flex items-center justify-center flex-shrink-0">
                       <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
                         Please sign in to rent
                       </p>
-                      <p className="text-sm text-gray-500">
-                        <span className="font-medium text-gray-700">{vehicleName}</span>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{vehicleName}</span>
                       </p>
                     </div>
                   </div>
@@ -103,7 +103,7 @@ function LoginRequiredModal({
 
                     <button
                       onClick={onBack}
-                      className="w-full py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                      className="w-full py-2.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
                     >
                       <ArrowLeft className="w-4 h-4" />
                       Go Back
@@ -122,10 +122,10 @@ function LoginRequiredModal({
 const MapView = dynamic(() => import("./MapView"), {
   ssr: false,
   loading: () => (
-    <div className="flex-1 flex items-center justify-center bg-gray-50">
+    <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-950">
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-500 text-sm font-medium">Loading map...</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Loading map...</p>
       </div>
     </div>
   ),
@@ -339,7 +339,7 @@ export default function MapsPage() {
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin" />
-            <p className="text-gray-500 text-sm font-medium">Loading vehicles...</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Loading vehicles...</p>
           </div>
         </div>
       </div>
@@ -364,7 +364,7 @@ export default function MapsPage() {
       <div className="flex-1 flex overflow-hidden relative min-h-0">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="absolute top-4 left-4 z-[1000] md:hidden bg-white border border-gray-200 text-gray-700 p-2.5 rounded-xl shadow-lg"
+          className="absolute top-4 left-4 z-[1000] md:hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 p-2.5 rounded-xl shadow-lg"
         >
           {sidebarOpen ? (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,23 +378,23 @@ export default function MapsPage() {
         </button>
 
         {/* Sidebar */}
-        <div className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 absolute md:relative z-[999] w-80 md:w-[420px] h-full bg-white border-r border-gray-200 flex flex-col shadow-xl md:shadow-none`}>
-          <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-gray-100">
+        <div className={`${sidebarOpen ? "translate-x-0" : "-translate-x-full"} transition-transform duration-300 absolute md:relative z-[999] w-80 md:w-[420px] h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-xl md:shadow-none`}>
+          <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-gray-100 dark:border-gray-800">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2.5">
-                <span className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2.5">
+                <span className="w-8 h-8 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
+                  <svg className="w-4 h-4 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </span>
                 Nearby Vehicles
               </h2>
-              <span className="text-xs font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-full border border-green-200">
+              <span className="text-xs font-semibold text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 px-2.5 py-1 rounded-full border border-green-200">
                 {filteredVehicles.length} found
               </span>
             </div>
-            <p className="text-gray-400 text-xs ml-[42px]">
+            <p className="text-gray-400 dark:text-gray-400 text-xs ml-[42px]">
               {userLocation ? 'Near your location' : 'Kathmandu & Lalitpur area'}
             </p>
             <div className="flex gap-2 mt-5 flex-wrap">
@@ -408,7 +408,7 @@ export default function MapsPage() {
                   className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 flex items-center gap-1.5 
                     ${activeFilter === f
                       ? "bg-green-600 text-white border-green-600 shadow-md shadow-green-200"
-                      : "bg-gray-50 text-gray-600 border-gray-200 hover:border-green-300 hover:bg-green-50 hover:text-green-700"
+                      : "bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-700 dark:hover:text-green-300"
                     }`}
                 >
                   {f === "all" ? "🔋" : typeIcons[f as VehicleType]}
@@ -426,7 +426,7 @@ export default function MapsPage() {
             {filteredVehicles.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 text-center p-4">
                 <div className="text-5xl mb-4">🛵</div>
-                <h3 className="text-lg font-semibold text-gray-700">No vehicles found</h3>
+                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">No vehicles found</h3>
                 <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
               </div>
             ) : (
@@ -439,12 +439,12 @@ export default function MapsPage() {
                     onClick={() => handleSelectVehicle(vehicle)}
                     className={`rounded-2xl p-3.5 cursor-pointer transition-all duration-200 border group 
                       ${isSelected
-                        ? "bg-green-50 border-green-300 shadow-lg ring-1 ring-green-200"
-                        : "bg-white border-gray-100 hover:border-gray-200 hover:shadow-md"
+                        ? "bg-green-50 dark:bg-green-900/20 border-green-300 shadow-lg ring-1 ring-green-200"
+                        : "bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-800 hover:border-gray-200 hover:shadow-md"
                       }`}
                   >
                     <div className="flex gap-3.5">
-                      <div className={`w-24 h-[72px] rounded-xl overflow-hidden shrink-0 border ${isSelected ? "border-green-200" : "border-gray-100"}`}>
+                      <div className={`w-24 h-[72px] rounded-xl overflow-hidden shrink-0 border ${isSelected ? "border-green-200" : "border-gray-100 dark:border-gray-800"}`}>
                         <img
                           src={vehicle.image}
                           alt={vehicle.name}
@@ -456,7 +456,7 @@ export default function MapsPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="text-gray-900 font-semibold text-sm truncate leading-tight">
+                          <h3 className="text-gray-900 dark:text-gray-100 font-semibold text-sm truncate leading-tight">
                             {vehicle.name}
                           </h3>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full border shrink-0 font-medium ${typeBadgeColors[vehicle.type]}`}>
@@ -482,7 +482,7 @@ export default function MapsPage() {
                         </div>
 
                         <div className="mt-2 flex items-center justify-between">
-                          <span className="text-green-700 font-bold text-sm">
+                          <span className="text-green-700 dark:text-green-300 font-bold text-sm">
                             Rs.{vehicle.pricePerHour}
                             <span className="text-gray-400 font-normal text-[10px]"> /hr</span>
                           </span>
@@ -504,7 +504,7 @@ export default function MapsPage() {
           </div>
 
           {/* Footer */}
-          <div className="flex-shrink-0 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+          <div className="flex-shrink-0 px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800">
             <div className="flex items-center justify-between text-xs text-gray-400">
               <span>Powered by OpenStreetMap</span>
               <span className="flex items-center gap-1">

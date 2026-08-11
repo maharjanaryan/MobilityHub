@@ -1,43 +1,33 @@
 @import "tailwindcss";
-
-/* app/globals.css - Add these styles */
 @import 'leaflet/dist/leaflet.css';
 
-/* Leaflet marker fixes */
-.leaflet-default-icon-path {
-  background-image: url(https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png);
+/* Class-based dark mode: toggled by adding `.dark` to <html> (see ThemeProvider). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Baseline theme tokens. These also drive native controls, scrollbars, and any
+   surface that doesn't set an explicit dark: class, so nothing renders blinding-white. */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
 }
 
-.custom-popup .leaflet-popup-content-wrapper {
-  border-radius: 12px !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
+.dark {
+  --background: #0b0f14;
+  --foreground: #e5e7eb;
 }
 
-.custom-popup .leaflet-popup-tip {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
+html {
+  color-scheme: light;
 }
 
-/* Animation for map overlay */
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+html.dark {
+  color-scheme: dark;
 }
 
-.animate-slide-up {
-  animation: slideUp 0.3s ease-out;
+body {
+  background: var(--background);
+  color: var(--foreground);
 }
-
-/* app/globals.css - Add these styles */
-@import 'leaflet/dist/leaflet.css';
 
 /* Leaflet marker fixes */
 .leaflet-default-icon-path {

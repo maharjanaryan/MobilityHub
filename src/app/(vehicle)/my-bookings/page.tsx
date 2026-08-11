@@ -36,15 +36,15 @@ interface Booking {
 }
 
 const statusConfig: Record<string, any> = {
-  PENDING: { color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: ClockIcon, label: "Pending" },
-  APPROVED: { color: "bg-green-100 text-green-800 border-green-200", icon: CheckCircle, label: "Confirmed" },
-  REJECTED: { color: "bg-red-100 text-red-800 border-red-200", icon: XCircle, label: "Rejected" },
-  CANCELLED: { color: "bg-gray-100 text-gray-800 border-gray-200", icon: XCircle, label: "Cancelled" },
-  COMPLETED: { color: "bg-blue-100 text-blue-800 border-blue-200", icon: CheckCircle, label: "Completed" },
-  CONFIRMED: { color: "bg-green-100 text-green-800 border-green-200", icon: CheckCircle, label: "Confirmed" }
+  PENDING: { color: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border-yellow-200 dark:border-yellow-700", icon: ClockIcon, label: "Pending" },
+  APPROVED: { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-700", icon: CheckCircle, label: "Confirmed" },
+  REJECTED: { color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-700", icon: XCircle, label: "Rejected" },
+  CANCELLED: { color: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600", icon: XCircle, label: "Cancelled" },
+  COMPLETED: { color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border-blue-200 dark:border-blue-700", icon: CheckCircle, label: "Completed" },
+  CONFIRMED: { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-700", icon: CheckCircle, label: "Confirmed" }
 };
 
-const defaultStatus = { color: "bg-gray-100 text-gray-800 border-gray-200", icon: AlertCircle, label: "Unknown" };
+const defaultStatus = { color: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600", icon: AlertCircle, label: "Unknown" };
 const getStatusConfig = (status: string) => statusConfig[status?.toUpperCase()?.trim() || 'PENDING'] || defaultStatus;
 
 const sortOptions = [
@@ -73,29 +73,29 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-// ✅ Helper function to get payment status color
+// Helper function to get payment status color with dark mode support
 const getPaymentStatusColor = (paymentStatus: string) => {
   const status = paymentStatus?.toUpperCase() || 'PENDING';
   if (status === 'COMPLETED' || status === 'PAID' || status === 'SUCCESS') {
-    return 'text-green-600';
+    return 'text-green-600 dark:text-green-400';
   } else if (status === 'PENDING') {
-    return 'text-yellow-600';
+    return 'text-yellow-600 dark:text-yellow-400';
   } else if (status === 'FAILED') {
-    return 'text-red-600';
+    return 'text-red-600 dark:text-red-400';
   } else if (status === 'REFUNDED') {
-    return 'text-purple-600';
+    return 'text-purple-600 dark:text-purple-400';
   }
-  return 'text-gray-600';
+  return 'text-gray-600 dark:text-gray-400';
 };
 
 const RejectionReason = ({ reason }: { reason?: string }) => {
   if (!reason) return null;
   return (
-    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-      <Info className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+    <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
+      <Info className="w-4 h-4 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
       <div>
-        <p className="text-xs font-medium text-red-700">Rejection Reason:</p>
-        <p className="text-sm text-red-600">{reason}</p>
+        <p className="text-xs font-medium text-red-700 dark:text-red-400">Rejection Reason:</p>
+        <p className="text-sm text-red-600 dark:text-red-300">{reason}</p>
       </div>
     </div>
   );
@@ -305,10 +305,10 @@ export default function MyBookingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
         <HomeHeader />
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
+          <Loader2 className="w-12 h-12 text-emerald-600 dark:text-emerald-400 animate-spin" />
         </div>
         <Footer />
       </div>
@@ -316,11 +316,11 @@ export default function MyBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <HomeHeader />
 
       {/* Hero */}
-      <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white py-12">
+      <div className="bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 dark:from-gray-800 dark:via-gray-900 dark:to-gray-950 text-white py-12">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -343,17 +343,17 @@ export default function MyBookingsPage() {
 
       {/* Filters */}
       <div className="max-w-7xl mx-auto px-6 -mt-4 relative z-10 w-full">
-        <div className="bg-white rounded-2xl shadow-lg p-4 md:p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 md:p-6">
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
                 placeholder="Search by vehicle, owner..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-400 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
               />
             </div>
 
@@ -362,7 +362,7 @@ export default function MyBookingsPage() {
               <div className="relative">
                 <button
                   onClick={() => setShowSort(!showSort)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 rounded-xl text-sm font-medium hover:bg-gray-200 transition"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition"
                 >
                   <ArrowUpDown className="w-4 h-4" />
                   <span className="hidden sm:inline">{sortBy}</span>
@@ -374,16 +374,16 @@ export default function MyBookingsPage() {
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl z-20 overflow-hidden border"
+                      className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl z-20 overflow-hidden border border-gray-200 dark:border-gray-700"
                     >
                       {sortOptions.map(opt => (
                         <button
                           key={opt.label}
                           onClick={() => { setSortBy(opt.label); setShowSort(false); }}
-                          className="w-full text-left px-4 py-3 text-sm hover:bg-emerald-50 transition flex items-center gap-3 group"
+                          className="w-full text-left px-4 py-3 text-sm hover:bg-emerald-50 dark:hover:bg-gray-700 transition flex items-center gap-3 group"
                         >
-                          <opt.icon className="w-4 h-4 text-gray-400 group-hover:text-emerald-600" />
-                          <span className="group-hover:text-emerald-600">{opt.label}</span>
+                          <opt.icon className="w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
+                          <span className="text-gray-700 dark:text-gray-200 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">{opt.label}</span>
                           {sortBy === opt.label && <div className="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full" />}
                         </button>
                       ))}
@@ -395,7 +395,10 @@ export default function MyBookingsPage() {
               {/* Filter toggle */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${showFilters ? "bg-emerald-500 text-white" : "bg-gray-100 hover:bg-gray-200"}`}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${showFilters
+                    ? "bg-emerald-500 text-white"
+                    : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
+                  }`}
               >
                 <Filter className="w-4 h-4" /> Filter
                 {statusFilter !== "ALL" && <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />}
@@ -411,14 +414,15 @@ export default function MyBookingsPage() {
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="flex flex-wrap gap-2 pt-4 border-t mt-4">
+                <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
                   {filterOptions.map(opt => (
                     <button
                       key={opt.value}
                       onClick={() => setStatusFilter(opt.value)}
                       className={`px-4 py-2 rounded-xl text-sm font-medium transition ${statusFilter === opt.value
-                        ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-                        : "bg-gray-50 hover:bg-gray-100"}`}
+                          ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
+                          : "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                        }`}
                     >
                       {opt.label}
                     </button>
@@ -433,10 +437,10 @@ export default function MyBookingsPage() {
       {/* Bookings List */}
       <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
         {filteredBookings.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-2xl">
-            <CalendarCheck className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600">No bookings found</h3>
-            <p className="text-gray-400 text-sm mt-1">
+          <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-2xl">
+            <CalendarCheck className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-300">No bookings found</h3>
+            <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
               {bookings.length === 0 ? "You haven't made any bookings yet." : "Try adjusting your filters."}
             </p>
             {bookings.length === 0 && (
@@ -462,12 +466,12 @@ export default function MyBookingsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                   whileHover={{ scale: 1.005 }}
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition border border-gray-100 hover:border-emerald-200 overflow-hidden"
+                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition border border-gray-100 dark:border-gray-700 hover:border-emerald-200 dark:hover:border-emerald-600 overflow-hidden"
                 >
                   <div className="p-4 md:p-6">
                     <div className="flex flex-col md:flex-row gap-4">
                       {/* Vehicle Image */}
-                      <div className="md:w-40 h-32 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+                      <div className="md:w-40 h-32 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
                         <img
                           src={booking.vehicleImage}
                           alt={booking.vehicleName}
@@ -479,8 +483,8 @@ export default function MyBookingsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                           <div>
-                            <h3 className="text-lg font-bold text-gray-800">{booking.vehicleName}</h3>
-                            <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{booking.vehicleName}</h3>
+                            <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                               <span className="flex items-center gap-1">
                                 <Calendar className="w-3.5 h-3.5" />
                                 {formatDateShort(booking.pickupDate)} → {formatDateShort(booking.dropoffDate)}
@@ -494,14 +498,14 @@ export default function MyBookingsPage() {
                           </div>
                           <div className="flex items-center gap-3 flex-wrap">
                             <StatusBadge status={booking.status} />
-                            <span className="text-lg font-bold text-emerald-600">
+                            <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
                               Rs. {booking.totalAmount?.toLocaleString()}
                             </span>
                           </div>
                         </div>
 
-                        {/* ✅ FIXED: Payment Status with Green for COMPLETED/PAID */}
-                        <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                        {/* Payment Status with dark mode support */}
+                        <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3.5 h-3.5" /> {booking.pickupLocation}
                           </span>
@@ -513,9 +517,9 @@ export default function MyBookingsPage() {
                           </span>
                         </div>
 
-                        {/* 24hr warning */}
+                        {/* 24hr warning with dark mode support */}
                         {isPending && cancelCheck && !cancelCheck.allowed && (
-                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700 flex items-center gap-2">
+                          <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-700 dark:text-yellow-400 flex items-center gap-2">
                             <Clock className="w-4 h-4 flex-shrink-0" />
                             {cancelCheck.message}
                           </div>
@@ -523,11 +527,11 @@ export default function MyBookingsPage() {
 
                         {isRejected && <RejectionReason reason={booking.rejectionReason} />}
 
-                        {/* Actions */}
+                        {/* Actions with dark mode support */}
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
                             onClick={() => { setSelectedBooking(booking); setShowDetailModal(true); }}
-                            className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg text-sm font-medium transition"
+                            className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 rounded-lg text-sm font-medium transition"
                           >
                             <Eye className="w-3.5 h-3.5" /> View Details
                           </button>
@@ -536,7 +540,7 @@ export default function MyBookingsPage() {
                             <button
                               onClick={() => handleCancelBooking(booking.id)}
                               disabled={cancellingId === booking.id}
-                              className="flex items-center gap-1.5 px-4 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-sm font-medium transition disabled:opacity-50"
+                              className="flex items-center gap-1.5 px-4 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-lg text-sm font-medium transition disabled:opacity-50"
                             >
                               {cancellingId === booking.id
                                 ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Cancelling...</>
@@ -547,7 +551,7 @@ export default function MyBookingsPage() {
                           {(booking.status?.toUpperCase() === 'APPROVED' || booking.status?.toUpperCase() === 'CONFIRMED') && (
                             <button
                               onClick={() => router.push(`/tracking?bookingId=${booking.id}`)}
-                              className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-medium transition"
+                              className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg text-sm font-medium transition"
                             >
                               <MapPin className="w-3.5 h-3.5" /> Track
                             </button>
@@ -563,7 +567,7 @@ export default function MyBookingsPage() {
         )}
       </main>
 
-      {/* Detail Modal */}
+      {/* Detail Modal with dark mode support */}
       <AnimatePresence>
         {showDetailModal && selectedBooking && (
           <motion.div
@@ -577,19 +581,22 @@ export default function MyBookingsPage() {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
               onClick={e => e.stopPropagation()}
             >
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-2xl font-bold">Booking Details</h2>
-                  <button onClick={() => setShowDetailModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                    <X className="w-5 h-5" />
+                  <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Booking Details</h2>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                  >
+                    <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                   </button>
                 </div>
 
                 {/* Vehicle */}
-                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mb-4">
+                <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl mb-4">
                   <img
                     src={selectedBooking.vehicleImage}
                     alt={selectedBooking.vehicleName}
@@ -597,55 +604,73 @@ export default function MyBookingsPage() {
                     onError={(e) => (e.target as HTMLImageElement).src = '/car-placeholder.jpg'}
                   />
                   <div>
-                    <h3 className="text-lg font-bold">{selectedBooking.vehicleName}</h3>
-                    <p className="text-sm text-gray-500">{selectedBooking.vehicleBrand} {selectedBooking.vehicleModel}</p>
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{selectedBooking.vehicleName}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{selectedBooking.vehicleBrand} {selectedBooking.vehicleModel}</p>
                   </div>
                 </div>
 
                 {/* Details Grid */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div><p className="text-sm text-gray-500">Booking ID</p><p className="font-medium">#{selectedBooking.id}</p></div>
-                  <div><p className="text-sm text-gray-500">Status</p><div className="mt-1"><StatusBadge status={selectedBooking.status} /></div></div>
-                  <div><p className="text-sm text-gray-500">Pickup Date</p><p className="font-medium">{formatDate(selectedBooking.pickupDate)}</p></div>
-                  <div><p className="text-sm text-gray-500">Dropoff Date</p><p className="font-medium">{formatDate(selectedBooking.dropoffDate)}</p></div>
-                  <div><p className="text-sm text-gray-500">Total Amount</p><p className="font-bold text-emerald-600 text-lg">Rs. {selectedBooking.totalAmount?.toLocaleString()}</p></div>
-
-                  {/* ✅ FIXED: Payment status in modal with green for COMPLETED/PAID */}
                   <div>
-                    <p className="text-sm text-gray-500">Payment</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Booking ID</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">#{selectedBooking.id}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                    <div className="mt-1"><StatusBadge status={selectedBooking.status} /></div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Pickup Date</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.pickupDate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Dropoff Date</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.dropoffDate)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Amount</p>
+                    <p className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">Rs. {selectedBooking.totalAmount?.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Payment</p>
                     <p className={`font-medium ${getPaymentStatusColor(selectedBooking.paymentStatus)}`}>
                       {selectedBooking.paymentStatus || 'PENDING'}
                     </p>
                   </div>
-
-                  <div><p className="text-sm text-gray-500">Pickup Location</p><p className="font-medium">{selectedBooking.pickupLocation}</p></div>
-                  <div><p className="text-sm text-gray-500">Booked On</p><p className="font-medium">{formatDate(selectedBooking.createdAt)}</p></div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Pickup Location</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">{selectedBooking.pickupLocation}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Booked On</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.createdAt)}</p>
+                  </div>
                 </div>
 
                 {/* Owner info */}
-                <div className="mt-4 pt-4 border-t">
-                  <p className="text-sm text-gray-500">Vehicle Owner</p>
-                  <p className="font-medium">{selectedBooking.ownerName}</p>
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Vehicle Owner</p>
+                  <p className="font-medium text-gray-800 dark:text-gray-200">{selectedBooking.ownerName}</p>
                 </div>
 
-                {/* Rejection reason */}
+                {/* Rejection reason with dark mode support */}
                 {selectedBooking.status?.toUpperCase() === 'REJECTED' && selectedBooking.rejectionReason && (
-                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2">
-                    <Info className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                  <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-2">
+                    <Info className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm font-semibold text-red-700">Rejection Reason</p>
-                      <p className="text-sm text-red-600">{selectedBooking.rejectionReason}</p>
+                      <p className="text-sm font-semibold text-red-700 dark:text-red-400">Rejection Reason</p>
+                      <p className="text-sm text-red-600 dark:text-red-300">{selectedBooking.rejectionReason}</p>
                     </div>
                   </div>
                 )}
 
                 {/* Modal actions */}
-                <div className="flex gap-3 mt-6 pt-4 border-t">
+                <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                   {selectedBooking.status?.toUpperCase() === 'PENDING' && canCancel(selectedBooking.pickupDate).allowed && (
                     <button
                       onClick={() => handleCancelBooking(selectedBooking.id)}
                       disabled={cancellingId === selectedBooking.id}
-                      className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {cancellingId === selectedBooking.id
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> Cancelling...</>
@@ -654,7 +679,7 @@ export default function MyBookingsPage() {
                   )}
                   <button
                     onClick={() => setShowDetailModal(false)}
-                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition"
+                    className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition"
                   >
                     Close
                   </button>

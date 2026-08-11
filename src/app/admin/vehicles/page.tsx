@@ -78,7 +78,7 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
   }, [onClose]);
 
   return (
-    <div className={`fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    <div className={`fixed bottom-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg ${type === 'success' ? 'bg-green-500 dark:bg-green-600 text-white' : 'bg-red-500 dark:bg-red-600 text-white'
       }`}>
       {type === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
       {message}
@@ -265,7 +265,7 @@ export default function VehicleManagement() {
   const getStatusBadge = (vehicle: Vehicle) => {
     if (!vehicle.isVerified && vehicle.rejectionReason) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
           <XCircle className="w-3 h-3 mr-1" />
           Rejected
         </span>
@@ -273,7 +273,7 @@ export default function VehicleManagement() {
     }
     if (!vehicle.isVerified) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
           <Clock className="w-3 h-3 mr-1" />
           Pending Verification
         </span>
@@ -281,14 +281,14 @@ export default function VehicleManagement() {
     }
     if (vehicle.isAvailable) {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
           <CheckCircle className="w-3 h-3 mr-1" />
           Available
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300">
         <XCircle className="w-3 h-3 mr-1" />
         Unavailable
       </span>
@@ -305,7 +305,6 @@ export default function VehicleManagement() {
     return icons[fuelType?.toLowerCase()] || '⛽';
   };
 
-  // ✅ Open vehicle details when image is clicked
   const handleImageClick = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
   };
@@ -328,27 +327,27 @@ export default function VehicleManagement() {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-emerald-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading vehicles...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-emerald-600 dark:text-emerald-400 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Loading vehicles...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <>
+    <div className="bg-gray-50 dark:bg-gray-950 min-h-screen p-4 md:p-6">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Header Stats */}
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Vehicle Management</h1>
-            <p className="text-gray-600">Review and manage all vehicles on the platform</p>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Vehicle Management</h1>
+            <p className="text-gray-600 dark:text-gray-400">Review and manage all vehicles on the platform</p>
           </div>
           <button
             onClick={loadData}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center space-x-2"
+            className="px-4 py-2 bg-emerald-600 dark:bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors flex items-center space-x-2"
           >
             <RefreshCw className="w-4 h-4" />
             <span>Refresh</span>
@@ -358,81 +357,81 @@ export default function VehicleManagement() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-6 md:mb-8">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 text-sm">Total Vehicles</div>
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-              <Car className="w-5 h-5 text-blue-600" />
+            <div className="text-gray-500 dark:text-gray-400 text-sm">Total Vehicles</div>
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+              <Car className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.total}</div>
-          <div className="text-xs text-gray-500 mt-2">Listed on platform</div>
+          <div className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{stats.total}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">Listed on platform</div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 text-sm">Pending Review</div>
-            <div className="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
-              <Clock className="w-5 h-5 text-yellow-600" />
+            <div className="text-gray-500 dark:text-gray-400 text-sm">Pending Review</div>
+            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
+              <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
             </div>
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.pending}</div>
-          <div className="text-xs text-gray-500 mt-2">Awaiting verification</div>
+          <div className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{stats.pending}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">Awaiting verification</div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 text-sm">Verified</div>
-            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-green-600" />
+            <div className="text-gray-500 dark:text-gray-400 text-sm">Verified</div>
+            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.verified}</div>
-          <div className="text-xs text-gray-500 mt-2">Approved vehicles</div>
+          <div className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{stats.verified}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">Approved vehicles</div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 text-sm">Rejected</div>
-            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-              <XCircle className="w-5 h-5 text-red-600" />
+            <div className="text-gray-500 dark:text-gray-400 text-sm">Rejected</div>
+            <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+              <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
             </div>
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.rejected}</div>
-          <div className="text-xs text-gray-500 mt-2">Rejected vehicles</div>
+          <div className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{stats.rejected}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">Rejected vehicles</div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 md:p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 text-sm">Available Now</div>
-            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-emerald-600" />
+            <div className="text-gray-500 dark:text-gray-400 text-sm">Available Now</div>
+            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             </div>
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800">{stats.available}</div>
-          <div className="text-xs text-gray-500 mt-2">Ready for booking</div>
+          <div className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{stats.available}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">Ready for booking</div>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
-        <div className="p-4 border-b border-gray-100">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Search by brand, model, owner or license plate..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                className="w-full pl-9 pr-4 py-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
               />
             </div>
             <div className="flex gap-3">
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="px-3 py-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="all">All Status</option>
                 <option value="pending">Pending Verification</option>
@@ -445,7 +444,7 @@ export default function VehicleManagement() {
                   setSearchTerm('');
                   setFilterStatus('all');
                 }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm"
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors text-sm"
               >
                 Clear Filters
               </button>
@@ -457,16 +456,15 @@ export default function VehicleManagement() {
       {/* Pending Vehicles Section */}
       {pendingVehicles.length > 0 && (
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-yellow-600" />
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
             Pending Verification ({pendingVehicles.length})
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {pendingVehicles.map((vehicle) => (
-              <div key={vehicle.id} className="bg-white rounded-2xl shadow-sm border border-yellow-200 hover:shadow-lg transition-all overflow-hidden">
-                {/* ✅ Image clickable - opens details modal */}
+              <div key={vehicle.id} className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-yellow-200 dark:border-yellow-900/30 hover:shadow-lg transition-all overflow-hidden">
                 <div
-                  className="relative h-48 bg-gray-100 cursor-pointer"
+                  className="relative h-48 bg-gray-100 dark:bg-gray-800 cursor-pointer"
                   onClick={() => handleImageClick(vehicle)}
                 >
                   {vehicle.photos && vehicle.photos[0] ? (
@@ -476,12 +474,12 @@ export default function VehicleManagement() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                      <Car className="w-12 h-12 text-gray-400" />
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                      <Car className="w-12 h-12 text-gray-400 dark:text-gray-500" />
                     </div>
                   )}
                   <div className="absolute top-3 right-3">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
                       <Clock className="w-3 h-3 mr-1" />
                       Pending
                     </span>
@@ -490,29 +488,29 @@ export default function VehicleManagement() {
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-800">{vehicle.brand} {vehicle.model}</h3>
-                      <p className="text-sm text-gray-500">{vehicle.year} • {vehicle.color}</p>
+                      <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{vehicle.brand} {vehicle.model}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{vehicle.year} • {vehicle.color}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-2xl font-bold text-emerald-600">₹{vehicle.pricePerDay}</p>
-                      <p className="text-xs text-gray-500">per day</p>
+                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">₹{vehicle.pricePerDay}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">per day</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Users className="w-4 h-4 mr-2 text-gray-400" />
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                      <Users className="w-4 h-4 mr-2 text-gray-400 dark:text-gray-500" />
                       {vehicle.seats} Seats
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <Gauge className="w-4 h-4 mr-2 text-gray-400" />
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                      <Gauge className="w-4 h-4 mr-2 text-gray-400 dark:text-gray-500" />
                       {vehicle.transmission}
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                       <span className="mr-2">{getFuelTypeIcon(vehicle.fuelType)}</span>
                       {vehicle.fuelType}
                     </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                      <MapPin className="w-4 h-4 mr-2 text-gray-400 dark:text-gray-500" />
                       {vehicle.city}
                     </div>
                   </div>
@@ -523,7 +521,7 @@ export default function VehicleManagement() {
                         setVerifyAction('approve');
                         setShowVerifyModal(true);
                       }}
-                      className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center space-x-1"
+                      className="flex-1 px-3 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-700 dark:hover:bg-green-600 transition-colors flex items-center justify-center space-x-1"
                     >
                       <CheckCircle className="w-4 h-4" />
                       <span>Approve</span>
@@ -534,7 +532,7 @@ export default function VehicleManagement() {
                         setVerifyAction('reject');
                         setShowVerifyModal(true);
                       }}
-                      className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-1"
+                      className="flex-1 px-3 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-700 dark:hover:bg-red-600 transition-colors flex items-center justify-center space-x-1"
                     >
                       <XCircle className="w-4 h-4" />
                       <span>Reject</span>
@@ -544,7 +542,7 @@ export default function VehicleManagement() {
                         setSelectedVehicle(vehicle);
                         setShowDeleteModal(true);
                       }}
-                      className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                      className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -558,13 +556,12 @@ export default function VehicleManagement() {
 
       {/* All Vehicles Grid */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">All Vehicles ({filteredVehicles.length})</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">All Vehicles ({filteredVehicles.length})</h2>
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredVehicles.map((vehicle) => (
-            <div key={vehicle.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all overflow-hidden">
-              {/* ✅ Image clickable - opens details modal */}
+            <div key={vehicle.id} className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all overflow-hidden">
               <div
-                className="relative h-48 bg-gray-100 cursor-pointer"
+                className="relative h-48 bg-gray-100 dark:bg-gray-800 cursor-pointer"
                 onClick={() => handleImageClick(vehicle)}
               >
                 {vehicle.photos && vehicle.photos[0] ? (
@@ -574,16 +571,16 @@ export default function VehicleManagement() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                    <Car className="w-12 h-12 text-gray-400" />
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                    <Car className="w-12 h-12 text-gray-400 dark:text-gray-500" />
                   </div>
                 )}
                 <div className="absolute top-3 right-3">
                   {getStatusBadge(vehicle)}
                 </div>
                 {vehicle.rejectionReason && (
-                  <div className="absolute bottom-0 left-0 right-0 bg-red-50/95 backdrop-blur-sm p-2 border-t border-red-200">
-                    <p className="text-xs text-red-700 truncate">
+                  <div className="absolute bottom-0 left-0 right-0 bg-red-50/95 dark:bg-red-900/90 backdrop-blur-sm p-2 border-t border-red-200 dark:border-red-800">
+                    <p className="text-xs text-red-700 dark:text-red-300 truncate">
                       <strong>Rejected:</strong> {vehicle.rejectionReason}
                     </p>
                   </div>
@@ -592,47 +589,47 @@ export default function VehicleManagement() {
               <div className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">{vehicle.brand} {vehicle.model}</h3>
-                    <p className="text-sm text-gray-500">{vehicle.year} • {vehicle.color}</p>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{vehicle.brand} {vehicle.model}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{vehicle.year} • {vehicle.color}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-emerald-600">₹{vehicle.pricePerDay}</p>
-                    <p className="text-xs text-gray-500">per day</p>
+                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">₹{vehicle.pricePerDay}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">per day</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Users className="w-4 h-4 mr-2 text-gray-400" />
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                    <Users className="w-4 h-4 mr-2 text-gray-400 dark:text-gray-500" />
                     {vehicle.seats} Seats
                   </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Gauge className="w-4 h-4 mr-2 text-gray-400" />
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                    <Gauge className="w-4 h-4 mr-2 text-gray-400 dark:text-gray-500" />
                     {vehicle.transmission}
                   </div>
-                  <div className="flex items-center text-sm text-gray-600">
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                     <span className="mr-2">{getFuelTypeIcon(vehicle.fuelType)}</span>
                     {vehicle.fuelType}
                   </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                  <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                    <MapPin className="w-4 h-4 mr-2 text-gray-400 dark:text-gray-500" />
                     {vehicle.city}
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
                   <div>
-                    <p className="text-xs text-gray-500">Owner</p>
-                    <p className="text-sm font-medium text-gray-800">{vehicle.ownerName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Owner</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{vehicle.ownerName}</p>
                   </div>
                   <div className="flex items-center space-x-1">
                     <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span className="text-sm font-medium text-gray-700">{vehicle.averageRating || 0}</span>
-                    <span className="text-xs text-gray-500">({vehicle.totalRentals || 0} trips)</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{vehicle.averageRating || 0}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">({vehicle.totalRentals || 0} trips)</span>
                   </div>
                 </div>
-                <div className="flex space-x-2 mt-4 pt-3 border-t border-gray-100">
+                <div className="flex space-x-2 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
                   <button
                     onClick={() => setSelectedVehicle(vehicle)}
-                    className="flex-1 px-3 py-2 bg-gray-50 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors flex items-center justify-center space-x-1"
+                    className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-center space-x-1"
                   >
                     <Eye className="w-4 h-4" />
                     <span>View Details</span>
@@ -646,7 +643,7 @@ export default function VehicleManagement() {
                           setVerifyAction('approve');
                           setShowVerifyModal(true);
                         }}
-                        className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center space-x-1"
+                        className="flex-1 px-3 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-700 dark:hover:bg-green-600 transition-colors flex items-center justify-center space-x-1"
                       >
                         <CheckCircle className="w-4 h-4" />
                         <span>Approve</span>
@@ -657,7 +654,7 @@ export default function VehicleManagement() {
                           setVerifyAction('reject');
                           setShowVerifyModal(true);
                         }}
-                        className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-1"
+                        className="flex-1 px-3 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-700 dark:hover:bg-red-600 transition-colors flex items-center justify-center space-x-1"
                       >
                         <XCircle className="w-4 h-4" />
                         <span>Reject</span>
@@ -672,7 +669,7 @@ export default function VehicleManagement() {
                         setVerifyAction('approve');
                         setShowVerifyModal(true);
                       }}
-                      className="flex-1 px-3 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 transition-colors flex items-center justify-center space-x-1"
+                      className="flex-1 px-3 py-2 bg-yellow-600 dark:bg-yellow-500 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 dark:hover:bg-yellow-600 transition-colors flex items-center justify-center space-x-1"
                     >
                       <RefreshCw className="w-4 h-4" />
                       <span>Re-verify</span>
@@ -684,7 +681,7 @@ export default function VehicleManagement() {
                       setSelectedVehicle(vehicle);
                       setShowDeleteModal(true);
                     }}
-                    className="px-3 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                    className="px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -697,45 +694,45 @@ export default function VehicleManagement() {
 
       {filteredVehicles.length === 0 && vehicles.length === 0 && (
         <div className="text-center py-12">
-          <Car className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500">No vehicles found</p>
+          <Car className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-500 dark:text-gray-400">No vehicles found</p>
         </div>
       )}
 
       {/* Vehicle Details Modal */}
       {selectedVehicle && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-100 p-4 md:p-6 flex items-center justify-between">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-700 p-4 md:p-6 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">Vehicle Details</h2>
-                <p className="text-sm text-gray-500 mt-1">{selectedVehicle.brand} {selectedVehicle.model}</p>
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Vehicle Details</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{selectedVehicle.brand} {selectedVehicle.model}</p>
               </div>
-              <button onClick={() => setSelectedVehicle(null)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSelectedVehicle(null)} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
             <div className="p-4 md:p-6">
               {selectedVehicle.rejectionReason && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm font-medium text-red-800">Rejection Reason:</p>
-                  <p className="text-sm text-red-700">{selectedVehicle.rejectionReason}</p>
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-sm font-medium text-red-800 dark:text-red-300">Rejection Reason:</p>
+                  <p className="text-sm text-red-700 dark:text-red-300">{selectedVehicle.rejectionReason}</p>
                 </div>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <div className="relative h-64 bg-gray-100 rounded-xl overflow-hidden mb-3">
+                  <div className="relative h-64 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden mb-3">
                     {selectedVehicle.photos && selectedVehicle.photos[0] ? (
                       <img src={selectedVehicle.photos[0]} alt="Vehicle" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <Car className="w-12 h-12 text-gray-400" />
+                        <Car className="w-12 h-12 text-gray-400 dark:text-gray-500" />
                       </div>
                     )}
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {selectedVehicle.photos?.slice(0, 3).map((photo, idx) => (
-                      <div key={idx} className="relative h-20 bg-gray-100 rounded-lg overflow-hidden">
+                      <div key={idx} className="relative h-20 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
                         <img src={photo} alt={`Vehicle ${idx + 1}`} className="w-full h-full object-cover" />
                       </div>
                     ))}
@@ -743,55 +740,55 @@ export default function VehicleManagement() {
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Vehicle Information</h3>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Vehicle Information</h3>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">License Plate</p>
-                        <p className="text-sm font-medium text-gray-800">{selectedVehicle.licensePlate}</p>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">License Plate</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{selectedVehicle.licensePlate}</p>
                       </div>
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Year</p>
-                        <p className="text-sm font-medium text-gray-800">{selectedVehicle.year}</p>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Year</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{selectedVehicle.year}</p>
                       </div>
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Color</p>
-                        <p className="text-sm font-medium text-gray-800">{selectedVehicle.color}</p>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Color</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{selectedVehicle.color}</p>
                       </div>
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Transmission</p>
-                        <p className="text-sm font-medium text-gray-800">{selectedVehicle.transmission}</p>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Transmission</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{selectedVehicle.transmission}</p>
                       </div>
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Fuel Type</p>
-                        <p className="text-sm font-medium text-gray-800">{selectedVehicle.fuelType}</p>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Fuel Type</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{selectedVehicle.fuelType}</p>
                       </div>
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Seats</p>
-                        <p className="text-sm font-medium text-gray-800">{selectedVehicle.seats}</p>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Seats</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{selectedVehicle.seats}</p>
                       </div>
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Owner Information</h3>
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-xs text-gray-500">Owner Name</p>
-                      <p className="text-sm font-medium text-gray-800">{selectedVehicle.ownerName}</p>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Owner Information</h3>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Owner Name</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{selectedVehicle.ownerName}</p>
                     </div>
-                    <div className="p-3 bg-gray-50 rounded-lg mt-2">
-                      <p className="text-xs text-gray-500">Email</p>
-                      <p className="text-sm font-medium text-gray-800">{selectedVehicle.ownerEmail}</p>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg mt-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Email</p>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{selectedVehicle.ownerEmail}</p>
                     </div>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-3">Pricing</h3>
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Pricing</h3>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Price Per Day</p>
-                        <p className="text-lg font-bold text-emerald-600">₹{selectedVehicle.pricePerDay}</p>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Price Per Day</p>
+                        <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">₹{selectedVehicle.pricePerDay}</p>
                       </div>
-                      <div className="p-3 bg-gray-50 rounded-lg">
-                        <p className="text-xs text-gray-500">Security Deposit</p>
-                        <p className="text-sm font-medium text-gray-800">₹{selectedVehicle.securityDeposit || 0}</p>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Security Deposit</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-100">₹{selectedVehicle.securityDeposit || 0}</p>
                       </div>
                     </div>
                   </div>
@@ -803,7 +800,7 @@ export default function VehicleManagement() {
                             setVerifyAction('approve');
                             setShowVerifyModal(true);
                           }}
-                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+                          className="flex-1 px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg font-medium hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
                         >
                           Approve Vehicle
                         </button>
@@ -812,7 +809,7 @@ export default function VehicleManagement() {
                             setVerifyAction('reject');
                             setShowVerifyModal(true);
                           }}
-                          className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                          className="flex-1 px-4 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg font-medium hover:bg-red-700 dark:hover:bg-red-600 transition-colors"
                         >
                           Reject Vehicle
                         </button>
@@ -825,7 +822,7 @@ export default function VehicleManagement() {
                           setVerifyAction('approve');
                           setShowVerifyModal(true);
                         }}
-                        className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg font-medium hover:bg-yellow-700 transition-colors"
+                        className="flex-1 px-4 py-2 bg-yellow-600 dark:bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-700 dark:hover:bg-yellow-600 transition-colors"
                       >
                         Re-verify Vehicle
                       </button>
@@ -833,7 +830,7 @@ export default function VehicleManagement() {
 
                     <button
                       onClick={() => setShowDeleteModal(true)}
-                      className="flex-1 px-4 py-2 border border-red-300 text-red-600 rounded-lg font-medium hover:bg-red-50 transition-colors"
+                      className="flex-1 px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-lg font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       Delete Vehicle
                     </button>
@@ -848,19 +845,19 @@ export default function VehicleManagement() {
       {/* Verify Modal */}
       {showVerifyModal && selectedVehicle && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full">
             <div className="p-6">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${verifyAction === 'approve' ? 'bg-green-100' : 'bg-red-100'}`}>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${verifyAction === 'approve' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
                 {verifyAction === 'approve' ? (
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                 ) : (
-                  <AlertCircle className="w-6 h-6 text-red-600" />
+                  <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                 )}
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 text-center mb-2">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 text-center mb-2">
                 {verifyAction === 'approve' ? 'Approve Vehicle' : 'Reject Vehicle'}
               </h3>
-              <p className="text-sm text-gray-600 text-center mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300 text-center mb-4">
                 {verifyAction === 'approve'
                   ? `Are you sure you want to approve ${selectedVehicle.brand} ${selectedVehicle.model}? This vehicle will be visible to all users.`
                   : `Are you sure you want to reject ${selectedVehicle.brand} ${selectedVehicle.model}? The owner will be notified.`}
@@ -871,7 +868,7 @@ export default function VehicleManagement() {
                   onChange={(e) => setRejectionReason(e.target.value)}
                   placeholder="Please provide a reason for rejection..."
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 mb-4"
                 />
               )}
               <div className="flex space-x-3">
@@ -880,14 +877,14 @@ export default function VehicleManagement() {
                     setShowVerifyModal(false);
                     setRejectionReason('');
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={() => handleVerifyVehicle(verifyAction === 'approve')}
                   disabled={actionLoading || (verifyAction === 'reject' && !rejectionReason.trim())}
-                  className={`flex-1 px-4 py-2 rounded-lg font-medium text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${verifyAction === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${verifyAction === 'approve' ? 'bg-green-600 dark:bg-green-500 hover:bg-green-700 dark:hover:bg-green-600' : 'bg-red-600 dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600'
                     }`}
                 >
                   {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -902,28 +899,28 @@ export default function VehicleManagement() {
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedVehicle && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center justify-center mb-4">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-red-600" />
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                  <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 text-center mb-2">Delete Vehicle</h3>
-              <p className="text-sm text-gray-600 text-center mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 text-center mb-2">Delete Vehicle</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300 text-center mb-6">
                 Are you sure you want to delete {selectedVehicle.brand} {selectedVehicle.model}? This action cannot be undone.
               </p>
               <div className="flex space-x-3">
                 <button
                   onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteVehicle}
                   disabled={actionLoading}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg font-medium hover:bg-red-700 dark:hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   Delete
@@ -933,6 +930,6 @@ export default function VehicleManagement() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

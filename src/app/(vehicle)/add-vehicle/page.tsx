@@ -1,7 +1,7 @@
 // app/(vehicle)/add-vehicle/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Car,
@@ -24,7 +24,8 @@ import {
   DollarSign,
   Clock,
   Gauge,
-  Fuel
+  Fuel,
+  Loader2
 } from 'lucide-react';
 import HomeHeader from '../../home/HomeHeader';
 import Footer from '../../component/Footer';
@@ -52,15 +53,7 @@ interface KYCStatusResponse {
   rejectionReason: string | null;
 }
 
-// Vehicle creation response interface
-interface VehicleResponse {
-  success: boolean;
-  message: string;
-  vehicleId?: number;
-  vehicle?: any;
-}
-
-// Notification Popup Component - NOT exported as default
+// Notification Popup Component
 function NotificationPopup({
   type,
   message,
@@ -165,7 +158,59 @@ function NotificationPopup({
   );
 }
 
-// Main component - ONLY ONE DEFAULT EXPORT
+// Image compression utility
+const compressImage = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.7): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Resize
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              reject(new Error('Compression failed'));
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
+// Main component
 export default function AddVehiclePage() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -176,6 +221,8 @@ export default function AddVehiclePage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploadError, setUploadError] = useState<string>('');
   const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     brand: '',
@@ -267,14 +314,52 @@ export default function AddVehiclePage() {
     return await Promise.all(base64Promises);
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files) {
-      const newFiles = Array.from(files);
-      const newPreviews = newFiles.map(file => URL.createObjectURL(file));
-      setUploadedImages([...uploadedImages, ...newFiles]);
-      setImagePreviews([...imagePreviews, ...newPreviews]);
+    if (!files || files.length === 0) return;
+
+    try {
+      setIsCompressing(true);
       setUploadError('');
+
+      const newFiles = Array.from(files);
+
+      // Validate total count
+      if (uploadedImages.length + newFiles.length > 5) {
+        setUploadError('Maximum 5 photos allowed');
+        setIsCompressing(false);
+        return;
+      }
+
+      // Validate individual file sizes
+      const oversizedFiles = newFiles.filter(file => file.size > 10 * 1024 * 1024);
+      if (oversizedFiles.length > 0) {
+        setUploadError('Each image must be less than 10MB. Please compress your images.');
+        setIsCompressing(false);
+        return;
+      }
+
+      // Compress images
+      const compressedFiles = await Promise.all(
+        newFiles.map(file => compressImage(file, 1200, 1200, 0.7))
+      );
+
+      // Create previews
+      const newPreviews = compressedFiles.map(file => URL.createObjectURL(file));
+
+      setUploadedImages(prev => [...prev, ...compressedFiles]);
+      setImagePreviews(prev => [...prev, ...newPreviews]);
+
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+    } catch (error) {
+      console.error('Image processing failed:', error);
+      setUploadError('Failed to process images. Please try with smaller images.');
+    } finally {
+      setIsCompressing(false);
     }
   };
 
@@ -315,7 +400,6 @@ export default function AddVehiclePage() {
     e.preventDefault();
 
     console.log('=== FORM SUBMISSION STARTED ===');
-    console.log('Form Data:', formData);
 
     try {
       if (uploadedImages.length === 0) {
@@ -346,12 +430,21 @@ export default function AddVehiclePage() {
         return;
       }
 
-      console.log('Token found:', token.substring(0, 20) + '...');
-
+      // Convert images to base64 with size check
       let base64Images: string[] = [];
       try {
         base64Images = await filesToBase64(uploadedImages);
         console.log(`Converted ${base64Images.length} images to base64`);
+
+        // Check total payload size
+        const totalSize = JSON.stringify(base64Images).length;
+        console.log(`Total images size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+
+        if (totalSize > 10 * 1024 * 1024) {
+          showNotification('error', 'Images are too large. Please use smaller images (max 2MB each).', false);
+          setIsSubmitting(false);
+          return;
+        }
       } catch (convertErr) {
         console.error('Image conversion failed:', convertErr);
         showNotification('error', 'Failed to process images. Please try again with smaller images.', false);
@@ -414,7 +507,6 @@ export default function AddVehiclePage() {
       }
 
       console.log('Sending request to:', 'http://localhost:8080/api/vehicles');
-      console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
       const response = await fetch('http://localhost:8080/api/vehicles', {
         method: 'POST',
@@ -426,6 +518,12 @@ export default function AddVehiclePage() {
       });
 
       console.log('Response status:', response.status);
+
+      if (response.status === 413) {
+        showNotification('error', 'Images are too large for the server. Please use smaller images.', false);
+        setIsSubmitting(false);
+        return;
+      }
 
       if (response.status === 401 || response.status === 403) {
         showNotification('error', 'Session expired. Please login again.', true, '/signin');
@@ -590,10 +688,10 @@ export default function AddVehiclePage() {
     return (
       <>
         <HomeHeader />
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950">
           <div className="text-center">
             <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading KYC status...</p>
+            <p className="text-gray-600 dark:text-gray-300">Loading KYC status...</p>
           </div>
         </div>
         <Footer />
@@ -636,15 +734,15 @@ export default function AddVehiclePage() {
         <HomeHeader />
         <div className="relative">
           <div
-            className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 filter blur-sm pointer-events-none select-none"
+            className="min-h-screen bg-gradient-to-br from-gray-50 dark:from-gray-950 to-gray-100 dark:to-gray-900 filter blur-sm pointer-events-none select-none"
             aria-hidden="true"
           >
-            <div className="bg-white border-b border-gray-200">
+            <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
               <div className="max-w-7xl mx-auto px-4 py-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h1 className="text-2xl font-bold text-gray-800">List Your Vehicle</h1>
-                    <p className="text-gray-600 mt-1">Start earning by sharing your vehicle</p>
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">List Your Vehicle</h1>
+                    <p className="text-gray-600 dark:text-gray-300 mt-1">Start earning by sharing your vehicle</p>
                   </div>
                 </div>
               </div>
@@ -656,46 +754,46 @@ export default function AddVehiclePage() {
                   return (
                     <div key={step.number} className="flex-1 relative">
                       <div className="flex flex-col items-center">
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center border-2 bg-white border-gray-300 text-gray-400">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center border-2 bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-400">
                           <Icon className="w-6 h-6" />
                         </div>
                         <div className="mt-2 text-center">
-                          <p className="text-sm font-medium text-gray-500">{step.title}</p>
+                          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{step.title}</p>
                         </div>
                         {index !== steps.length - 1 && (
-                          <div className="absolute top-6 left-1/2 w-full h-0.5 bg-gray-300" style={{ transform: 'translateX(50%)' }} />
+                          <div className="absolute top-6 left-1/2 w-full h-0.5 bg-gray-300 dark:bg-gray-700" style={{ transform: 'translateX(50%)' }} />
                         )}
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 h-64 opacity-60" />
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8 h-64 opacity-60" />
             </div>
           </div>
 
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-            <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 text-center">
-              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${kycStatus === 'pending' ? 'bg-yellow-100' :
-                kycStatus === 'rejected' ? 'bg-red-100' :
-                  'bg-emerald-100'
+            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 text-center">
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${kycStatus === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/20' :
+                kycStatus === 'rejected' ? 'bg-red-100 dark:bg-red-900/20' :
+                  'bg-emerald-100 dark:bg-emerald-900/20'
                 }`}>
                 {kycStatus === 'pending' ? (
-                  <Clock className="w-8 h-8 text-yellow-600" />
+                  <Clock className="w-8 h-8 text-yellow-600 dark:text-yellow-300" />
                 ) : kycStatus === 'rejected' ? (
-                  <AlertCircle className="w-8 h-8 text-red-600" />
+                  <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-300" />
                 ) : (
-                  <AlertCircle className="w-8 h-8 text-emerald-600" />
+                  <AlertCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-300" />
                 )}
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-3">{kycMessage.title}</h2>
-              <p className="text-gray-500 mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3">{kycMessage.title}</h2>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
                 {kycMessage.message}
               </p>
               <div className="flex gap-3 justify-center">
                 <button
                   onClick={() => router.back()}
-                  className="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   Go Back
                 </button>
@@ -717,18 +815,18 @@ export default function AddVehiclePage() {
   return (
     <>
       <HomeHeader />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 dark:from-gray-950 to-gray-100 dark:to-gray-900">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20">
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">List Your Vehicle</h1>
-                <p className="text-gray-600 mt-1">Start earning by sharing your vehicle</p>
+                <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">List Your Vehicle</h1>
+                <p className="text-gray-600 dark:text-gray-300 mt-1">Start earning by sharing your vehicle</p>
               </div>
               <button
                 onClick={() => router.back()}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -750,18 +848,18 @@ export default function AddVehiclePage() {
                     <div className={`
                       w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all
                       ${isActive ? 'bg-emerald-600 border-emerald-600 text-white' :
-                        isCompleted ? 'bg-emerald-100 border-emerald-600 text-emerald-600' :
-                          'bg-white border-gray-300 text-gray-400'}
+                        isCompleted ? 'bg-emerald-100 dark:bg-emerald-900/20 border-emerald-600 text-emerald-600 dark:text-emerald-300' :
+                          'bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-gray-400'}
                     `}>
                       {isCompleted ? <CheckCircle className="w-6 h-6" /> : <Icon className="w-6 h-6" />}
                     </div>
                     <div className="mt-2 text-center">
-                      <p className={`text-sm font-medium ${isActive ? 'text-emerald-600' : 'text-gray-500'}`}>
+                      <p className={`text-sm font-medium ${isActive ? 'text-emerald-600' : 'text-gray-500 dark:text-gray-400'}`}>
                         {step.title}
                       </p>
                     </div>
                     {index !== steps.length - 1 && (
-                      <div className={`absolute top-6 left-1/2 w-full h-0.5 ${isCompleted ? 'bg-emerald-600' : 'bg-gray-300'}`}
+                      <div className={`absolute top-6 left-1/2 w-full h-0.5 ${isCompleted ? 'bg-emerald-600' : 'bg-gray-300 dark:bg-gray-700'}`}
                         style={{ transform: 'translateX(50%)' }} />
                     )}
                   </div>
@@ -773,33 +871,33 @@ export default function AddVehiclePage() {
           <form onSubmit={handleSubmit}>
             {/* Step 1: Basic Information */}
             {currentStep === 1 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Basic Information</h2>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">Basic Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Brand *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Brand *</label>
                     <input
                       type="text"
                       required
                       value={formData.brand}
                       onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="e.g., Toyota, Honda, BMW"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Model *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Model *</label>
                     <input
                       type="text"
                       required
                       value={formData.model}
                       onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="e.g., Camry, CR-V, X5"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Year *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Year *</label>
                     <input
                       type="number"
                       required
@@ -810,40 +908,40 @@ export default function AddVehiclePage() {
                           setFormData({ ...formData, year: val });
                         }
                       }}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       min="1990"
                       max={new Date().getFullYear() + 1}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Color *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Color *</label>
                     <input
                       type="text"
                       required
                       value={formData.color}
                       onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="e.g., Black, White, Red"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">License Plate *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">License Plate *</label>
                     <input
                       type="text"
                       required
                       value={formData.licensePlate}
                       onChange={(e) => setFormData({ ...formData, licensePlate: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="License plate number"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">VIN</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">VIN</label>
                     <input
                       type="text"
                       value={formData.vin}
                       onChange={(e) => setFormData({ ...formData, vin: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="17-character VIN"
                     />
                   </div>
@@ -853,15 +951,15 @@ export default function AddVehiclePage() {
 
             {/* Step 2: Vehicle Details */}
             {currentStep === 2 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Vehicle Details</h2>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">Vehicle Details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Fuel Type *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fuel Type *</label>
                     <select
                       value={formData.fuelType}
                       onChange={(e) => setFormData({ ...formData, fuelType: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                     >
                       {fuelTypes.map(type => (
                         <option key={type.value} value={type.value}>{type.label}</option>
@@ -869,11 +967,11 @@ export default function AddVehiclePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Transmission *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Transmission *</label>
                     <select
                       value={formData.transmission}
                       onChange={(e) => setFormData({ ...formData, transmission: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                     >
                       {transmissionTypes.map(type => (
                         <option key={type.value} value={type.value}>{type.label}</option>
@@ -881,7 +979,7 @@ export default function AddVehiclePage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Seats *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Seats *</label>
                     <input
                       type="number"
                       required
@@ -892,13 +990,13 @@ export default function AddVehiclePage() {
                           setFormData({ ...formData, seats: val });
                         }
                       }}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       min="1"
                       max="15"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Doors *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Doors *</label>
                     <input
                       type="number"
                       required
@@ -909,13 +1007,13 @@ export default function AddVehiclePage() {
                           setFormData({ ...formData, doors: val });
                         }
                       }}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       min="2"
                       max="5"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Luggage Capacity</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Luggage Capacity</label>
                     <input
                       type="number"
                       value={formData.luggageCapacity}
@@ -925,7 +1023,7 @@ export default function AddVehiclePage() {
                           setFormData({ ...formData, luggageCapacity: val });
                         }
                       }}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       min="0"
                       max="10"
                     />
@@ -933,13 +1031,13 @@ export default function AddVehiclePage() {
                 </div>
 
                 <div className="mt-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description *</label>
                   <textarea
                     required
                     rows={5}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                     placeholder="Describe your vehicle..."
                   />
                 </div>
@@ -948,8 +1046,8 @@ export default function AddVehiclePage() {
 
             {/* Step 3: Features */}
             {currentStep === 3 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Features</h2>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">Features</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {availableFeatures.map(feature => {
                     const Icon = feature.icon;
@@ -960,8 +1058,8 @@ export default function AddVehiclePage() {
                         type="button"
                         onClick={() => toggleFeature(feature.id)}
                         className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${isSelected
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 text-gray-600 dark:text-gray-300'
                           }`}
                       >
                         <Icon className="w-4 h-4" />
@@ -975,61 +1073,61 @@ export default function AddVehiclePage() {
 
             {/* Step 4: Pricing */}
             {currentStep === 4 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Pricing</h2>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">Pricing</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Day *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Price per Day *</label>
                     <input
                       type="number"
                       required
                       value={formData.pricePerDay}
                       onChange={(e) => handleNumberChange(e, 'pricePerDay')}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="0"
                       min="0"
                       step="5"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Week</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Price per Week</label>
                     <input
                       type="number"
                       value={formData.pricePerWeek}
                       onChange={(e) => handleNumberChange(e, 'pricePerWeek')}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="0"
                       min="0"
                       step="10"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Price per Month</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Price per Month</label>
                     <input
                       type="number"
                       value={formData.pricePerMonth}
                       onChange={(e) => handleNumberChange(e, 'pricePerMonth')}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="0"
                       min="0"
                       step="50"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Security Deposit *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Security Deposit *</label>
                     <input
                       type="number"
                       required
                       value={formData.securityDeposit}
                       onChange={(e) => handleNumberChange(e, 'securityDeposit')}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="0"
                       min="0"
                       step="50"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Min Rental Days</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Min Rental Days</label>
                     <input
                       type="number"
                       value={formData.minimumRentalDays}
@@ -1039,13 +1137,13 @@ export default function AddVehiclePage() {
                           setFormData({ ...formData, minimumRentalDays: val });
                         }
                       }}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       min="1"
                       max="30"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Max Rental Days</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Max Rental Days</label>
                     <input
                       type="number"
                       value={formData.maximumRentalDays}
@@ -1055,7 +1153,7 @@ export default function AddVehiclePage() {
                           setFormData({ ...formData, maximumRentalDays: val });
                         }
                       }}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       min="1"
                       max="365"
                     />
@@ -1066,9 +1164,9 @@ export default function AddVehiclePage() {
 
             {/* Step 5: Location */}
             {currentStep === 5 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">📍 Pickup Location</h2>
-                <p className="text-gray-600 mb-6">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">📍 Pickup Location</h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
                   Select the exact location where renters can pick up the vehicle.
                 </p>
 
@@ -1085,46 +1183,46 @@ export default function AddVehiclePage() {
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 border-t pt-6">
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Street Address *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Street Address *</label>
                     <input
                       type="text"
                       required
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="Street address"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">City *</label>
                     <input
                       type="text"
                       required
                       value={formData.city}
                       onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="City"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">State *</label>
                     <input
                       type="text"
                       required
                       value={formData.state}
                       onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="State"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">ZIP Code *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">ZIP Code *</label>
                     <input
                       type="text"
                       required
                       value={formData.zipCode}
                       onChange={(e) => setFormData({ ...formData, zipCode: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
                       placeholder="ZIP code"
                     />
                   </div>
@@ -1134,41 +1232,58 @@ export default function AddVehiclePage() {
 
             {/* Step 6: Photos */}
             {currentStep === 6 && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-                <h2 className="text-xl font-semibold text-gray-800 mb-6">Photos</h2>
-                <p className="text-gray-600 mb-6">Upload photos of your vehicle (at least 1 photo required)</p>
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">Photos</h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">Upload photos of your vehicle (at least 1 photo required, max 5 photos)</p>
 
                 {uploadError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg text-red-600 dark:text-red-300 text-sm">
                     {uploadError}
                   </div>
                 )}
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden group">
+                    <div key={index} className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden group">
                       <img src={preview} alt={`Vehicle ${index + 1}`} className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
-                  <label className="aspect-square bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 transition-all">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                    <Camera className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="text-sm text-gray-500">Upload Photo</span>
-                  </label>
+
+                  {uploadedImages.length < 5 && (
+                    <label className="aspect-square bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        disabled={isCompressing}
+                      />
+                      {isCompressing ? (
+                        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-2" />
+                      ) : (
+                        <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                      )}
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {isCompressing ? 'Compressing...' : 'Upload Photo'}
+                      </span>
+                    </label>
+                  )}
                 </div>
+
+                {uploadedImages.length > 0 && (
+                  <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                    {uploadedImages.length} of 5 photos uploaded
+                  </p>
+                )}
               </div>
             )}
 
@@ -1178,7 +1293,7 @@ export default function AddVehiclePage() {
                 <button
                   type="button"
                   onClick={prevStep}
-                  className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                  className="px-6 py-2.5 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 >
                   Previous
                 </button>
@@ -1194,12 +1309,12 @@ export default function AddVehiclePage() {
               ) : (
                 <button
                   type="submit"
-                  disabled={isSubmitting || uploadedImages.length === 0}
+                  disabled={isSubmitting || uploadedImages.length === 0 || isCompressing}
                   className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors ml-auto disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isSubmitting ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <Loader2 className="w-4 h-4 animate-spin" />
                       <span>Listing Vehicle...</span>
                     </>
                   ) : (

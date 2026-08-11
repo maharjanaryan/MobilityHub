@@ -55,6 +55,31 @@ export default function EVSection() {
   const [error, setError] = useState<string | null>(null);
   const [availableCount, setAvailableCount] = useState(0);
 
+  // NEW: Theme state
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // NEW: Check for dark mode on mount and listen for changes
+  useEffect(() => {
+    const checkDarkMode = () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      setIsDarkMode(isDark);
+    };
+
+    checkDarkMode();
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          checkDarkMode();
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
@@ -106,33 +131,48 @@ export default function EVSection() {
   const featuredCar = filteredVehicles.find((v) => v.isAvailable !== false) || filteredVehicles[0];
   const sideCars = filteredVehicles.filter((v) => v.id !== featuredCar?.id).slice(0, 2);
 
+  // NEW: Dynamic styles based on theme
+  const themeStyles = {
+    background: isDarkMode ? '#0d1117' : '#f7f8f9',
+    cardBg: isDarkMode ? '#1c2333' : '#ffffff',
+    cardBorder: isDarkMode ? '#2d3748' : '#f0f0f0',
+    textPrimary: isDarkMode ? '#e2e8f0' : '#0d1117',
+    textSecondary: isDarkMode ? '#94a3b8' : '#6b7280',
+    textMuted: isDarkMode ? '#64748b' : '#9ca3af',
+  };
+
   // Loading state
   if (loading) {
     return (
       <section style={{
-        background: "#f7f8f9",
+        background: themeStyles.background,
         padding: "72px 0 80px",
         fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+        transition: 'background 0.3s ease',
       }}>
         <div className="evs2-wrap">
           <div className="evs2-header-row">
-            <h2 className="evs2-section-title">Electric vehicles near you</h2>
-            <div className="evs2-available-pill">
+            <h2 className="evs2-section-title" style={{ color: themeStyles.textPrimary }}>Electric vehicles near you</h2>
+            <div className="evs2-available-pill" style={{
+              background: isDarkMode ? 'rgba(22, 163, 74, 0.15)' : '#e8fdf0',
+              borderColor: isDarkMode ? 'rgba(110, 231, 183, 0.3)' : '#6ee7b7',
+              color: isDarkMode ? '#6ee7b7' : '#15803d',
+            }}>
               <span className="evs2-dot-pulse" />
               Loading...
             </div>
           </div>
           <div className="evs2-grid" style={{ marginBottom: 20 }}>
-            <div className="evs2-featured" style={{ background: "#e5e7eb", minHeight: "460px" }}>
+            <div className="evs2-featured" style={{ background: isDarkMode ? '#1c2333' : '#e5e7eb', minHeight: "460px" }}>
               <div style={{ padding: "28px", display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-                <p style={{ color: "#6b7280" }}>Loading vehicles...</p>
+                <p style={{ color: themeStyles.textSecondary }}>Loading vehicles...</p>
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {[1, 2].map((i) => (
-                <div key={i} className="evs2-side-card" style={{ background: "#e5e7eb", height: "120px" }}>
+                <div key={i} className="evs2-side-card" style={{ background: isDarkMode ? '#1c2333' : '#e5e7eb', height: "120px" }}>
                   <div style={{ padding: "14px 16px", flex: 1 }}>
-                    <p style={{ color: "#6b7280" }}>Loading...</p>
+                    <p style={{ color: themeStyles.textSecondary }}>Loading...</p>
                   </div>
                 </div>
               ))}
@@ -147,12 +187,19 @@ export default function EVSection() {
   if (error) {
     return (
       <section style={{
-        background: "#f7f8f9",
+        background: themeStyles.background,
         padding: "72px 0 80px",
         fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+        transition: 'background 0.3s ease',
       }}>
         <div className="evs2-wrap">
-          <div style={{ textAlign: "center", padding: "40px", background: "#fff", borderRadius: "16px" }}>
+          <div style={{
+            textAlign: "center",
+            padding: "40px",
+            background: themeStyles.cardBg,
+            borderRadius: "16px",
+            border: `1px solid ${isDarkMode ? '#2d3748' : '#e5e7eb'}`
+          }}>
             <p style={{ color: "#dc2626", fontSize: "1.1rem", marginBottom: "16px" }}>⚠️ {error}</p>
             <button
               onClick={() => window.location.reload()}
@@ -178,17 +225,29 @@ export default function EVSection() {
   if (vehicles.length === 0) {
     return (
       <section style={{
-        background: "#f7f8f9",
+        background: themeStyles.background,
         padding: "72px 0 80px",
         fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+        transition: 'background 0.3s ease',
       }}>
         <div className="evs2-wrap">
-          <div style={{ textAlign: "center", padding: "60px 20px", background: "#fff", borderRadius: "16px" }}>
+          <div style={{
+            textAlign: "center",
+            padding: "60px 20px",
+            background: themeStyles.cardBg,
+            borderRadius: "16px",
+            border: `1px solid ${isDarkMode ? '#2d3748' : '#e5e7eb'}`
+          }}>
             <Leaf size={48} style={{ color: "#16a34a", marginBottom: "16px" }} />
-            <h3 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#0d1117", marginBottom: "8px" }}>
+            <h3 style={{
+              fontSize: "1.5rem",
+              fontWeight: 700,
+              color: themeStyles.textPrimary,
+              marginBottom: "8px"
+            }}>
               No Electric Vehicles Available
             </h3>
-            <p style={{ color: "#6b7280" }}>
+            <p style={{ color: themeStyles.textSecondary }}>
               Check back later for new EV listings in your area.
             </p>
           </div>
@@ -199,9 +258,10 @@ export default function EVSection() {
 
   return (
     <section style={{
-      background: "#f7f8f9",
+      background: themeStyles.background,
       padding: "72px 0 80px",
       fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+      transition: 'background 0.3s ease',
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
@@ -212,14 +272,15 @@ export default function EVSection() {
           display: flex; align-items: center; gap: 16px; margin-bottom: 28px;
         }
         .evs2-section-title {
-          font-size: 1.875rem; font-weight: 800; color: #0d1117; letter-spacing: -0.02em; margin: 0;
+          font-size: 1.875rem; font-weight: 800; letter-spacing: -0.02em; margin: 0;
         }
         .evs2-available-pill {
           display: inline-flex; align-items: center; gap: 7px;
-          background: #e8fdf0; border: 1.5px solid #6ee7b7;
+          border: 1.5px solid #6ee7b7;
           border-radius: 9999px; padding: 5px 14px;
-          color: #15803d; font-size: 0.8rem; font-weight: 600;
+          font-size: 0.8rem; font-weight: 600;
           margin-left: auto;
+          transition: all 0.3s ease;
         }
         .evs2-dot-pulse {
           width: 8px; height: 8px; border-radius: 50%; background: #16a34a;
@@ -258,6 +319,7 @@ export default function EVSection() {
           flex-direction: column;
           justify-content: flex-end;
           box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+          transition: all 0.3s ease;
         }
         .evs2-featured-img {
           position: absolute; inset: 0; z-index: 0;
@@ -293,9 +355,10 @@ export default function EVSection() {
         .evs2-reserve-btn:hover { background: #22c55e; box-shadow: 0 6px 28px rgba(34,197,94,0.42); transform: translateY(-1px); }
 
         .evs2-side-card {
-          background: #fff; border-radius: 16px; overflow: hidden;
-          border: 1.5px solid #f0f0f0; display: flex; align-items: stretch;
+          border-radius: 16px; overflow: hidden;
+          display: flex; align-items: stretch;
           box-shadow: 0 2px 10px rgba(0,0,0,0.05); transition: all 0.28s; cursor: pointer;
+          border: 1.5px solid #f0f0f0;
         }
         .evs2-side-card:hover { border-color: #a7f3d0; box-shadow: 0 8px 28px rgba(22,163,74,0.1); transform: translateY(-2px); }
         .evs2-side-img-wrap { width: 120px; flex-shrink: 0; position: relative; background: #f8f9fa; }
@@ -305,17 +368,17 @@ export default function EVSection() {
           color: #16a34a; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;
         }
         .evs2-side-badge-star { color: #f59e0b; font-size: 0.7rem; }
-        .evs2-side-name { color: #0d1117; font-weight: 700; font-size: 0.9375rem; margin: 0 0 4px; }
-        .evs2-side-meta { color: #9ca3af; font-size: 0.75rem; margin-bottom: 10px; }
+        .evs2-side-name { font-weight: 700; font-size: 0.9375rem; margin: 0 0 4px; }
+        .evs2-side-meta { font-size: 0.75rem; margin-bottom: 10px; }
         .evs2-side-tags { display: flex; flex-wrap: wrap; gap: 6px; }
         .evs2-side-tag {
           padding: 3px 10px; border-radius: 9999px;
-          background: #f3f4f6; border: 1px solid #e5e7eb;
-          color: #6b7280; font-size: 0.7rem; font-weight: 500;
+          border: 1px solid #e5e7eb;
+          font-size: 0.7rem; font-weight: 500;
         }
 
         .evs2-routes-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-        .evs2-routes-title { color: #0d1117; font-size: 1.5rem; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
+        .evs2-routes-title { font-size: 1.5rem; font-weight: 800; margin: 0; letter-spacing: -0.02em; }
         .evs2-explore-btn {
           display: inline-flex; align-items: center; gap: 5px;
           background: none; border: none; cursor: pointer;
@@ -323,16 +386,17 @@ export default function EVSection() {
         }
         .evs2-routes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .evs2-route-card {
-          background: #fff; border-radius: 16px; overflow: hidden;
-          border: 1.5px solid #f0f0f0; box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+          border-radius: 16px; overflow: hidden;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
           transition: all 0.28s; cursor: pointer; display: flex; align-items: stretch;
+          border: 1.5px solid #f0f0f0;
         }
         .evs2-route-card:hover { border-color: #a7f3d0; box-shadow: 0 8px 28px rgba(22,163,74,0.1); transform: translateY(-2px); }
         .evs2-route-img { width: 130px; flex-shrink: 0; position: relative; overflow: hidden; }
         .evs2-route-body { padding: 16px 18px; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-        .evs2-route-name { color: #0d1117; font-weight: 700; font-size: 1.0625rem; margin: 0 0 8px; }
+        .evs2-route-name { font-weight: 700; font-size: 1.0625rem; margin: 0 0 8px; }
         .evs2-route-meta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
-        .evs2-route-meta-item { display: flex; align-items: center; gap: 5px; color: #6b7280; font-size: 0.78rem; }
+        .evs2-route-meta-item { display: flex; align-items: center; gap: 5px; font-size: 0.78rem; }
         .evs2-route-footer { display: flex; align-items: center; justify-content: space-between; }
         .evs2-avatars { display: flex; }
         .evs2-avatar { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: linear-gradient(135deg, #6ee7b7, #16a34a); margin-left: -6px; font-size: 0.55rem; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; }
@@ -348,6 +412,58 @@ export default function EVSection() {
           position: absolute; top: 12px; right: 12px; z-index: 2;
           width: 28px; height: 28px; border-radius: 50%;
           background: rgba(255,255,255,0.9); display: flex; align-items: center; justify-content: center;
+        }
+
+        /* NEW: Dark mode overrides */
+        .dark .evs2-pill {
+          background: #1c2333;
+          border-color: #2d3748;
+          color: #94a3b8;
+        }
+        .dark .evs2-pill:hover {
+          border-color: #6ee7b7;
+          color: #6ee7b7;
+        }
+        .dark .evs2-pill.active {
+          background: #1c2333;
+          border-color: #16a34a;
+          color: #6ee7b7;
+        }
+
+        .dark .evs2-side-card {
+          background: #1c2333;
+          border-color: #2d3748;
+        }
+        .dark .evs2-side-card:hover {
+          border-color: #6ee7b7;
+        }
+        .dark .evs2-side-name {
+          color: #e2e8f0;
+        }
+        .dark .evs2-side-meta {
+          color: #94a3b8;
+        }
+        .dark .evs2-side-tag {
+          background: #2d3748;
+          border-color: #374151;
+          color: #94a3b8;
+        }
+
+        .dark .evs2-route-card {
+          background: #1c2333;
+          border-color: #2d3748;
+        }
+        .dark .evs2-route-card:hover {
+          border-color: #6ee7b7;
+        }
+        .dark .evs2-route-name {
+          color: #e2e8f0;
+        }
+        .dark .evs2-route-meta-item {
+          color: #94a3b8;
+        }
+        .dark .evs2-routes-title {
+          color: #e2e8f0;
         }
 
         @media (max-width: 768px) {
@@ -375,8 +491,12 @@ export default function EVSection() {
       <div className="evs2-wrap">
 
         <div className="evs2-header-row">
-          <h2 className="evs2-section-title">Electric vehicles near you</h2>
-          <div className="evs2-available-pill">
+          <h2 className="evs2-section-title" style={{ color: themeStyles.textPrimary }}>Electric vehicles near you</h2>
+          <div className="evs2-available-pill" style={{
+            background: isDarkMode ? 'rgba(22, 163, 74, 0.15)' : '#e8fdf0',
+            borderColor: isDarkMode ? 'rgba(110, 231, 183, 0.3)' : '#6ee7b7',
+            color: isDarkMode ? '#6ee7b7' : '#15803d',
+          }}>
             <span className="evs2-dot-pulse" />
             {availableCount} Available Now
           </div>
@@ -443,6 +563,10 @@ export default function EVSection() {
               <motion.div
                 key={car.id}
                 className="evs2-side-card"
+                style={{
+                  background: themeStyles.cardBg,
+                  borderColor: themeStyles.cardBorder,
+                }}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15 + i * 0.12, duration: 0.45 }}
@@ -457,27 +581,43 @@ export default function EVSection() {
                   />
                 </div>
                 <div className="evs2-side-body">
-                  <div className="evs2-side-badge">
-                    <Zap size={10} style={{ color: "#16a34a" }} />
+                  <div className="evs2-side-badge" style={{ color: isDarkMode ? '#6ee7b7' : '#16a34a' }}>
+                    <Zap size={10} style={{ color: isDarkMode ? '#6ee7b7' : '#16a34a' }} />
                     {car.isAvailable ? "Available Now" : "Unavailable"}
                     <span className="evs2-side-badge-star" style={{ marginLeft: "auto" }}>
                       {car.isAvailable ? "●" : "○"}
                     </span>
                   </div>
-                  <h3 className="evs2-side-name">{car.brand} {car.model}</h3>
-                  <p className="evs2-side-meta">
+                  <h3 className="evs2-side-name" style={{ color: themeStyles.textPrimary }}>{car.brand} {car.model}</h3>
+                  <p className="evs2-side-meta" style={{ color: themeStyles.textSecondary }}>
                     {car.year || ''} • {car.range ? `${car.range} mi range` : ''}
                   </p>
                   <div className="evs2-side-tags">
                     {car.transmission && (
-                      <span className="evs2-side-tag">{car.transmission}</span>
+                      <span className="evs2-side-tag" style={{
+                        background: isDarkMode ? '#2d3748' : '#f3f4f6',
+                        borderColor: isDarkMode ? '#374151' : '#e5e7eb',
+                        color: themeStyles.textSecondary,
+                      }}>{car.transmission}</span>
                     )}
                     {car.fuelType && (
-                      <span className="evs2-side-tag">{car.fuelType}</span>
+                      <span className="evs2-side-tag" style={{
+                        background: isDarkMode ? '#2d3748' : '#f3f4f6',
+                        borderColor: isDarkMode ? '#374151' : '#e5e7eb',
+                        color: themeStyles.textSecondary,
+                      }}>{car.fuelType}</span>
                     )}
-                    <span className="evs2-side-tag">${car.pricePerHour}/day</span>
+                    <span className="evs2-side-tag" style={{
+                      background: isDarkMode ? '#2d3748' : '#f3f4f6',
+                      borderColor: isDarkMode ? '#374151' : '#e5e7eb',
+                      color: themeStyles.textSecondary,
+                    }}>${car.pricePerHour}/day</span>
                     {car.battery && (
-                      <span className="evs2-side-tag">🔋 {car.battery}%</span>
+                      <span className="evs2-side-tag" style={{
+                        background: isDarkMode ? '#2d3748' : '#f3f4f6',
+                        borderColor: isDarkMode ? '#374151' : '#e5e7eb',
+                        color: themeStyles.textSecondary,
+                      }}>🔋 {car.battery}%</span>
                     )}
                   </div>
                 </div>
@@ -561,7 +701,7 @@ export default function EVSection() {
 
         <div>
           <div className="evs2-routes-header">
-            <h2 className="evs2-routes-title">Popular routes this week</h2>
+            <h2 className="evs2-routes-title" style={{ color: themeStyles.textPrimary }}>Popular routes this week</h2>
             <button className="evs2-explore-btn">
               Explore all routes <ArrowRight size={14} />
             </button>
@@ -572,6 +712,10 @@ export default function EVSection() {
               <motion.div
                 key={i}
                 className="evs2-route-card"
+                style={{
+                  background: themeStyles.cardBg,
+                  borderColor: themeStyles.cardBorder,
+                }}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + i * 0.12, duration: 0.45 }}
@@ -592,12 +736,12 @@ export default function EVSection() {
 
                 <div className="evs2-route-body">
                   <div>
-                    <h3 className="evs2-route-name">{route.name}</h3>
+                    <h3 className="evs2-route-name" style={{ color: themeStyles.textPrimary }}>{route.name}</h3>
                     <div className="evs2-route-meta">
-                      <span className="evs2-route-meta-item">
+                      <span className="evs2-route-meta-item" style={{ color: themeStyles.textSecondary }}>
                         <Clock size={11} style={{ color: "#16a34a" }} />{route.duration}
                       </span>
-                      <span className="evs2-route-meta-item">
+                      <span className="evs2-route-meta-item" style={{ color: themeStyles.textSecondary }}>
                         <Zap size={11} style={{ color: "#0891b2" }} />{route.stations}
                       </span>
                     </div>
@@ -613,7 +757,7 @@ export default function EVSection() {
                           }} />
                         ))}
                       </div>
-                      <span style={{ color: "#9ca3af", fontSize: "0.72rem" }}>+{route.avatars}</span>
+                      <span style={{ color: themeStyles.textMuted, fontSize: "0.72rem" }}>+{route.avatars}</span>
                     </div>
                     <button className="evs2-plan-btn">
                       Plan Trip <ArrowRight size={12} />

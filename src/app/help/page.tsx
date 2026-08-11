@@ -157,26 +157,26 @@ export default function HelpSupportPage() {
   return (
     <>
       <HomeHeader />
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-white dark:bg-gray-950">
         {/* Hero Section */}
-        <div className="relative bg-gradient-to-r from-green-700 to-green-600 text-white">
-          <div className="absolute inset-0 bg-black/10"></div>
+        <div className="relative bg-gradient-to-r from-green-700 to-green-600 dark:from-gray-800 dark:to-gray-900 text-white">
+          <div className="absolute inset-0 bg-black/10 dark:bg-black/20"></div>
           <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-24">
             <div className="text-center max-w-3xl mx-auto">
               <h1 className="text-3xl md:text-5xl font-bold mb-4">How can we help you?</h1>
-              <p className="text-lg text-green-100 mb-8">
+              <p className="text-lg text-green-100 dark:text-gray-300 mb-8">
                 Find answers to common questions or contact our support team
               </p>
 
               {/* Search Bar */}
               <div className="relative max-w-2xl mx-auto">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" />
                 <input
                   type="text"
                   placeholder="         Search for help..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-24 pr-4 py-4 bg-white text-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 shadow-lg text-base"
+                  className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 shadow-lg text-base"
                 />
               </div>
             </div>
@@ -186,35 +186,35 @@ export default function HelpSupportPage() {
         {/* Quick Contact Cards */}
         <div className="max-w-7xl mx-auto px-6 -mt-8 mb-16 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow group border border-gray-100">
-              <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors">
-                <Headphones className="w-7 h-7 text-green-700" />
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow group border border-gray-100 dark:border-gray-800">
+              <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors">
+                <Headphones className="w-7 h-7 text-green-700 dark:text-green-300" />
               </div>
-              <h3 className="font-semibold text-gray-800 mb-2">24/7 Support</h3>
-              <p className="text-gray-600 text-sm mb-3">Our team is available round the clock</p>
-              <a href="tel:+18001234567" className="text-green-700 font-medium hover:text-green-800 inline-flex items-center gap-1">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">24/7 Support</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">Our team is available round the clock</p>
+              <a href="tel:+18001234567" className="text-green-700 dark:text-green-300 font-medium hover:text-green-800 dark:hover:text-green-200 inline-flex items-center gap-1">
                 +1 (800) 123-4567 <ArrowRight className="w-4 h-4" />
               </a>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow group border border-gray-100">
-              <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors">
-                <Mail className="w-7 h-7 text-blue-600" />
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow group border border-gray-100 dark:border-gray-800">
+              <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+                <Mail className="w-7 h-7 text-blue-600 dark:text-blue-300" />
               </div>
-              <h3 className="font-semibold text-gray-800 mb-2">Email Support</h3>
-              <p className="text-gray-600 text-sm mb-3">Get response within 24 hours</p>
-              <a href="mailto:support@mobilityhub.com" className="text-blue-600 font-medium hover:text-blue-700 inline-flex items-center gap-1">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Email Support</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">Get response within 24 hours</p>
+              <a href="mailto:support@mobilityhub.com" className="text-blue-600 dark:text-blue-300 font-medium hover:text-blue-700 dark:hover:text-blue-200 inline-flex items-center gap-1">
                 support@mobilityhub.com <ArrowRight className="w-4 h-4" />
               </a>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow group border border-gray-100">
-              <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition-colors">
-                <MessageCircle className="w-7 h-7 text-purple-600" />
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6 text-center hover:shadow-xl transition-shadow group border border-gray-100 dark:border-gray-800">
+              <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
+                <MessageCircle className="w-7 h-7 text-purple-600 dark:text-purple-300" />
               </div>
-              <h3 className="font-semibold text-gray-800 mb-2">Live Chat</h3>
-              <p className="text-gray-600 text-sm mb-3">Chat with our support agents</p>
-              <button className="text-purple-600 font-medium hover:text-purple-700 inline-flex items-center gap-1">
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Live Chat</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">Chat with our support agents</p>
+              <button className="text-purple-600 dark:text-purple-300 font-medium hover:text-purple-700 dark:hover:text-purple-200 inline-flex items-center gap-1">
                 Start Chat <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -225,8 +225,8 @@ export default function HelpSupportPage() {
         <div className="max-w-7xl mx-auto px-6 pb-16">
           {/* Section Header */}
           <div className="text-center mb-10 mt-10">
-            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">Frequently Asked Questions</p>
-            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
+            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl">Frequently Asked Questions</p>
+            <p className="mt-4 text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
               Find quick answers to the most common questions about our service
             </p>
           </div>
@@ -240,15 +240,15 @@ export default function HelpSupportPage() {
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
                   className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all ${selectedCategory === category.id
-                    ? 'bg-green-600 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-green-600 dark:bg-green-500 text-white shadow-md'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
                   {category.label}
                   <span className={`text-xs px-2 py-0.5 rounded-full ${selectedCategory === category.id
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-200 text-gray-500'
+                    ? 'bg-green-500 dark:bg-green-400 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                     }`}>
                     {category.count}
                   </span>
@@ -259,7 +259,7 @@ export default function HelpSupportPage() {
 
           {/* Search Results Count */}
           {searchQuery && (
-            <div className="text-center text-sm text-gray-500 mb-6">
+            <div className="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">
               Found {filteredFaqs.length} result{filteredFaqs.length !== 1 ? 's' : ''} for &quot;{searchQuery}&quot;
             </div>
           )}
@@ -270,35 +270,35 @@ export default function HelpSupportPage() {
               {filteredFaqs.map((faq) => (
                 <div
                   key={faq.id}
-                  className={`bg-white border rounded-xl overflow-hidden transition-all hover:shadow-md ${openFaq === faq.id ? 'border-green-300 shadow-md lg:col-span-2' : 'border-gray-200'
+                  className={`bg-white dark:bg-gray-900 border rounded-xl overflow-hidden transition-all hover:shadow-md ${openFaq === faq.id ? 'border-green-300 dark:border-green-700 shadow-md lg:col-span-2' : 'border-gray-200 dark:border-gray-700'
                     }`}
                 >
                   <button
                     onClick={() => setOpenFaq(openFaq === faq.id ? null : faq.id)}
-                    className="w-full flex justify-between items-center p-5 text-left hover:bg-gray-50/50 transition-colors"
+                    className="w-full flex justify-between items-center p-5 text-left hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors"
                   >
                     <div className="flex items-start gap-3 flex-1">
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <HelpCircle className="w-4 h-4 text-green-700" />
+                      <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <HelpCircle className="w-4 h-4 text-green-700 dark:text-green-300" />
                       </div>
-                      <span className="font-medium text-gray-800 pr-4 text-base">{faq.question}</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-100 pr-4 text-base">{faq.question}</span>
                     </div>
                     {openFaq === faq.id ? (
-                      <ChevronUp className="w-5 h-5 text-green-600 flex-shrink-0" />
+                      <ChevronUp className="w-5 h-5 text-green-600 dark:text-green-300 flex-shrink-0" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                      <ChevronDown className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0" />
                     )}
                   </button>
                   {openFaq === faq.id && (
-                    <div className="px-5 pb-5 pt-0 text-gray-600 border-t border-gray-100 bg-green-50/20">
+                    <div className="px-5 pb-5 pt-0 text-gray-600 dark:text-gray-300 border-t border-gray-100 dark:border-gray-800 bg-green-50/20 dark:bg-green-900/10">
                       <div className="pl-11 pt-4">
                         <p className="text-sm leading-relaxed">{faq.answer}</p>
                         <div className="mt-4 flex items-center gap-4">
-                          <button className="text-xs text-gray-400 hover:text-green-600 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-green-50">
+                          <button className="text-xs text-gray-400 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-300 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-green-50 dark:hover:bg-green-900/20">
                             <ThumbsUp className="w-3.5 h-3.5" />
                             Helpful
                           </button>
-                          <button className="text-xs text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-red-50">
+                          <button className="text-xs text-gray-400 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-300 transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20">
                             <ThumbsDown className="w-3.5 h-3.5" />
                             Not helpful
                           </button>
@@ -311,17 +311,17 @@ export default function HelpSupportPage() {
             </div>
           ) : (
             <div className="text-center py-16">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <HelpCircle className="w-10 h-10 text-gray-300" />
+              <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <HelpCircle className="w-10 h-10 text-gray-300 dark:text-gray-600" />
               </div>
-              <p className="text-gray-500 font-medium">No results found</p>
-              <p className="text-sm text-gray-400 mt-1">Try different keywords or browse categories</p>
+              <p className="text-gray-500 dark:text-gray-400 font-medium">No results found</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try different keywords or browse categories</p>
               <button
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedCategory('all');
                 }}
-                className="mt-4 px-4 py-2 text-green-600 text-sm font-medium hover:bg-green-50 rounded-lg transition-colors"
+                className="mt-4 px-4 py-2 text-green-600 dark:text-green-300 text-sm font-medium hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
               >
                 Clear filters
               </button>
@@ -330,35 +330,35 @@ export default function HelpSupportPage() {
         </div>
 
         {/* Still Need Help + Contact Form Section */}
-        <div className="bg-gray-50 py-20">
+        <div className="bg-gray-50 dark:bg-gray-950/50 py-20">
           <div className="max-w-7xl mx-auto px-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
               {/* Left: Still Need Help + Resources */}
               <div>
-                <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-2xl p-8 text-white mb-8">
+                <div className="bg-gradient-to-br from-green-600 to-green-700 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-8 text-white mb-8">
                   <div className="flex items-center gap-4 mb-5">
                     <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
                       <Headphones className="w-7 h-7 text-white" />
                     </div>
                     <div>
                       <h3 className="text-xl font-bold">Still need help?</h3>
-                      <p className="text-green-100 text-sm">We&apos;re here for you 24/7</p>
+                      <p className="text-green-100 dark:text-gray-300 text-sm">We&apos;re here for you 24/7</p>
                     </div>
                   </div>
-                  <p className="text-green-100 mb-6">
+                  <p className="text-green-100 dark:text-gray-300 mb-6">
                     Can&apos;t find what you&apos;re looking for? Our support team is ready to assist you with any questions.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <a
                       href="tel:+18001234567"
-                      className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-white text-green-700 rounded-lg font-medium hover:shadow-lg transition-shadow text-sm"
+                      className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-white dark:bg-gray-800 text-green-700 dark:text-green-300 rounded-lg font-medium hover:shadow-lg transition-shadow text-sm"
                     >
                       <Phone className="w-4 h-4" />
                       Call Support
                     </a>
                     <a
                       href="mailto:support@mobilityhub.com"
-                      className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-green-500 text-white rounded-lg font-medium hover:bg-green-400 transition-colors text-sm"
+                      className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-green-500 dark:bg-green-600 text-white rounded-lg font-medium hover:bg-green-400 dark:hover:bg-green-500 transition-colors text-sm"
                     >
                       <Mail className="w-4 h-4" />
                       Email Us
@@ -367,73 +367,73 @@ export default function HelpSupportPage() {
                 </div>
 
                 {/* Additional Resources */}
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-green-600" />
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-green-600 dark:text-green-300" />
                   Additional Resources
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Link href="/help/guides" className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all group">
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                      <BookOpen className="w-6 h-6 text-green-700" />
+                  <Link href="/help/guides" className="flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all group">
+                    <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors">
+                      <BookOpen className="w-6 h-6 text-green-700 dark:text-green-300" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-800">User Guides</h4>
-                      <p className="text-sm text-gray-500">Step-by-step tutorials</p>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-100">User Guides</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Step-by-step tutorials</p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors flex-shrink-0" />
+                    <ArrowRight className="w-4 h-4 text-gray-400 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-300 transition-colors flex-shrink-0" />
                   </Link>
 
-                  <Link href="/help/videos" className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all group">
-                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
-                      <Video className="w-6 h-6 text-blue-600" />
+                  <Link href="/help/videos" className="flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all group">
+                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 transition-colors">
+                      <Video className="w-6 h-6 text-blue-600 dark:text-blue-300" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-800">Video Tutorials</h4>
-                      <p className="text-sm text-gray-500">Watch how-to videos</p>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-100">Video Tutorials</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Watch how-to videos</p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors flex-shrink-0" />
+                    <ArrowRight className="w-4 h-4 text-gray-400 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-300 transition-colors flex-shrink-0" />
                   </Link>
 
-                  <Link href="/community" className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all group">
-                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
-                      <Users className="w-6 h-6 text-purple-600" />
+                  <Link href="/community" className="flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all group">
+                    <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 transition-colors">
+                      <Users className="w-6 h-6 text-purple-600 dark:text-purple-300" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-800">Community Forum</h4>
-                      <p className="text-sm text-gray-500">Connect with other users</p>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-100">Community Forum</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Connect with other users</p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors flex-shrink-0" />
+                    <ArrowRight className="w-4 h-4 text-gray-400 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-300 transition-colors flex-shrink-0" />
                   </Link>
 
-                  <Link href="/help/policies" className="flex items-center gap-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all group">
-                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center group-hover:bg-orange-200 transition-colors">
-                      <FileText className="w-6 h-6 text-orange-600" />
+                  <Link href="/help/policies" className="flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md transition-all group">
+                    <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center group-hover:bg-orange-200 dark:group-hover:bg-orange-900/50 transition-colors">
+                      <FileText className="w-6 h-6 text-orange-600 dark:text-orange-300" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-800">Terms & Policies</h4>
-                      <p className="text-sm text-gray-500">Read our policies</p>
+                      <h4 className="font-medium text-gray-800 dark:text-gray-100">Terms & Policies</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Read our policies</p>
                     </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-green-600 transition-colors flex-shrink-0" />
+                    <ArrowRight className="w-4 h-4 text-gray-400 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-300 transition-colors flex-shrink-0" />
                   </Link>
                 </div>
               </div>
 
               {/* Right: Contact Form */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
                 <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <MessageSquare className="w-5 h-5 text-green-700" />
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-green-700 dark:text-green-300" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-800">Submit a Support Ticket</h2>
-                    <p className="text-sm text-gray-500">Our team will assist you within 24 hours</p>
+                    <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Submit a Support Ticket</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Our team will assist you within 24 hours</p>
                   </div>
                 </div>
 
                 <form onSubmit={handleSubmitTicket} className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Your Name <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -441,12 +441,12 @@ export default function HelpSupportPage() {
                         required
                         value={supportTicket.name}
                         onChange={(e) => setSupportTicket({ ...supportTicket, name: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                         placeholder="John Doe"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Email Address <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -454,14 +454,14 @@ export default function HelpSupportPage() {
                         required
                         value={supportTicket.email}
                         onChange={(e) => setSupportTicket({ ...supportTicket, email: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                         placeholder="john@example.com"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Subject <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -469,19 +469,19 @@ export default function HelpSupportPage() {
                       required
                       value={supportTicket.subject}
                       onChange={(e) => setSupportTicket({ ...supportTicket, subject: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                       placeholder="Brief description of your issue"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Priority
                     </label>
                     <select
                       value={supportTicket.priority}
                       onChange={(e) => setSupportTicket({ ...supportTicket, priority: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                     >
                       <option value="low">Low - General inquiry</option>
                       <option value="medium">Medium - Need assistance</option>
@@ -490,7 +490,7 @@ export default function HelpSupportPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Message <span className="text-red-500">*</span>
                     </label>
                     <textarea
@@ -498,7 +498,7 @@ export default function HelpSupportPage() {
                       rows={5}
                       value={supportTicket.message}
                       onChange={(e) => setSupportTicket({ ...supportTicket, message: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition-all resize-none"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
                       placeholder="Please provide detailed information about your issue..."
                     />
                   </div>
@@ -506,7 +506,7 @@ export default function HelpSupportPage() {
                   <button
                     type="submit"
                     disabled={ticketSubmitted}
-                    className="w-full px-6 py-3 bg-green-700 text-white rounded-lg font-medium hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    className="w-full px-6 py-3 bg-green-700 dark:bg-green-600 text-white rounded-lg font-medium hover:bg-green-600 dark:hover:bg-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                   >
                     {ticketSubmitted ? (
                       <>

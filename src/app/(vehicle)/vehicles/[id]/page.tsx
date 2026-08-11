@@ -1,4 +1,3 @@
-// app/vehicles/[id]/page.tsx
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -128,14 +127,14 @@ const formatDateForAPI = (date: Date): string => {
 // ─────────────────────────────────────────────────────────────────────────────
 function DetailItem({ icon, label, value }: { icon: React.ReactNode; label: string; value?: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-gray-100 bg-white p-4 shadow-sm">
+    <div className="rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+        <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300">
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
-          <p className="mt-1 break-words text-sm font-semibold text-gray-800">{value || "Not provided"}</p>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">{label}</p>
+          <p className="mt-1 break-words text-sm font-semibold text-gray-800 dark:text-gray-100">{value || "Not provided"}</p>
         </div>
       </div>
     </div>
@@ -145,14 +144,14 @@ function DetailItem({ icon, label, value }: { icon: React.ReactNode; label: stri
 function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-7">
-      <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">{title}</h2>
       <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</div>
     </section>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Calendar component
+// Calendar component with dark mode support
 // ─────────────────────────────────────────────────────────────────────────────
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -224,20 +223,20 @@ function MiniCalendar({ selected, onChange, year, month, onPrev, onNext, bookedD
   return (
     <div className="select-none">
       <div className="flex items-center justify-between mb-3">
-        <span className="font-semibold text-[13px] text-gray-800">{MONTHS[month]} {year}</span>
+        <span className="font-semibold text-[13px] text-gray-800 dark:text-gray-100">{MONTHS[month]} {year}</span>
         <div className="flex gap-1">
-          <button onClick={onPrev} className="p-1 rounded hover:bg-gray-100 transition">
-            <ChevronLeft className="w-3.5 h-3.5 text-gray-500" />
+          <button onClick={onPrev} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+            <ChevronLeft className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
           </button>
-          <button onClick={onNext} className="p-1 rounded hover:bg-gray-100 transition">
-            <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+          <button onClick={onNext} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+            <ChevronRight className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-7 gap-0.5 mb-1">
         {DAYS.map((d, i) => (
-          <div key={i} className="text-center text-[10px] font-semibold text-gray-400 py-1">{d}</div>
+          <div key={i} className="text-center text-[10px] font-semibold text-gray-400 dark:text-gray-400 py-1">{d}</div>
         ))}
       </div>
 
@@ -257,10 +256,10 @@ function MiniCalendar({ selected, onChange, year, month, onPrev, onNext, bookedD
               onClick={() => handleDay(d)}
               className={[
                 "relative text-[11px] font-medium w-full aspect-square rounded flex items-center justify-center transition-all",
-                disabled ? "bg-gray-100 text-gray-300 cursor-not-allowed line-through" : "cursor-pointer",
+                disabled ? "bg-gray-100 dark:bg-gray-800 text-gray-300 dark:text-gray-600 cursor-not-allowed line-through" : "cursor-pointer",
                 sel ? "bg-emerald-600 text-white shadow-sm z-10" : "",
-                range ? "bg-emerald-100 text-emerald-800 rounded-none" : "",
-                !sel && !range && !disabled ? "hover:bg-gray-100 text-gray-700" : "",
+                range ? "bg-emerald-100 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300 rounded-none" : "",
+                !sel && !range && !disabled ? "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300" : "",
                 isToday(d) && !sel && !disabled ? "ring-1 ring-emerald-400 font-bold" : "",
               ].join(" ")}
             >
@@ -277,7 +276,7 @@ function MiniCalendar({ selected, onChange, year, month, onPrev, onNext, bookedD
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Terms & Conditions Modal
+// Terms & Conditions Modal with dark mode support
 // ─────────────────────────────────────────────────────────────────────────────
 interface TermsModalProps {
   isOpen: boolean;
@@ -297,38 +296,38 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-white dark:bg-gray-900 rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden"
       >
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-              <ScrollText className="w-5 h-5 text-emerald-600" />
+            <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
+              <ScrollText className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Vehicle Rental Agreement</h2>
-              <p className="text-sm text-gray-500">Please read and accept the terms below</p>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Vehicle Rental Agreement</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Please read and accept the terms below</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-300 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800 dark:text-amber-300">
               By proceeding with this booking, you agree to all the terms and conditions outlined below.
             </p>
           </div>
 
           <div className="space-y-6">
             <section>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-emerald-600" />
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <FileCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
                 Booking Confirmation
               </h3>
-              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300 list-disc pl-6">
                 <li>A booking is confirmed only after successful payment.</li>
                 <li>Users must provide valid and accurate information during booking.</li>
                 <li>The rented vehicle can only be used during the selected rental duration.</li>
@@ -336,33 +335,33 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
             </section>
 
             <section>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-emerald-600" />
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
                 Security Deposit
               </h3>
-              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300 list-disc pl-6">
                 <li>A refundable security deposit may be required before the rental starts.</li>
                 <li>The deposit may be deducted for vehicle damage, missing accessories, late return charges, or traffic fines.</li>
               </ul>
             </section>
 
             <section>
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-emerald-600" />
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
                 Vehicle Return Policy
               </h3>
-              <ul className="mt-3 space-y-2 text-sm text-gray-600 list-disc pl-6">
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300 list-disc pl-6">
                 <li>The vehicle must be returned on or before the agreed return time.</li>
                 <li>Late returns may result in additional charges.</li>
               </ul>
             </section>
 
-            <section className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            <section className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
                 Acceptance of Terms
               </h3>
-              <p className="mt-2 text-sm text-gray-600">
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
                 By proceeding with the booking, the user confirms that they have read, understood,
                 and agreed to these Terms & Conditions.
               </p>
@@ -370,21 +369,21 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-200 flex-shrink-0">
+        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center gap-4 mb-4">
             <input
               type="checkbox"
               id="acceptTerms"
               checked={accepted}
               onChange={(e) => setAccepted(e.target.checked)}
-              className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+              className="w-4 h-4 text-emerald-600 border-gray-300 dark:border-gray-600 rounded focus:ring-emerald-500"
             />
-            <label htmlFor="acceptTerms" className="text-sm font-medium text-gray-700">
+            <label htmlFor="acceptTerms" className="text-sm font-medium text-gray-700 dark:text-gray-300">
               I have read and agree to all the Terms & Conditions
             </label>
           </div>
           <div className="flex gap-3">
-            <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition">
+            <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition">
               Cancel
             </button>
             <button
@@ -664,7 +663,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   };
 
   const handlePaymentSuccess = async () => {
-    // Refresh booked dates and show success
     await fetchBookedDates();
     setShowPaymentModal(false);
     setPendingBookingId(null);
@@ -674,36 +672,36 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     router.push("/my-bookings");
   };
 
-  // Loading State
+  // Loading State with dark mode support
   if (loading) return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-[#f8f9fb] dark:bg-gray-950">
       <HomeHeader />
       <div className="flex items-center justify-center h-[60vh]">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-emerald-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading vehicle details...</p>
+          <Loader2 className="w-12 h-12 animate-spin text-emerald-600 dark:text-emerald-400 mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-300">Loading vehicle details...</p>
         </div>
       </div>
       <Footer />
     </div>
   );
 
-  // Error State
+  // Error State with dark mode support
   if (error) return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-[#f8f9fb] dark:bg-gray-950">
       <HomeHeader />
       <div className="flex items-center justify-center h-[60vh] px-4">
         <div className="text-center max-w-md">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <p className="text-red-600 font-semibold mb-2">Error Loading Vehicle</p>
-            <p className="text-gray-600 text-sm mb-4">{error}</p>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+            <p className="text-red-600 dark:text-red-300 font-semibold mb-2">Error Loading Vehicle</p>
+            <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{error}</p>
             <div className="flex gap-3 justify-center">
               {error.includes("login") || error.includes("Authentication") ? (
                 <button onClick={() => router.push("/signin")} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">Go to Login</button>
               ) : (
                 <button onClick={fetchVehicleData} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition">Try Again</button>
               )}
-              <Link href="/vehicles" className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">Browse Vehicles</Link>
+              <Link href="/vehicles" className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition">Browse Vehicles</Link>
             </div>
           </div>
         </div>
@@ -718,11 +716,11 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   const isElectric = vehicle.fuelType?.toLowerCase() === "electric";
 
   return (
-    <div className="min-h-screen bg-[#f8f9fb]">
+    <div className="min-h-screen bg-[#f8f9fb] dark:bg-gray-950">
       <HomeHeader />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 pb-2">
-        <Link href="/vehicles" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-emerald-600 transition font-medium">
+        <Link href="/vehicles" className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition font-medium">
           <ArrowLeft className="w-4 h-4" /> Back to marketplace
         </Link>
       </div>
@@ -732,15 +730,15 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
 
           {/* LEFT COLUMN - Vehicle Details */}
           <div className="flex-1 min-w-0">
-            {/* Gallery */}
+            {/* Gallery with dark mode support */}
             <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden h-[320px] sm:h-[380px]">
-              <div className="relative col-span-1 row-span-2 overflow-hidden cursor-pointer bg-gray-200" onClick={() => setActiveImg(0)}>
+              <div className="relative col-span-1 row-span-2 overflow-hidden cursor-pointer bg-gray-200 dark:bg-gray-700" onClick={() => setActiveImg(0)}>
                 <img src={images[activeImg] || images[0]} alt={vehicle.name} className="w-full h-full object-cover hover:scale-105 transition duration-500" />
                 <div className="absolute bottom-2 left-2 bg-black/40 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm">{vehicle.name}</div>
               </div>
               <div className="grid grid-rows-2 gap-2">
                 {[1, 2].map(idx => (
-                  <div key={idx} className="relative overflow-hidden cursor-pointer bg-gray-200" onClick={() => setActiveImg(idx)}>
+                  <div key={idx} className="relative overflow-hidden cursor-pointer bg-gray-200 dark:bg-gray-700" onClick={() => setActiveImg(idx)}>
                     <img src={images[idx] || images[0]} alt={`View ${idx + 1}`} className="w-full h-full object-cover hover:scale-105 transition duration-500" />
                     {idx === 2 && images.length > 3 && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-1.5 text-white font-semibold text-sm">
@@ -752,57 +750,57 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            {/* Title */}
+            {/* Title with dark mode support */}
             <div className="mt-6 flex flex-wrap items-start gap-3 justify-between">
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">{vehicle.name}</h1>
-                <div className="flex items-center gap-4 mt-1.5 text-sm text-gray-500">
-                  <span className="flex items-center gap-1 text-yellow-600 font-semibold">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{vehicle.name}</h1>
+                <div className="flex items-center gap-4 mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+                  <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-300 font-semibold">
                     <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />{vehicle.rating}
                   </span>
-                  <span className="text-gray-300">|</span>
+                  <span className="text-gray-300 dark:text-gray-600">|</span>
                   <span>{vehicle.host?.trips || 124} trips completed</span>
-                  <span className="text-gray-300">|</span>
-                  <span className="text-emerald-600 font-medium">{vehicle.location}</span>
+                  <span className="text-gray-300 dark:text-gray-600">|</span>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">{vehicle.location}</span>
                 </div>
               </div>
               {vehicle.host && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span className="text-gray-400">HOSTED BY</span>
-                  <div className="w-9 h-9 rounded-full bg-emerald-200 border-2 border-emerald-400 flex items-center justify-center text-emerald-700 font-bold text-sm">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                  <span className="text-gray-400 dark:text-gray-400">HOSTED BY</span>
+                  <div className="w-9 h-9 rounded-full bg-emerald-200 dark:bg-emerald-900/40 border-2 border-emerald-400 dark:border-emerald-700 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-bold text-sm">
                     {vehicle.host.name.charAt(0)}
                   </div>
-                  <span className="font-semibold">{vehicle.host.name}</span>
+                  <span className="font-semibold dark:text-gray-200">{vehicle.host.name}</span>
                 </div>
               )}
             </div>
 
-            {/* Specs */}
+            {/* Specs with dark mode support */}
             <div className="mt-5 grid grid-cols-3 gap-3">
               {[
-                { icon: <Gauge className="w-5 h-5 text-emerald-600" />, label: "TRANSMISSION", value: titleCase(vehicle.transmission || vehicle.driveType) },
-                { icon: <Users className="w-5 h-5 text-emerald-600" />, label: "CAPACITY", value: `${vehicle.seats || 5} Seats` },
-                { icon: <Fuel className="w-5 h-5 text-emerald-600" />, label: "FUEL TYPE", value: titleCase(vehicle.fuelType || vehicle.category) },
+                { icon: <Gauge className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />, label: "TRANSMISSION", value: titleCase(vehicle.transmission || vehicle.driveType) },
+                { icon: <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />, label: "CAPACITY", value: `${vehicle.seats || 5} Seats` },
+                { icon: <Fuel className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />, label: "FUEL TYPE", value: titleCase(vehicle.fuelType || vehicle.category) },
               ].map(s => (
-                <div key={s.label} className="bg-white rounded-xl p-3.5 border border-gray-100 shadow-sm">
+                <div key={s.label} className="bg-white dark:bg-gray-900 rounded-xl p-3.5 border border-gray-100 dark:border-gray-700 shadow-sm">
                   {s.icon}
-                  <p className="text-[9px] font-bold text-gray-400 mt-2 tracking-widest">{s.label}</p>
-                  <p className="text-sm font-semibold text-gray-800 mt-0.5">{s.value}</p>
+                  <p className="text-[9px] font-bold text-gray-400 dark:text-gray-400 mt-2 tracking-widest">{s.label}</p>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mt-0.5">{s.value}</p>
                 </div>
               ))}
             </div>
 
-            {/* Eco banner */}
+            {/* Eco banner with dark mode support */}
             {isElectric && (
-              <div className="mt-5 bg-emerald-900 text-white rounded-2xl p-5 relative overflow-hidden">
+              <div className="mt-5 bg-emerald-900 dark:bg-emerald-950 text-white rounded-2xl p-5 relative overflow-hidden">
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20"><Leaf className="w-20 h-20 text-emerald-400" /></div>
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-700 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-emerald-700 dark:bg-emerald-800 flex items-center justify-center flex-shrink-0">
                     <Leaf className="w-5 h-5 text-emerald-300" />
                   </div>
                   <div>
                     <p className="font-bold text-base">Make an impact.</p>
-                    <p className="text-emerald-200 text-sm mt-1 leading-relaxed max-w-sm">
+                    <p className="text-emerald-200 dark:text-emerald-300 text-sm mt-1 leading-relaxed max-w-sm">
                       By choosing this electric vehicle for your {rentalDays}-day trip, you'll reduce your carbon footprint significantly.
                     </p>
                   </div>
@@ -812,8 +810,8 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Description */}
             <div className="mt-7">
-              <h2 className="text-lg font-bold text-gray-900">Vehicle Description</h2>
-              <p className="mt-2 text-sm text-gray-500 leading-relaxed">{vehicle.description}</p>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Vehicle Description</h2>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{vehicle.description}</p>
             </div>
 
             <DetailSection title="Vehicle Information">
@@ -844,10 +842,10 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
 
             {vehicle.features.length > 0 && (
               <section className="mt-7">
-                <h2 className="text-lg font-bold text-gray-900">Features & Amenities</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Features & Amenities</h2>
                 <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {vehicle.features.map(f => (
-                    <div key={f} className="flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+                    <div key={f} className="flex items-center gap-2 rounded-lg border border-emerald-100 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 text-sm font-medium text-emerald-800 dark:text-emerald-300">
                       <CheckCircle2 className="h-4 w-4 shrink-0" />{titleCase(f)}
                     </div>
                   ))}
@@ -856,28 +854,28 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
             )}
 
             {vehicle.terms && (
-              <section className="mt-7 rounded-lg border border-gray-100 bg-white p-5 shadow-sm">
+              <section className="mt-7 rounded-lg border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 shadow-sm">
                 <div className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-emerald-700" />
-                  <h2 className="text-lg font-bold text-gray-900">Owner Terms</h2>
+                  <FileText className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Owner Terms</h2>
                 </div>
-                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-gray-600">{vehicle.terms}</p>
+                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-gray-600 dark:text-gray-300">{vehicle.terms}</p>
               </section>
             )}
           </div>
 
-          {/* RIGHT COLUMN - Booking Card */}
+          {/* RIGHT COLUMN - Booking Card with dark mode support */}
           <div className="lg:w-[320px] xl:w-[340px] flex-shrink-0">
-            <div className="sticky top-6 bg-white rounded-2xl shadow-lg border border-gray-100 p-5 space-y-5">
+            <div className="sticky top-6 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 space-y-5">
 
               <div className="flex items-end gap-2">
-                <span className="text-3xl font-black text-gray-900">{formatCurrency(vehicle.price)}</span>
-                <span className="text-sm text-gray-400 pb-0.5">/ day</span>
+                <span className="text-3xl font-black text-gray-900 dark:text-gray-100">{formatCurrency(vehicle.price)}</span>
+                <span className="text-sm text-gray-400 dark:text-gray-500 pb-0.5">/ day</span>
               </div>
 
               {/* Calendar */}
               <div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <p className="text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5" /> Dates &amp; Availability
                 </p>
                 <MiniCalendar
@@ -890,18 +888,18 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                   bookedDates={bookedDates}
                 />
                 {dateRange[0] && dateRange[1] && (
-                  <p className="text-xs text-emerald-600 font-semibold mt-2">
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold mt-2">
                     {rentalDays} rental day{rentalDays !== 1 ? "s" : ""} selected
-                    <span className="text-gray-400 font-normal ml-1">
+                    <span className="text-gray-400 dark:text-gray-500 font-normal ml-1">
                       ({formatDateForAPI(dateRange[0])} → {formatDateForAPI(dateRange[1])})
                     </span>
                   </p>
                 )}
               </div>
 
-              {/* Insurance */}
+              {/* Insurance with dark mode support */}
               <div>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <p className="text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5" /> Insurance Protection
                 </p>
                 <div className="space-y-2">
@@ -911,19 +909,21 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                       onClick={() => setInsurance(plan)}
                       className={[
                         "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all",
-                        insurance === plan ? "border-emerald-500 bg-emerald-50 shadow-sm" : "border-gray-100 hover:border-gray-200",
+                        insurance === plan
+                          ? "border-emerald-500 dark:border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 shadow-sm"
+                          : "border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600",
                       ].join(" ")}
                     >
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${insurance === plan ? "border-emerald-500 bg-emerald-500" : "border-gray-300"}`}>
+                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${insurance === plan ? "border-emerald-500 dark:border-emerald-400 bg-emerald-500 dark:bg-emerald-400" : "border-gray-300 dark:border-gray-500"}`}>
                         {insurance === plan && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-gray-800 capitalize">{plan}</p>
-                        <p className="text-[10px] text-gray-400 truncate">
+                        <p className="text-xs font-bold text-gray-800 dark:text-gray-200 capitalize">{plan}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">
                           {plan === "premium" ? "Zero deductible, full coverage" : "Standard coverage, Rs. 500 deductible"}
                         </p>
                       </div>
-                      <span className="text-xs font-bold text-emerald-600 flex-shrink-0">
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex-shrink-0">
                         +{formatCurrency(plan === "premium" ? 45 : 22)}/d
                       </span>
                     </button>
@@ -931,23 +931,23 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
 
-              {/* Price breakdown */}
-              <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-600 space-y-1.5">
+              {/* Price breakdown with dark mode support */}
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 text-xs text-gray-600 dark:text-gray-300 space-y-1.5">
                 <div className="flex justify-between">
                   <span>Rental ({rentalDays} day{rentalDays !== 1 ? "s" : ""})</span>
-                  <span className="font-semibold text-gray-800">{formatCurrency(vehicle.price * rentalDays)}</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(vehicle.price * rentalDays)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Insurance</span>
-                  <span className="font-semibold text-gray-800">{formatCurrency(insuranceCost * rentalDays)}</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(insuranceCost * rentalDays)}</span>
                 </div>
                 {!!vehicle.securityDeposit && vehicle.securityDeposit > 0 && (
                   <div className="flex justify-between">
                     <span>Security deposit</span>
-                    <span className="font-semibold text-gray-800">{formatCurrency(vehicle.securityDeposit)}</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(vehicle.securityDeposit)}</span>
                   </div>
                 )}
-                <div className="flex justify-between pt-1.5 border-t border-gray-200 font-bold text-gray-900 text-sm">
+                <div className="flex justify-between pt-1.5 border-t border-gray-200 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100 text-sm">
                   <span>Total</span>
                   <span>{formatCurrency(calculateTotal())}</span>
                 </div>
@@ -960,14 +960,14 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 onClick={handleProceedToBook}
                 disabled={!dateRange[0] || !dateRange[1] || rentalDays < 1}
                 className={[
-                  "w-full py-3.5 bg-emerald-600 text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-200 transition flex items-center justify-center gap-2",
-                  (!dateRange[0] || !dateRange[1] || rentalDays < 1) ? "opacity-50 cursor-not-allowed" : "hover:bg-emerald-700",
+                  "w-full py-3.5 bg-emerald-600 dark:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-200 dark:shadow-emerald-900/30 transition flex items-center justify-center gap-2",
+                  (!dateRange[0] || !dateRange[1] || rentalDays < 1) ? "opacity-50 cursor-not-allowed" : "hover:bg-emerald-700 dark:hover:bg-emerald-600",
                 ].join(" ")}
               >
                 Request to Book <ChevronRight className="w-4 h-4" />
               </motion.button>
 
-              <p className="text-center text-[10px] text-gray-400">
+              <p className="text-center text-[10px] text-gray-400 dark:text-gray-500">
                 You will be redirected to payment after confirming booking details.
               </p>
             </div>
@@ -984,39 +984,39 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         loading={bookingLoading}
       />
 
-      {/* Driver Info Modal */}
+      {/* Driver Info Modal with dark mode support */}
       {showDriverModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Driver Information</h2>
-              <button onClick={() => setShowDriverModal(false)} className="text-gray-400 hover:text-gray-600">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Driver Information</h2>
+              <button onClick={() => setShowDriverModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Driver Full Name *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Driver Full Name *</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
                   <input
                     type="text"
                     value={driverInfo.name}
                     onChange={e => setDriverInfo({ ...driverInfo, name: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400"
                     placeholder="Enter driver's full name"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Driver License Number *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Driver License Number *</label>
                 <div className="relative">
-                  <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 w-4 h-4" />
                   <input
                     type="text"
                     value={driverInfo.licenseNumber}
                     onChange={e => setDriverInfo({ ...driverInfo, licenseNumber: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400"
                     placeholder="Enter driver license number"
                   />
                 </div>
@@ -1024,7 +1024,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
               <button
                 onClick={handleConfirmBooking}
                 disabled={bookingLoading}
-                className="w-full py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full py-3 bg-emerald-600 dark:bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-700 dark:hover:bg-emerald-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {bookingLoading
                   ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>

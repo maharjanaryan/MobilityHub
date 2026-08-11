@@ -9,6 +9,7 @@ import {
   CreditCard, Wallet, Star, Gift, Award
 } from "lucide-react";
 import NotificationBell from "../component/NotificationBell";
+import ThemeToggle from "../component/ThemeToggle";
 
 const API_BASE_URL = "http://localhost:8080";
 
@@ -295,10 +296,10 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   const getKYCStatusBadge = (type: "user" | "owner") => {
     const status = type === "user" ? kycStatus.user : kycStatus.owner;
     const statusConfig = {
-      verified: { color: "bg-green-100 text-green-800", label: "Verified", icon: "✅" },
-      pending: { color: "bg-yellow-100 text-yellow-800", label: "Pending", icon: "⏳" },
-      rejected: { color: "bg-red-100 text-red-800", label: "Rejected", icon: "❌" },
-      not_submitted: { color: "bg-gray-100 text-gray-600", label: "Not Submitted", icon: "📋" }
+      verified: { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300", label: "Verified", icon: "✅" },
+      pending: { color: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300", label: "Pending", icon: "⏳" },
+      rejected: { color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300", label: "Rejected", icon: "❌" },
+      not_submitted: { color: "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300", label: "Not Submitted", icon: "📋" }
     };
     return statusConfig[status];
   };
@@ -314,7 +315,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       onClick: () => navigateTo("/chat"),
       divider: false,
       badge: unreadChatCount > 0 ? {
-        color: "bg-red-500 text-white",
+        color: "bg-red-500 dark:bg-red-600 text-white",
         label: `${unreadChatCount}`,
         icon: ""
       } : undefined
@@ -344,14 +345,14 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 
   if (loading) {
     return (
-      <nav className="bg-gray-100 sticky top-0 z-50 shadow-sm">
+      <nav className="bg-gray-100 dark:bg-gray-900 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <img src="/logo.png" alt="Logo" className="w-10 h-10 rounded-full object-cover" />
-            <h1 className="text-xl font-bold">Mobility Hub</h1>
+            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">Mobility Hub</h1>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+            <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
           </div>
         </div>
       </nav>
@@ -359,7 +360,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   }
 
   return (
-    <nav className="bg-gray-100 sticky top-0 z-50 shadow-sm">
+    <nav className="bg-gray-100 dark:bg-gray-900 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
 
         {/* LEFT: Logo */}
@@ -369,24 +370,24 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             alt="Logo"
             className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover shrink-0"
           />
-          <h1 className="text-lg sm:text-xl font-bold truncate">Mobility Hub</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 truncate">Mobility Hub</h1>
         </div>
 
         {/* CENTER: Menu - Icons Removed */}
-        <ul className="hidden lg:flex space-x-8 text-gray-600 font-medium">
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/home")}>
+        <ul className="hidden lg:flex space-x-8 text-gray-600 dark:text-gray-300 font-medium">
+          <li className="hover:text-green-600 dark:hover:text-green-400 cursor-pointer transition-colors" onClick={() => navigateTo("/home")}>
             Home
           </li>
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/maps")}>
+          <li className="hover:text-green-600 dark:hover:text-green-400 cursor-pointer transition-colors" onClick={() => navigateTo("/maps")}>
             Maps
           </li>
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/vehicles")}>
+          <li className="hover:text-green-600 dark:hover:text-green-400 cursor-pointer transition-colors" onClick={() => navigateTo("/vehicles")}>
             Vehicles
           </li>
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/my-bookings")}>
+          <li className="hover:text-green-600 dark:hover:text-green-400 cursor-pointer transition-colors" onClick={() => navigateTo("/my-bookings")}>
             My Bookings
           </li>
-          <li className="hover:text-green-600 cursor-pointer transition-colors" onClick={() => navigateTo("/about1")}>
+          <li className="hover:text-green-600 dark:hover:text-green-400 cursor-pointer transition-colors" onClick={() => navigateTo("/about1")}>
             About Us
           </li>
         </ul>
@@ -394,15 +395,18 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         {/* RIGHT: Chat, Notification, and Profile */}
         <div className="flex items-center space-x-2 sm:space-x-4">
 
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
           {/* Chat Button */}
           <button
             onClick={() => navigateTo("/chat")}
-            className="relative p-2 rounded-full hover:bg-gray-200 transition-colors"
+            className="relative p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             aria-label="Messages"
           >
-            <MessageSquare className="w-5 h-5 text-gray-600" />
+            <MessageSquare className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             {unreadChatCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
+              <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 dark:bg-red-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
                 {unreadChatCount > 9 ? '9+' : unreadChatCount}
               </span>
             )}
@@ -420,34 +424,34 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               <img
                 src={userData.avatar}
                 alt="Profile"
-                className="w-10 h-10 rounded-full cursor-pointer border-2 border-gray-300 hover:border-green-500 transition-colors object-cover"
+                className="w-10 h-10 rounded-full cursor-pointer border-2 border-gray-300 dark:border-gray-600 hover:border-green-500 dark:hover:border-green-400 transition-colors object-cover"
                 onError={(e) => {
                   (e.currentTarget as HTMLImageElement).src = "/logo.png";
                 }}
               />
-              <span className="hidden sm:block text-sm font-medium text-gray-700">
+              <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-200">
                 {userData.name.split(' ')[0]}
               </span>
             </div>
 
             {/* Dropdown Menu */}
             {isDropdownOpen && (
-              <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 max-h-[90vh] overflow-y-auto">
+              <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 max-h-[90vh] overflow-y-auto">
                 {/* User Info Section */}
-                <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-gray-50 border-b border-gray-200">
+                <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-gray-50 dark:from-green-900/30 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center space-x-3">
                     <img
                       src={userData.avatar}
                       alt="Profile"
-                      className="w-12 h-12 rounded-full border-2 border-green-500 object-cover"
+                      className="w-12 h-12 rounded-full border-2 border-green-500 dark:border-green-400 object-cover"
                       onError={(e) => {
                         (e.currentTarget as HTMLImageElement).src = "/logo.png";
                       }}
                     />
                     <div className="flex-1">
-                      <p className="font-semibold text-gray-800">{userData.name}</p>
-                      <p className="text-sm text-gray-500 truncate">{userData.email}</p>
-                      <p className="text-xs text-green-600 mt-1 capitalize flex items-center gap-1">
+                      <p className="font-semibold text-gray-800 dark:text-gray-100">{userData.name}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{userData.email}</p>
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1 capitalize flex items-center gap-1">
                         <Shield className="w-3 h-3" />
                         {userData.role}
                       </p>
@@ -456,11 +460,11 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                 </div>
 
                 {/* KYC Quick Status */}
-                <div className="px-4 py-2 bg-gray-50 border-b border-gray-200">
-                  <p className="text-xs font-semibold text-gray-600 mb-2">KYC Status</p>
+                <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">KYC Status</p>
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
                         <IdCard size={12} /> User KYC
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("user").color} inline-flex items-center gap-1`}>
@@ -469,7 +473,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                       </span>
                     </div>
                     <div className="flex-1">
-                      <div className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
                         <Briefcase size={12} /> Owner KYC
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("owner").color} inline-flex items-center gap-1`}>
@@ -491,8 +495,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                         }}
                         disabled={item.label === "Logout" && isLoggingOut}
                         className={`w-full px-4 py-2.5 flex items-center justify-between transition-colors ${item.danger
-                          ? "text-red-600 hover:bg-red-50 disabled:opacity-50"
-                          : "text-gray-700 hover:bg-gray-100"
+                            ? "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+                            : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                           }`}
                       >
                         <div className="flex items-center space-x-3">
@@ -509,7 +513,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                         )}
                       </button>
                       {item.divider && index < menuItems.length - 1 && (
-                        <div className="border-t border-gray-200 my-1" />
+                        <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
                       )}
                     </React.Fragment>
                   ))}
@@ -522,10 +526,10 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen((open) => !open)}
-            className="lg:hidden p-2 rounded-full hover:bg-gray-200 transition-colors"
+            className="lg:hidden p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             aria-label="Toggle navigation"
           >
-            {isMobileMenuOpen ? <X size={22} className="text-gray-700" /> : <Menu size={22} className="text-gray-700" />}
+            {isMobileMenuOpen ? <X size={22} className="text-gray-700 dark:text-gray-300" /> : <Menu size={22} className="text-gray-700 dark:text-gray-300" />}
           </button>
         </div>
 
@@ -533,8 +537,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 
       {/* Mobile Menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-200 bg-white shadow-lg">
-          <div className="max-w-7xl mx-auto px-4 py-3 grid gap-1 text-gray-600">
+        <div className="lg:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 py-3 grid gap-1 text-gray-600 dark:text-gray-300">
             {/* Main Navigation - Icons Removed */}
             {[
               { label: "Home", path: "/home" },
@@ -547,23 +551,23 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                 key={label}
                 type="button"
                 onClick={() => navigateTo(path)}
-                className="text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+                className="text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors"
               >
                 {label}
               </button>
             ))}
 
             {/* Divider */}
-            <div className="border-t border-gray-200 my-2"></div>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
 
             {/* Quick Actions */}
             <button
               onClick={() => navigateTo("/chat")}
-              className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center justify-between"
+              className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center justify-between"
             >
               <span>Messages</span>
               {unreadChatCount > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                <span className="bg-red-500 dark:bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">
                   {unreadChatCount}
                 </span>
               )}
@@ -571,17 +575,17 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 
             <button
               onClick={() => navigateTo("/booking")}
-              className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+              className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors"
             >
               Booking Request
             </button>
 
             {/* KYC Section */}
-            <div className="border-t border-gray-200 my-2 pt-2">
-              <p className="text-xs font-semibold text-gray-400 px-3 py-1">KYC Verification</p>
+            <div className="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 px-3 py-1">KYC Verification</p>
               <button
                 onClick={() => navigateTo("/kyc/user")}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center justify-between"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center justify-between"
               >
                 <span>User KYC</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("user").color} inline-flex items-center gap-1`}>
@@ -591,7 +595,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               </button>
               <button
                 onClick={() => navigateTo("/kyc/owner")}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors flex items-center justify-between"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center justify-between"
               >
                 <span>Owner KYC</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${getKYCStatusBadge("owner").color} inline-flex items-center gap-1`}>
@@ -602,55 +606,55 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             </div>
 
             {/* More Options */}
-            <div className="border-t border-gray-200 my-2 pt-2">
+            <div className="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
               <button
                 onClick={() => navigateTo("/tracking")}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors"
               >
                 Track My Ride
               </button>
               <button
                 onClick={() => navigateTo("/reports")}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors"
               >
                 My Reports
               </button>
               <button
                 onClick={() => navigateTo("/earnings")}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors"
               >
                 Earnings
               </button>
               <button
                 onClick={() => navigateTo("/help")}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors"
               >
                 Help & Support
               </button>
             </div>
 
             {/* Profile & Settings */}
-            <div className="border-t border-gray-200 my-2 pt-2">
+            <div className="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
               <button
                 onClick={() => navigateTo("/profile")}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors"
               >
                 Profile
               </button>
               <button
                 onClick={() => navigateTo("/settings")}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors"
               >
                 Settings
               </button>
             </div>
 
             {/* Logout */}
-            <div className="border-t border-gray-200 my-2 pt-2">
+            <div className="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
               <button
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors text-red-500 disabled:opacity-50"
+                className="w-full text-left px-3 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors text-red-500 dark:text-red-400 disabled:opacity-50"
               >
                 {isLoggingOut ? "Logging out..." : "Logout"}
               </button>

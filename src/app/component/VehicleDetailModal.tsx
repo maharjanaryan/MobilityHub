@@ -49,26 +49,26 @@ const getFuelTypeIcon = (fuelType: string) => {
   return icons[fuelType?.toLowerCase()] || '⛽';
 };
 
-// Helper function for vehicle status badge
+// Helper function for vehicle status badge with dark mode support
 const getVehicleStatusBadge = (vehicle: Vehicle) => {
   if (!vehicle.isVerified) {
     return {
       label: 'Pending Verification',
       icon: Clock,
-      className: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      className: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 border-yellow-200 dark:border-yellow-700'
     };
   }
   if (vehicle.isAvailable) {
     return {
       label: 'Available',
       icon: CheckCircle,
-      className: 'bg-green-100 text-green-800 border-green-200'
+      className: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-700'
     };
   }
   return {
     label: 'Unavailable',
     icon: XCircle,
-    className: 'bg-gray-100 text-gray-800 border-gray-200'
+    className: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600'
   };
 };
 
@@ -118,7 +118,7 @@ export default function VehicleDetailModal({
               }}
               className="relative w-full max-w-4xl pointer-events-auto"
             >
-              <div className="bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh]">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh]">
                 {/* Close Button */}
                 <button
                   onClick={onClose}
@@ -128,7 +128,7 @@ export default function VehicleDetailModal({
                 </button>
 
                 {/* Hero Image Section */}
-                <div className="relative h-72 md:h-96 bg-gradient-to-r from-gray-900 to-gray-800">
+                <div className="relative h-72 md:h-96 bg-gradient-to-r from-gray-900 to-gray-800 dark:from-gray-800 dark:to-gray-900">
                   {vehicle.photos && vehicle.photos.length > 0 ? (
                     <img
                       src={vehicle.photos[0]}
@@ -140,7 +140,7 @@ export default function VehicleDetailModal({
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <Car className="w-24 h-24 text-gray-600" />
+                      <Car className="w-24 h-24 text-gray-600 dark:text-gray-500" />
                     </div>
                   )}
 
@@ -189,10 +189,10 @@ export default function VehicleDetailModal({
                       {/* Description */}
                       {vehicle.description && (
                         <div>
-                          <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                          <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">
                             Description
                           </h3>
-                          <p className="text-gray-700 leading-relaxed">
+                          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
                             {vehicle.description}
                           </p>
                         </div>
@@ -200,75 +200,75 @@ export default function VehicleDetailModal({
 
                       {/* Specifications Grid */}
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                        <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
                           Specifications
                         </h3>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                            <div className="flex items-center gap-2 text-gray-600 text-sm">
+                          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
                               <Fuel className="w-4 h-4" />
                               Fuel Type
                             </div>
-                            <p className="font-medium text-gray-800 mt-1">
+                            <p className="font-medium text-gray-800 dark:text-gray-200 mt-1">
                               {getFuelTypeIcon(vehicle.fuelType)} {vehicle.fuelType}
                             </p>
                           </div>
-                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                            <div className="flex items-center gap-2 text-gray-600 text-sm">
+                          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
                               <Gauge className="w-4 h-4" />
                               Transmission
                             </div>
-                            <p className="font-medium text-gray-800 mt-1 capitalize">
+                            <p className="font-medium text-gray-800 dark:text-gray-200 mt-1 capitalize">
                               {vehicle.transmission}
                             </p>
                           </div>
-                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                            <div className="flex items-center gap-2 text-gray-600 text-sm">
+                          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
                               <Users className="w-4 h-4" />
                               Seats
                             </div>
-                            <p className="font-medium text-gray-800 mt-1">
+                            <p className="font-medium text-gray-800 dark:text-gray-200 mt-1">
                               {vehicle.seats} Seats
                             </p>
                           </div>
-                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                            <div className="flex items-center gap-2 text-gray-600 text-sm">
+                          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
                               <Car className="w-4 h-4" />
                               License Plate
                             </div>
-                            <p className="font-medium text-gray-800 mt-1">
+                            <p className="font-medium text-gray-800 dark:text-gray-200 mt-1">
                               {vehicle.licensePlate}
                             </p>
                           </div>
-                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                            <div className="flex items-center gap-2 text-gray-600 text-sm">
+                          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
                               <span className="text-lg">🎨</span>
                               Color
                             </div>
-                            <p className="font-medium text-gray-800 mt-1">
+                            <p className="font-medium text-gray-800 dark:text-gray-200 mt-1">
                               {vehicle.color}
                             </p>
                           </div>
-                          <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                            <div className="flex items-center gap-2 text-gray-600 text-sm">
+                          <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 border border-gray-100 dark:border-gray-700">
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-sm">
                               <Clock className="w-4 h-4" />
                               Listed
                             </div>
-                            <p className="font-medium text-gray-800 mt-1">
+                            <p className="font-medium text-gray-800 dark:text-gray-200 mt-1">
                               {new Date(vehicle.createdAt).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
                       </div>
 
-                      {/* Rejection Reason */}
+                      {/* Rejection Reason with dark mode support */}
                       {vehicle.rejectionReason && (
-                        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
                           <div className="flex items-start gap-2">
-                            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
                             <div>
-                              <p className="text-sm font-semibold text-red-800">Rejection Reason</p>
-                              <p className="text-sm text-red-700">{vehicle.rejectionReason}</p>
+                              <p className="text-sm font-semibold text-red-800 dark:text-red-400">Rejection Reason</p>
+                              <p className="text-sm text-red-700 dark:text-red-300">{vehicle.rejectionReason}</p>
                             </div>
                           </div>
                         </div>
@@ -277,9 +277,9 @@ export default function VehicleDetailModal({
 
                     {/* Sidebar - Owner & Actions */}
                     <div className="space-y-4">
-                      {/* Owner Card */}
-                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                      {/* Owner Card with dark mode support */}
+                      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                        <h3 className="text-sm font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
                           Owner
                         </h3>
                         <div className="flex items-center gap-3 mb-3">
@@ -287,36 +287,36 @@ export default function VehicleDetailModal({
                             {vehicle.ownerName?.[0] || 'O'}
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-800">
+                            <p className="font-semibold text-gray-800 dark:text-gray-200">
                               {vehicle.ownerName || 'Vehicle Owner'}
                             </p>
-                            <div className="flex items-center gap-1 text-sm text-gray-500">
+                            <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
                               <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
                               <span>4.8</span>
-                              <span className="text-gray-400">(24 reviews)</span>
+                              <span className="text-gray-400 dark:text-gray-500">(24 reviews)</span>
                             </div>
                           </div>
                         </div>
                         {vehicle.ownerPhone && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
+                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-1">
                             <Phone className="w-4 h-4" />
                             {vehicle.ownerPhone}
                           </div>
                         )}
                         {vehicle.ownerEmail && (
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                             <Mail className="w-4 h-4" />
                             {vehicle.ownerEmail}
                           </div>
                         )}
                       </div>
 
-                      {/* Action Buttons */}
+                      {/* Action Buttons with dark mode support */}
                       <div className="space-y-2">
                         {vehicle.isAvailable && vehicle.isVerified ? (
                           <button
                             onClick={handleRent}
-                            className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                            className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-500 dark:to-emerald-500 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 dark:hover:from-green-600 dark:hover:to-emerald-600 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                           >
                             <Car className="w-5 h-5" />
                             Rent Now - ₹{vehicle.pricePerDay}/day
@@ -324,7 +324,7 @@ export default function VehicleDetailModal({
                         ) : (
                           <button
                             disabled
-                            className="w-full py-3 bg-gray-200 text-gray-500 rounded-xl font-semibold cursor-not-allowed flex items-center justify-center gap-2"
+                            className="w-full py-3 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-xl font-semibold cursor-not-allowed flex items-center justify-center gap-2"
                           >
                             <Clock className="w-5 h-5" />
                             {vehicle.isVerified ? 'Currently Unavailable' : 'Pending Verification'}
@@ -333,7 +333,7 @@ export default function VehicleDetailModal({
 
                         <button
                           onClick={onClose}
-                          className="w-full py-2.5 border-2 border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                          className="w-full py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                         >
                           Close
                         </button>

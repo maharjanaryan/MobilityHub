@@ -127,7 +127,7 @@ const getFuelTypeIcon = (fuelType: string) => {
 const getVehicleStatusBadge = (vehicle: Vehicle) => {
   if (!vehicle.isVerified && vehicle.rejectionReason) {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
         <XCircle className="w-3 h-3 mr-1" />
         Rejected
       </span>
@@ -135,7 +135,7 @@ const getVehicleStatusBadge = (vehicle: Vehicle) => {
   }
   if (!vehicle.isVerified) {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
         <Clock className="w-3 h-3 mr-1" />
         Pending
       </span>
@@ -143,14 +143,14 @@ const getVehicleStatusBadge = (vehicle: Vehicle) => {
   }
   if (vehicle.isAvailable) {
     return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
         <CheckCircle className="w-3 h-3 mr-1" />
         Available
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300">
       <XCircle className="w-3 h-3 mr-1" />
       Unavailable
     </span>
@@ -177,7 +177,7 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
   );
 };
 
-// Modal Component
+// Modal Component with dark mode support
 const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) => {
   if (!isOpen) return null;
 
@@ -190,11 +190,11 @@ const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose:
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative bg-white rounded-2xl max-w-md w-full shadow-2xl"
+            className="relative bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 dark:border-gray-800"
           >
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{title}</h2>
+              <button onClick={onClose} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -206,7 +206,7 @@ const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose:
   );
 };
 
-// Avatar Upload Modal
+// Avatar Upload Modal with dark mode support
 const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, currentAvatar }: any) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -275,7 +275,7 @@ const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, curre
             <img
               src={preview || currentAvatar || "/logo.png"}
               alt="Preview"
-              className="w-32 h-32 rounded-full object-cover border-4 border-green-500"
+              className="w-32 h-32 rounded-full object-cover border-4 border-green-500 dark:border-green-400"
               onError={(e) => { (e.target as HTMLImageElement).src = "/logo.png"; }}
             />
             {preview && (
@@ -290,20 +290,20 @@ const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, curre
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Choose Image</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Choose Image</label>
           <input
             ref={fileInputRef}
             type="file"
             accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
             onChange={handleFileSelect}
-            className="w-full border rounded-lg px-3 py-2 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100 cursor-pointer"
+            className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-gray-800 dark:text-gray-100 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 dark:file:bg-green-900/30 file:text-green-700 dark:file:text-green-300 hover:file:bg-green-100 dark:hover:file:bg-green-900/50 cursor-pointer"
           />
-          <p className="text-xs text-gray-500 mt-1">Max file size: 5MB. Supported formats: JPG, PNG, GIF, WEBP</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Max file size: 5MB. Supported formats: JPG, PNG, GIF, WEBP</p>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <p className="text-red-600 text-sm">{error}</p>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+            <p className="text-red-600 dark:text-red-300 text-sm">{error}</p>
           </div>
         )}
 
@@ -311,14 +311,14 @@ const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, curre
           <button
             onClick={handleUpload}
             disabled={loading || !selectedFile}
-            className="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="flex-1 bg-green-600 dark:bg-green-500 text-white py-2 rounded-lg hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
             {loading ? 'Uploading...' : 'Upload Photo'}
           </button>
           <button
             onClick={handleClose}
-            className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex-1 border border-gray-300 dark:border-gray-600 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
           >
             Cancel
           </button>
@@ -328,7 +328,7 @@ const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, curre
           <button
             onClick={handleDelete}
             disabled={deleteLoading}
-            className="w-full border border-red-300 text-red-600 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center justify-center gap-2 mt-2"
+            className="w-full border border-red-300 dark:border-red-700 text-red-600 dark:text-red-300 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2 mt-2"
           >
             {deleteLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
             {deleteLoading ? 'Removing...' : 'Remove Photo'}
@@ -339,7 +339,7 @@ const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, curre
   );
 };
 
-// Edit Profile Modal
+// Edit Profile Modal with dark mode support
 const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) => {
   const [formData, setFormData] = useState<EditProfileFormData>({
     fullName: userData.fullName || '',
@@ -384,8 +384,8 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) =
               transition={{ type: "spring", duration: 0.4, bounce: 0.3 }}
               className="relative w-full max-w-lg pointer-events-auto"
             >
-              <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                <div className="relative bg-gradient-to-r from-green-600 to-emerald-600 px-6 py-5">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
+                <div className="relative bg-gradient-to-r from-green-600 to-emerald-600 dark:from-gray-800 dark:to-gray-700 px-6 py-5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
@@ -400,7 +400,7 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) =
                       <X className="w-4 h-4 text-white group-hover:rotate-90 transition-transform duration-200" />
                     </button>
                   </div>
-                  <p className="text-green-100 text-sm mt-2 ml-13">
+                  <p className="text-green-100 dark:text-gray-300 text-sm mt-2 ml-13">
                     Update your personal information
                   </p>
                 </div>
@@ -410,26 +410,26 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) =
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg"
+                      className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
                     >
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                      <p className="text-green-700 text-sm">{success}</p>
+                      <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-300" />
+                      <p className="text-green-700 dark:text-green-300 text-sm">{success}</p>
                     </motion.div>
                   )}
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Full Name <span className="text-red-500">*</span>
                     </label>
                     <div className="relative group">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 group-focus-within:text-green-600 transition-colors">
                         <User className="w-4 h-4" />
                       </div>
                       <input
                         type="text"
                         value={formData.fullName}
                         onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 focus:bg-white"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                         placeholder="Enter your full name"
                         required
                         minLength={2}
@@ -440,35 +440,35 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) =
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         First Name
                       </label>
                       <div className="relative group">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 group-focus-within:text-green-600 transition-colors">
                           <User className="w-4 h-4" />
                         </div>
                         <input
                           type="text"
                           value={formData.firstName}
                           onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 focus:bg-white"
+                          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                           placeholder="First name"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                         Last Name
                       </label>
                       <div className="relative group">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 group-focus-within:text-green-600 transition-colors">
                           <User className="w-4 h-4" />
                         </div>
                         <input
                           type="text"
                           value={formData.lastName}
                           onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 focus:bg-white"
+                          className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                           placeholder="Last name"
                         />
                       </div>
@@ -476,11 +476,11 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) =
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Phone Number
                     </label>
                     <div className="relative group">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 group-focus-within:text-green-600 transition-colors">
                         <Phone className="w-4 h-4" />
                       </div>
                       <input
@@ -490,25 +490,25 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) =
                         placeholder="98XXXXXXXX"
                         pattern="\d{10}"
                         maxLength={10}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 focus:bg-white"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 ml-1">Enter 10-digit phone number</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-1">Enter 10-digit phone number</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Email Address <span className="text-red-500">*</span>
                     </label>
                     <div className="relative group">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 group-focus-within:text-green-600 transition-colors">
                         <Mail className="w-4 h-4" />
                       </div>
                       <input
                         type="email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 focus:bg-white"
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                         placeholder="you@example.com"
                         required
                       />
@@ -519,10 +519,10 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) =
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"
+                      className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
                     >
-                      <AlertCircle className="w-4 h-4 text-red-600" />
-                      <p className="text-red-700 text-sm">{error}</p>
+                      <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-300" />
+                      <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
                     </motion.div>
                   )}
 
@@ -530,14 +530,14 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) =
                     <button
                       type="button"
                       onClick={onClose}
-                      className="flex-1 px-4 py-2.5 border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200"
+                      className="flex-1 px-4 py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={loading}
-                      className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold py-2.5 rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                      className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-500 dark:to-emerald-500 text-white font-semibold py-2.5 rounded-xl hover:from-green-700 hover:to-emerald-700 dark:hover:from-green-600 dark:hover:to-emerald-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg flex items-center justify-center gap-2"
                     >
                       {loading ? (
                         <>
@@ -553,9 +553,6 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) =
                     </button>
                   </div>
                 </form>
-
-                <div className="absolute top-20 right-0 w-32 h-32 bg-green-100 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
-                <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-100 rounded-full blur-3xl opacity-20 pointer-events-none"></div>
               </div>
             </motion.div>
           </div>
@@ -565,7 +562,7 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) =
   );
 };
 
-// Change Password Modal
+// Change Password Modal with dark mode support
 const ChangePasswordModal = ({ isOpen, onClose, onChangePassword, loading }: any) => {
   const [formData, setFormData] = useState<ChangePasswordFormData>({
     currentPassword: '',
@@ -599,41 +596,41 @@ const ChangePasswordModal = ({ isOpen, onClose, onChangePassword, loading }: any
     <Modal isOpen={isOpen} onClose={onClose} title="Change Password">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Password</label>
           <input
             type="password"
             value={formData.currentPassword}
             onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+            className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
             required
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
           <input
             type="password"
             value={formData.newPassword}
             onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+            className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
             required
           />
-          <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Minimum 6 characters</p>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm New Password</label>
           <input
             type="password"
             value={formData.confirmPassword}
             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-            className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+            className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
             required
           />
         </div>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-red-500 dark:text-red-400 text-sm">{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-green-600 dark:bg-green-500 text-white py-2 rounded-lg hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
           {loading ? 'Changing...' : 'Change Password'}
@@ -836,7 +833,6 @@ export default function ProfilePage() {
       const data = await readApiResponse(response);
 
       if (response.ok && (data?.success !== false)) {
-        // Extract avatar URL from response
         const newAvatarUrl = data?.avatarUrl || data?.data?.avatarUrl || data?.data?.url || data?.url;
         if (newAvatarUrl) {
           const normalized = normalizeAvatarUrl(newAvatarUrl);
@@ -924,12 +920,12 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
         <HomeHeader />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-green-600 mx-auto mb-4" />
-            <p className="text-gray-600">Loading profile...</p>
+            <Loader2 className="w-12 h-12 animate-spin text-green-600 dark:text-green-400 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-300">Loading profile...</p>
           </div>
         </div>
         <Footer />
@@ -938,7 +934,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
       <HomeHeader />
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
@@ -979,65 +975,42 @@ export default function ProfilePage() {
         }}
       />
 
-      <main className="flex-1 profile-page">
-        <div style={{
-          background: "linear-gradient(135deg, #052e16 0%, #14532d 40%, #166534 100%)",
-          padding: "60px 0 100px",
-          position: "relative",
-          overflow: "hidden",
-        }}>
-          <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 28px", position: "relative", zIndex: 2 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 28, flexWrap: "wrap" }}>
-              <div style={{ position: "relative" }}>
-                <div style={{
-                  width: 110, height: 110, borderRadius: "50%",
-                  border: "4px solid rgba(74,222,128,0.4)",
-                  padding: 3, background: "rgba(255,255,255,0.1)",
-                  backdropFilter: "blur(10px)",
-                }}>
+      <main className="flex-1">
+        {/* Hero Section with dark mode support */}
+        <div className="bg-gradient-to-br from-green-950 via-green-900 to-green-800 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-16 pb-28 relative overflow-hidden">
+          <div className="max-w-6xl mx-auto px-6 relative z-10">
+            <div className="flex items-center gap-8 flex-wrap">
+              <div className="relative">
+                <div className="w-28 h-28 rounded-full border-4 border-green-400/40 dark:border-green-500/30 p-1 bg-white/10 dark:bg-white/5 backdrop-blur-sm">
                   <img
                     src={getAvatarSrc()}
                     alt="Profile"
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                      transition: "opacity 0.25s ease, transform 0.25s ease",
-                    }}
+                    className="w-full h-full rounded-full object-cover"
                     onError={() => setAvatarError(true)}
                     onLoad={() => setAvatarError(false)}
                   />
                 </div>
                 <button
                   onClick={() => setAvatarModalOpen(true)}
-                  style={{
-                    position: "absolute", bottom: 2, right: 2,
-                    width: 32, height: 32, borderRadius: "50%",
-                    background: "#16a34a", border: "3px solid #052e16",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    cursor: "pointer", color: "#fff", transition: "transform 0.2s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                  className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-green-500 dark:bg-green-400 border-3 border-green-950 dark:border-gray-900 flex items-center justify-center cursor-pointer text-white hover:scale-105 transition-transform"
                 >
                   <Camera size={14} />
                 </button>
               </div>
 
               <div>
-                <h1 style={{ color: "#fff", fontSize: "1.75rem", fontWeight: 800, margin: "0 0 4px", letterSpacing: "-0.02em" }}>
+                <h1 className="text-white text-2xl font-extrabold tracking-tight">
                   {userData.fullName || userData.username}
                 </h1>
-                <p style={{ color: "#86efac", fontSize: "0.9rem", margin: "0 0 8px" }}>
+                <p className="text-green-300 dark:text-green-400 text-sm mb-2">
                   {userData.canBook ? "✅ Can Book Vehicles" : "❌ Cannot Book Vehicles"} |
                   {userData.canList ? "✅ Can List Vehicles" : "❌ Cannot List Vehicles"}
                 </p>
-                <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-                  <span style={{ color: "#a7f3d0", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: 5 }}>
+                <div className="flex gap-4 flex-wrap">
+                  <span className="text-green-200 dark:text-gray-300 text-sm flex items-center gap-1.5">
                     <User size={13} /> {userData.role}
                   </span>
-                  <span style={{ color: "#a7f3d0", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: 5 }}>
+                  <span className="text-green-200 dark:text-gray-300 text-sm flex items-center gap-1.5">
                     <Calendar size={13} /> Member since {new Date(userData.createdAt).toLocaleDateString()}
                   </span>
                 </div>
@@ -1045,23 +1018,7 @@ export default function ProfilePage() {
 
               <button
                 onClick={() => setEditModalOpen(true)}
-                style={{
-                  marginLeft: "auto",
-                  padding: "10px 22px", borderRadius: 12,
-                  background: "rgba(255,255,255,0.1)",
-                  border: "1.5px solid rgba(255,255,255,0.2)",
-                  color: "#fff", fontSize: "0.85rem", fontWeight: 600,
-                  cursor: "pointer", display: "flex", alignItems: "center", gap: 7,
-                  backdropFilter: "blur(8px)", transition: "all 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.2)";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
+                className="ml-auto px-5 py-2.5 rounded-xl bg-white/10 dark:bg-white/5 border border-white/20 dark:border-white/10 text-white text-sm font-semibold hover:bg-white/20 dark:hover:bg-white/10 transition-all hover:-translate-y-0.5 flex items-center gap-2 backdrop-blur-sm"
               >
                 <Edit3 size={15} /> Edit Profile
               </button>
@@ -1069,54 +1026,50 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div style={{ maxWidth: 1100, margin: "-50px auto 0", padding: "0 28px 60px", position: "relative", zIndex: 3 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 28 }}>
-            <div style={{ background: "#fff", borderRadius: 16, padding: "20px 24px", border: "1.5px solid #f0f0f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                <Shield size={22} style={{ color: "#16a34a" }} />
-                <h3 style={{ color: "#0d1117", fontWeight: 700, fontSize: "1rem", margin: 0 }}>Renter KYC</h3>
+        {/* Content Section */}
+        <div className="max-w-6xl mx-auto px-6 -mt-12 pb-16 relative z-20">
+          {/* KYC Cards with dark mode support */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <Shield size={22} className="text-green-600 dark:text-green-400" />
+                <h3 className="font-bold text-gray-800 dark:text-gray-100 text-base">Renter KYC</h3>
               </div>
-              <p style={{ fontSize: "1.1rem", fontWeight: 600, margin: "8px 0" }}>{getKYCStatusText(userData.renterKycStatus)}</p>
-              <p style={{ color: "#6b7280", fontSize: "0.75rem", margin: 0 }}>
+              <p className="text-lg font-semibold text-gray-800 dark:text-gray-100">{getKYCStatusText(userData.renterKycStatus)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {userData.renterKycStatus === 'VERIFIED' ? 'You can book vehicles' : 'Complete KYC to book vehicles'}
               </p>
             </div>
-            <div style={{ background: "#fff", borderRadius: 16, padding: "20px 24px", border: "1.5px solid #f0f0f0" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-                <Car size={22} style={{ color: "#16a34a" }} />
-                <h3 style={{ color: "#0d1117", fontWeight: 700, fontSize: "1rem", margin: 0 }}>Owner KYC</h3>
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm">
+              <div className="flex items-center gap-3 mb-2">
+                <Car size={22} className="text-green-600 dark:text-green-400" />
+                <h3 className="font-bold text-gray-800 dark:text-gray-100 text-base">Owner KYC</h3>
               </div>
-              <p style={{ fontSize: "1.1rem", fontWeight: 600, margin: "8px 0" }}>{getKYCStatusText(userData.ownerKycStatus)}</p>
-              <p style={{ color: "#6b7280", fontSize: "0.75rem", margin: 0 }}>
+              <p className="text-lg font-semibold text-gray-800 dark:text-gray-100">{getKYCStatusText(userData.ownerKycStatus)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {userData.ownerKycStatus === 'VERIFIED' ? 'You can list vehicles' : 'Complete KYC to list vehicles'}
               </p>
             </div>
           </div>
 
-          <div style={{
-            display: "flex", gap: 4, marginBottom: 28,
-            background: "#fff", borderRadius: 14, padding: 5,
-            border: "1.5px solid #f0f0f0",
-          }}>
+          {/* Tabs */}
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-1.5 border border-gray-100 dark:border-gray-800 mb-8 flex gap-1">
             {tabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                style={{
-                  flex: 1, padding: "12px 20px", borderRadius: 10,
-                  background: activeTab === tab.key ? "#16a34a" : "transparent",
-                  color: activeTab === tab.key ? "#fff" : "#6b7280",
-                  border: "none", cursor: "pointer",
-                  fontSize: "0.875rem", fontWeight: 600,
-                  transition: "all 0.2s",
-                }}
+                className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all ${activeTab === tab.key
+                    ? 'bg-green-600 dark:bg-green-500 text-white shadow-md'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  }`}
               >
                 {tab.label}
               </button>
             ))}
           </div>
 
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
+          {/* Tab Content */}
+          <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             {activeTab === "overview" && <OverviewTab userData={userData} />}
             {activeTab === "rides" && <RidesTab />}
             {activeTab === "vehicles" && (
@@ -1135,54 +1088,54 @@ export default function ProfilePage() {
   );
 }
 
-// Overview Tab
+// Overview Tab with dark mode support
 function OverviewTab({ userData }: { userData: UserProfileData }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-      <div style={cardStyle}>
-        <h3 style={cardTitleStyle}>Personal Information</h3>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
+        <h3 className="font-extrabold text-gray-800 dark:text-gray-100 text-lg mb-5">Personal Information</h3>
         {[
           { icon: User, label: "Full Name", value: userData.fullName || userData.username },
           { icon: Mail, label: "Email", value: userData.email },
           { icon: Phone, label: "Phone", value: userData.phoneNumber || "Not provided" },
           { icon: MapPin, label: "Location", value: "Kathmandu, Nepal" },
         ].map((item, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 0", borderBottom: i < 3 ? "1px solid #f3f4f6" : "none" }}>
-            <div style={{ width: 38, height: 38, borderRadius: 10, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <item.icon size={17} style={{ color: "#16a34a" }} />
+          <div key={i} className={`flex items-center gap-4 py-4 ${i < 3 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}>
+            <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+              <item.icon size={17} className="text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p style={{ color: "#9ca3af", fontSize: "0.72rem", fontWeight: 500, margin: 0 }}>{item.label}</p>
-              <p style={{ color: "#0d1117", fontSize: "0.9rem", fontWeight: 600, margin: 0 }}>{item.value}</p>
+              <p className="text-xs font-medium text-gray-400 dark:text-gray-500">{item.label}</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{item.value}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div style={cardStyle}>
-        <h3 style={cardTitleStyle}>🌿 Your Eco Impact</h3>
-        <div style={{ background: "linear-gradient(135deg, #052e16, #14532d)", borderRadius: 14, padding: 24, marginBottom: 16 }}>
-          <p style={{ color: "#86efac", fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase" as const, margin: "0 0 8px" }}>LIFETIME CO₂ SAVED</p>
-          <p style={{ color: "#fff", fontSize: "2.2rem", fontWeight: 800, margin: "0 0 4px" }}>1,247 kg</p>
-          <p style={{ color: "#6ee7b7", fontSize: "0.8rem", margin: 0 }}>Equivalent to planting 62 trees 🌳</p>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
+        <h3 className="font-extrabold text-gray-800 dark:text-gray-100 text-lg mb-5">🌿 Your Eco Impact</h3>
+        <div className="bg-gradient-to-br from-green-950 to-green-800 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-6 mb-4">
+          <p className="text-green-300 dark:text-green-400 text-xs font-bold uppercase tracking-wider mb-2">LIFETIME CO₂ SAVED</p>
+          <p className="text-white text-3xl font-extrabold">1,247 kg</p>
+          <p className="text-green-300 dark:text-green-400 text-sm mt-1">Equivalent to planting 62 trees 🌳</p>
         </div>
       </div>
 
-      <div style={{ ...cardStyle, gridColumn: "1 / -1" }}>
-        <h3 style={cardTitleStyle}>Recent Activity</h3>
-        <div style={{ display: "flex", gap: 16, overflowX: "auto", paddingBottom: 8 }}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm md:col-span-2">
+        <h3 className="font-extrabold text-gray-800 dark:text-gray-100 text-lg mb-5">Recent Activity</h3>
+        <div className="flex gap-4 overflow-x-auto pb-2">
           {rideHistory.slice(0, 3).map((ride) => (
-            <div key={ride.id} style={{ minWidth: 260, background: "#fafafa", borderRadius: 14, padding: "18px 20px", border: "1.5px solid #f0f0f0" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "#16a34a", background: "#f0fdf4", padding: "3px 10px", borderRadius: 99 }}>{ride.status}</span>
-                <span style={{ color: "#9ca3af", fontSize: "0.72rem" }}>{ride.date}</span>
+            <div key={ride.id} className="min-w-[260px] bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-5 border border-gray-100 dark:border-gray-700">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-xs font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full">{ride.status}</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{ride.date}</span>
               </div>
-              <p style={{ color: "#0d1117", fontWeight: 700, fontSize: "0.95rem", margin: "0 0 6px" }}>{ride.vehicle}</p>
-              <div style={{ display: "flex", gap: 14, color: "#6b7280", fontSize: "0.78rem" }}>
-                <span><Clock size={12} /> {ride.duration}</span>
-                <span><TrendingUp size={12} /> {ride.distance}</span>
+              <p className="font-bold text-gray-800 dark:text-gray-100 text-base">{ride.vehicle}</p>
+              <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1.5">
+                <span className="flex items-center gap-1"><Clock size={12} /> {ride.duration}</span>
+                <span className="flex items-center gap-1"><TrendingUp size={12} /> {ride.distance}</span>
               </div>
-              <p style={{ color: "#0d1117", fontWeight: 700, fontSize: "0.9rem", margin: "10px 0 0" }}>{ride.cost}</p>
+              <p className="font-bold text-gray-800 dark:text-gray-100 text-base mt-2">{ride.cost}</p>
             </div>
           ))}
         </div>
@@ -1191,34 +1144,34 @@ function OverviewTab({ userData }: { userData: UserProfileData }) {
   );
 }
 
-// Rides Tab
+// Rides Tab with dark mode support
 function RidesTab() {
   return (
-    <div style={cardStyle}>
-      <h3 style={cardTitleStyle}>All Rides</h3>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
+      <h3 className="font-extrabold text-gray-800 dark:text-gray-100 text-lg mb-5">All Rides</h3>
       {rideHistory.map((ride, i) => (
-        <div key={ride.id} style={{ display: "flex", alignItems: "center", gap: 18, padding: "18px 0", borderBottom: i < rideHistory.length - 1 ? "1px solid #f3f4f6" : "none" }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, background: "#f0fdf4", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Car size={22} style={{ color: "#16a34a" }} />
+        <div key={ride.id} className={`flex items-center gap-5 py-4 ${i < rideHistory.length - 1 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}>
+          <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+            <Car size={22} className="text-green-600 dark:text-green-400" />
           </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ color: "#0d1117", fontWeight: 700, fontSize: "0.95rem", margin: 0 }}>{ride.vehicle}</p>
-            <p style={{ color: "#9ca3af", fontSize: "0.78rem", margin: "3px 0 0" }}>{ride.date} • {ride.duration} • {ride.distance}</p>
+          <div className="flex-1">
+            <p className="font-bold text-gray-800 dark:text-gray-100 text-base">{ride.vehicle}</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">{ride.date} • {ride.duration} • {ride.distance}</p>
           </div>
-          <div style={{ textAlign: "right" }}>
-            <p style={{ color: "#0d1117", fontWeight: 700, fontSize: "0.95rem", margin: 0 }}>{ride.cost}</p>
-            <div style={{ display: "flex", gap: 3, justifyContent: "flex-end", marginTop: 3 }}>
-              {Array.from({ length: ride.rating }).map((_, j) => (<Star key={j} size={12} style={{ color: "#f59e0b", fill: "#f59e0b" }} />))}
+          <div className="text-right">
+            <p className="font-bold text-gray-800 dark:text-gray-100 text-base">{ride.cost}</p>
+            <div className="flex gap-0.5 justify-end mt-1">
+              {Array.from({ length: ride.rating }).map((_, j) => (<Star key={j} size={12} className="text-yellow-400 fill-yellow-400" />))}
             </div>
           </div>
-          <ChevronRight size={18} style={{ color: "#d1d5db" }} />
+          <ChevronRight size={18} className="text-gray-300 dark:text-gray-600" />
         </div>
       ))}
     </div>
   );
 }
 
-// Vehicles Tab
+// Vehicles Tab with dark mode support
 function VehiclesTab({ vehicles, loading, onViewDetails, userData }: {
   vehicles: Vehicle[];
   loading: boolean;
@@ -1229,20 +1182,20 @@ function VehiclesTab({ vehicles, loading, onViewDetails, userData }: {
 
   if (userData.ownerKycStatus !== 'VERIFIED') {
     return (
-      <div style={cardStyle}>
-        <div className="text-center py-16">
-          <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-10 h-10 text-yellow-600" />
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
+        <div className="text-center py-12">
+          <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Shield className="w-10 h-10 text-yellow-600 dark:text-yellow-300" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">Owner KYC Required</h3>
-          <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Owner KYC Required</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
             {userData.ownerKycStatus === 'SUBMITTED' && 'Your Owner KYC is currently under review. You\'ll be able to manage vehicles once verified.'}
             {userData.ownerKycStatus === 'REJECTED' && 'Your Owner KYC was rejected. Please resubmit your documents for verification.'}
             {userData.ownerKycStatus === 'NOT_SUBMITTED' && 'Complete your Owner KYC verification to list and manage your vehicles.'}
           </p>
           <button
             onClick={() => router.push('/kyc/owner')}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-600 text-white rounded-xl hover:bg-yellow-700 transition-colors font-semibold"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-600 dark:bg-yellow-500 text-white rounded-xl hover:bg-yellow-700 dark:hover:bg-yellow-600 transition-colors font-semibold"
           >
             <Shield className="w-4 h-4" />
             Complete KYC
@@ -1254,11 +1207,11 @@ function VehiclesTab({ vehicles, loading, onViewDetails, userData }: {
 
   if (loading) {
     return (
-      <div style={cardStyle}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-green-600 mx-auto mb-4" />
-            <p className="text-gray-600 text-sm">Loading your vehicles...</p>
+            <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-300 text-sm">Loading your vehicles...</p>
           </div>
         </div>
       </div>
@@ -1267,18 +1220,18 @@ function VehiclesTab({ vehicles, loading, onViewDetails, userData }: {
 
   if (vehicles.length === 0) {
     return (
-      <div style={cardStyle}>
-        <div className="text-center py-16">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Car className="w-10 h-10 text-gray-400" />
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
+        <div className="text-center py-12">
+          <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Car className="w-10 h-10 text-gray-400 dark:text-gray-500" />
           </div>
-          <h3 className="text-xl font-semibold text-gray-800 mb-2">No Vehicles Listed</h3>
-          <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">No Vehicles Listed</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
             You haven't listed any vehicles yet. Start earning by sharing your vehicle with the community.
           </p>
           <button
             onClick={() => router.push('/add-vehicle')}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-semibold"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 dark:bg-green-500 text-white rounded-xl hover:bg-green-700 dark:hover:bg-green-600 transition-colors font-semibold"
           >
             <Plus className="w-4 h-4" />
             Add Your First Vehicle
@@ -1289,12 +1242,12 @@ function VehiclesTab({ vehicles, loading, onViewDetails, userData }: {
   }
 
   return (
-    <div style={cardStyle}>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
       <div className="flex items-center justify-between mb-6">
-        <h3 style={cardTitleStyle}>My Vehicles ({vehicles.length})</h3>
+        <h3 className="font-extrabold text-gray-800 dark:text-gray-100 text-lg">My Vehicles ({vehicles.length})</h3>
         <button
           onClick={() => router.push('/add-vehicle')}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors text-sm font-semibold"
         >
           <Plus className="w-4 h-4" />
           Add Vehicle
@@ -1305,9 +1258,9 @@ function VehiclesTab({ vehicles, loading, onViewDetails, userData }: {
         {vehicles.map((vehicle) => (
           <div
             key={vehicle.id}
-            className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow"
           >
-            <div className="relative h-40 bg-gray-100">
+            <div className="relative h-40 bg-gray-100 dark:bg-gray-700">
               {vehicle.photos && vehicle.photos.length > 0 ? (
                 <img
                   src={vehicle.photos[0]}
@@ -1318,16 +1271,16 @@ function VehiclesTab({ vehicles, loading, onViewDetails, userData }: {
                   }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                  <Car className="w-12 h-12 text-gray-400" />
+                <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                  <Car className="w-12 h-12 text-gray-400 dark:text-gray-500" />
                 </div>
               )}
               <div className="absolute top-3 right-3">
                 {getVehicleStatusBadge(vehicle)}
               </div>
               {vehicle.rejectionReason && (
-                <div className="absolute bottom-0 left-0 right-0 bg-red-50/95 backdrop-blur-sm p-1.5 px-3">
-                  <p className="text-xs text-red-700 truncate">
+                <div className="absolute bottom-0 left-0 right-0 bg-red-50/95 dark:bg-red-900/90 backdrop-blur-sm p-1.5 px-3">
+                  <p className="text-xs text-red-700 dark:text-red-300 truncate">
                     <strong>Rejected:</strong> {vehicle.rejectionReason}
                   </p>
                 </div>
@@ -1337,42 +1290,42 @@ function VehiclesTab({ vehicles, loading, onViewDetails, userData }: {
             <div className="p-4">
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <h4 className="font-semibold text-gray-800">
+                  <h4 className="font-semibold text-gray-800 dark:text-gray-100">
                     {vehicle.brand} {vehicle.model}
                   </h4>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     {vehicle.year} • {vehicle.color}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-green-600">₹{vehicle.pricePerDay}</p>
-                  <p className="text-xs text-gray-500">per day</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">₹{vehicle.pricePerDay}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">per day</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2 mb-3">
-                <div className="flex items-center gap-1 text-xs text-gray-600">
+                <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
                   <Users className="w-3 h-3" />
                   {vehicle.seats}
                 </div>
-                <div className="flex items-center gap-1 text-xs text-gray-600">
+                <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
                   <span>{getFuelTypeIcon(vehicle.fuelType)}</span>
                   {vehicle.fuelType}
                 </div>
-                <div className="flex items-center gap-1 text-xs text-gray-600">
+                <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
                   <Gauge className="w-3 h-3" />
                   {vehicle.transmission}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                <span className="text-xs text-gray-500">
+              <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
                   <MapPin className="w-3 h-3 inline mr-1" />
                   {vehicle.city || 'Location not set'}
                 </span>
                 <button
                   onClick={() => onViewDetails(vehicle)}
-                  className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1 transition-colors"
+                  className="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium flex items-center gap-1 transition-colors"
                 >
                   <Eye className="w-4 h-4" />
                   View Details
@@ -1386,19 +1339,3 @@ function VehiclesTab({ vehicles, loading, onViewDetails, userData }: {
     </div>
   );
 }
-
-const cardStyle: React.CSSProperties = {
-  background: "#fff",
-  borderRadius: 18,
-  padding: "26px 28px",
-  border: "1.5px solid #f0f0f0",
-  boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
-};
-
-const cardTitleStyle: React.CSSProperties = {
-  color: "#0d1117",
-  fontSize: "1.15rem",
-  fontWeight: 800,
-  margin: "0 0 20px",
-  letterSpacing: "-0.01em",
-};

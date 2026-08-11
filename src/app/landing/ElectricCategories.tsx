@@ -53,9 +53,8 @@ export default function ElectricCategories() {
               delay: index * 0.1,
               ease: "easeOut",
             }}
-            className={`rounded-2xl border border-gray-400 p-6 shadow-sm hover:shadow-lg transition-all duration-300 bg-white hover:scale-110 transition-transform ${
-              item.highlight ? "bg-green-50" : ""
-            }`}
+            className={`rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm hover:shadow-lg transition-all duration-300 bg-white dark:bg-gray-900 hover:scale-110 ${item.highlight ? "bg-green-50 dark:bg-green-950/30" : ""
+              }`}
           >
             <div className="relative h-48 w-full mb-6">
               <Image
@@ -66,14 +65,16 @@ export default function ElectricCategories() {
               />
             </div>
 
-            <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
+            <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">
+              {item.title}
+            </h3>
 
-            <div className="flex justify-between text-gray-500 text-sm mb-4">
+            <div className="flex justify-between text-gray-500 dark:text-gray-400 text-sm mb-4">
               <span>{item.available}</span>
               <span>{item.range}</span>
             </div>
 
-            <button className="text-green-600 font-medium flex items-center gap-2 group">
+            <button className="text-green-600 dark:text-green-400 font-medium flex items-center gap-2 group">
               Browse
               <span className="group-hover:translate-x-1 transition-transform">
                 →

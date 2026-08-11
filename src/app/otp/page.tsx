@@ -216,12 +216,12 @@ export default function OtpPage() {
     };
 
     return (
-        <main className="min-h-screen bg-gradient-to-br from-green-50 to-green-100">
+        <main className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
             <div className="flex items-center justify-center px-4 py-8 sm:py-12">
                 <div className="w-full max-w-md">
-                    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 sm:p-8">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-5 sm:p-8">
                         <div className="flex justify-center mb-6">
-                            <div className="bg-green-100 rounded-full p-3">
+                            <div className="bg-green-100 dark:bg-green-900/20 rounded-full p-3">
                                 <img
                                     src="/logo.png"
                                     alt="Logo"
@@ -235,11 +235,11 @@ export default function OtpPage() {
                         </div>
 
                         <div className="text-center mb-6">
-                            <h1 className="text-2xl font-bold text-gray-800 mb-2">Verify Your Email</h1>
-                            <p className="text-sm text-gray-500">
+                            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Verify Your Email</h1>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                                 We've sent a 6-digit verification code to
                             </p>
-                            <p className="text-sm font-medium text-gray-700 mt-1">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-1">
                                 {email}
                             </p>
                             <button
@@ -253,7 +253,7 @@ export default function OtpPage() {
 
                         {/* Success Message */}
                         {successMessage && (
-                            <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-600 text-sm rounded-lg">
+                            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 text-green-600 dark:text-green-300 text-sm rounded-lg">
                                 <div className="flex items-center gap-2">
                                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -265,7 +265,7 @@ export default function OtpPage() {
 
                         {/* Error Message */}
                         {error && (
-                            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
+                            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 text-red-600 dark:text-red-300 text-sm rounded-lg">
                                 <div className="flex items-center gap-2">
                                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -290,7 +290,7 @@ export default function OtpPage() {
                                         onKeyDown={(e) => handleKeyDown(index, e)}
                                         onPaste={index === 0 ? handlePaste : undefined}
                                         disabled={isVerifying || isResending}
-                                        className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-semibold border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed transition"
+                                        className="w-12 h-12 sm:w-14 sm:h-14 text-center text-xl font-semibold border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed transition dark:bg-gray-800 dark:text-gray-100"
                                         autoComplete="off"
                                     />
                                 ))}
@@ -318,8 +318,8 @@ export default function OtpPage() {
                             {/* Resend Code Section */}
                             <div className="text-center">
                                 {!canResend ? (
-                                    <p className="text-xs text-gray-400">
-                                        Resend code in <span className="font-medium text-gray-600">{timeLeft}</span> seconds
+                                    <p className="text-xs text-gray-400 dark:text-gray-400">
+                                        Resend code in <span className="font-medium text-gray-600 dark:text-gray-300">{timeLeft}</span> seconds
                                     </p>
                                 ) : (
                                     <button
@@ -344,17 +344,17 @@ export default function OtpPage() {
                         </div>
 
                         {/* Back to Sign In Link */}
-                        <div className="mt-6 pt-4 border-t border-gray-100">
+                        <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
                             <Link
                                 href="/signin"
-                                className="block text-center text-sm text-gray-500 hover:text-gray-700 transition"
+                                className="block text-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition"
                             >
                                 ← Back to sign in
                             </Link>
                         </div>
 
                         {/* Help Text */}
-                        <p className="text-center text-xs text-gray-400 mt-4">
+                        <p className="text-center text-xs text-gray-400 dark:text-gray-400 mt-4">
                             Didn't receive the code? Check your spam folder or contact support.
                         </p>
                     </div>

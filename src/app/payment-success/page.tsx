@@ -66,13 +66,13 @@ export default function PaymentSuccessPage() {
   return (
     <>
       <HomeHeader />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center py-12">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 dark:from-gray-950 to-gray-100 dark:to-gray-900 flex items-center justify-center py-12">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-300" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Payment Successful!</h1>
-          <p className="text-gray-600 mb-6">
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Payment Successful!</h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
             Your booking has been confirmed. You will receive a confirmation email shortly.
           </p>
           <button
@@ -83,7 +83,7 @@ export default function PaymentSuccessPage() {
           </button>
           <button
             onClick={() => router.push('/home')}
-            className="mt-3 text-sm text-gray-500 hover:text-gray-700"
+            className="mt-3 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
           >
             Return to Home
           </button>

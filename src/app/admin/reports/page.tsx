@@ -153,8 +153,8 @@ export default function ReportsPage() {
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Reports</h1>
-            <p className="text-gray-600">Generate and export comprehensive platform reports</p>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Reports</h1>
+            <p className="text-gray-600 dark:text-gray-300">Generate and export comprehensive platform reports</p>
           </div>
           <div className="flex gap-3">
             <button
@@ -169,8 +169,8 @@ export default function ReportsPage() {
       </div>
 
       {/* Report Type Selection */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
-        <div className="p-4 border-b border-gray-100">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
           <div className="flex flex-wrap gap-3">
             {[
               { id: 'bookings', label: 'Booking Report', icon: Calendar },
@@ -185,8 +185,8 @@ export default function ReportsPage() {
                   key={type.id}
                   onClick={() => setReportType(type.id)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${reportType === type.id
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -199,15 +199,15 @@ export default function ReportsPage() {
       </div>
 
       {/* Date Range Filters */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
         <div className="p-4">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Date Range</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Date Range</label>
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
               >
                 <option value="daily">Daily</option>
                 <option value="weekly">Weekly</option>
@@ -218,21 +218,21 @@ export default function ReportsPage() {
               </select>
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Start Date</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
               />
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-500 mb-1">End Date</label>
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">End Date</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
               />
             </div>
             <div className="flex items-end">
@@ -248,41 +248,41 @@ export default function ReportsPage() {
       </div>
 
       {/* Report Content */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         {/* Report Header */}
-        <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800">{currentReport.title}</h2>
-              <p className="text-sm text-gray-500 mt-1">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{currentReport.title}</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Period: {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
               </p>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => handleExport('pdf')}
-                className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2 text-sm"
+                className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center space-x-2 text-sm"
               >
                 <Download className="w-4 h-4" />
                 <span>PDF</span>
               </button>
               <button
                 onClick={() => handleExport('excel')}
-                className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2 text-sm"
+                className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center space-x-2 text-sm"
               >
                 <Download className="w-4 h-4" />
                 <span>Excel</span>
               </button>
               <button
                 onClick={handlePrint}
-                className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2 text-sm"
+                className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center space-x-2 text-sm"
               >
                 <Printer className="w-4 h-4" />
                 <span>Print</span>
               </button>
               <button
                 onClick={handleEmail}
-                className="px-3 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex items-center space-x-2 text-sm"
+                className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors flex items-center space-x-2 text-sm"
               >
                 <Mail className="w-4 h-4" />
                 <span>Email</span>
@@ -297,91 +297,91 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {reportType === 'bookings' && (
               <>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Total Bookings</p>
-                  <p className="text-2xl font-bold text-gray-800">{currentReport.totalBookings.toLocaleString()}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Bookings</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.totalBookings.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Completed</p>
-                  <p className="text-2xl font-bold text-green-600">{currentReport.completedBookings.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 mt-1">{currentReport.bookingsByStatus[0].percentage}%</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Completed</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-300">{currentReport.completedBookings.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{currentReport.bookingsByStatus[0].percentage}%</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Cancelled</p>
-                  <p className="text-2xl font-bold text-red-600">{currentReport.cancelledBookings.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 mt-1">{currentReport.bookingsByStatus[1].percentage}%</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cancelled</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-300">{currentReport.cancelledBookings.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{currentReport.bookingsByStatus[1].percentage}%</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Avg. Booking Value</p>
-                  <p className="text-2xl font-bold text-emerald-600">${currentReport.averageBookingValue}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg. Booking Value</p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">${currentReport.averageBookingValue}</p>
                 </div>
               </>
             )}
 
             {reportType === 'revenue' && (
               <>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Total Revenue</p>
-                  <p className="text-2xl font-bold text-gray-800">${currentReport.totalRevenue.toLocaleString()}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Revenue</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">${currentReport.totalRevenue.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Platform Commission</p>
-                  <p className="text-2xl font-bold text-emerald-600">${currentReport.platformCommission.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 mt-1">{currentReport.revenueBySource[0].percentage}%</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Platform Commission</p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">${currentReport.platformCommission.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{currentReport.revenueBySource[0].percentage}%</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Owner Payout</p>
-                  <p className="text-2xl font-bold text-blue-600">${currentReport.ownerPayout.toLocaleString()}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Owner Payout</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-300">${currentReport.ownerPayout.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Avg. Daily Revenue</p>
-                  <p className="text-2xl font-bold text-purple-600">${currentReport.averageDailyRevenue.toLocaleString()}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg. Daily Revenue</p>
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-300">${currentReport.averageDailyRevenue.toLocaleString()}</p>
                 </div>
               </>
             )}
 
             {reportType === 'users' && (
               <>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Total Users</p>
-                  <p className="text-2xl font-bold text-gray-800">{currentReport.totalUsers.toLocaleString()}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Users</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.totalUsers.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">New Users</p>
-                  <p className="text-2xl font-bold text-emerald-600">{currentReport.newUsers.toLocaleString()}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">New Users</p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">{currentReport.newUsers.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Active Users</p>
-                  <p className="text-2xl font-bold text-blue-600">{currentReport.activeUsers.toLocaleString()}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Active Users</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-300">{currentReport.activeUsers.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Verified KYC</p>
-                  <p className="text-2xl font-bold text-green-600">{currentReport.verifiedUsers.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 mt-1">{((currentReport.verifiedUsers / currentReport.totalUsers) * 100).toFixed(1)}%</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Verified KYC</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-300">{currentReport.verifiedUsers.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{((currentReport.verifiedUsers / currentReport.totalUsers) * 100).toFixed(1)}%</p>
                 </div>
               </>
             )}
 
             {reportType === 'vehicles' && (
               <>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Total Vehicles</p>
-                  <p className="text-2xl font-bold text-gray-800">{currentReport.totalVehicles.toLocaleString()}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Vehicles</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.totalVehicles.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Active Vehicles</p>
-                  <p className="text-2xl font-bold text-green-600">{currentReport.activeVehicles.toLocaleString()}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Active Vehicles</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-300">{currentReport.activeVehicles.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Avg. Rating</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg. Rating</p>
                   <div className="flex items-center space-x-1">
                     <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                    <p className="text-2xl font-bold text-gray-800">{currentReport.averageRating}</p>
+                    <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.averageRating}</p>
                   </div>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Utilization Rate</p>
-                  <p className="text-2xl font-bold text-emerald-600">
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Utilization Rate</p>
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">
                     {((currentReport.activeVehicles / currentReport.totalVehicles) * 100).toFixed(1)}%
                   </p>
                 </div>
@@ -390,22 +390,22 @@ export default function ReportsPage() {
 
             {reportType === 'kyc' && (
               <>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Total Submissions</p>
-                  <p className="text-2xl font-bold text-gray-800">{currentReport.totalSubmissions.toLocaleString()}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Submissions</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.totalSubmissions.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Verified</p>
-                  <p className="text-2xl font-bold text-green-600">{currentReport.verified.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 mt-1">{((currentReport.verified / currentReport.totalSubmissions) * 100).toFixed(1)}%</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Verified</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-300">{currentReport.verified.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{((currentReport.verified / currentReport.totalSubmissions) * 100).toFixed(1)}%</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Pending</p>
-                  <p className="text-2xl font-bold text-yellow-600">{currentReport.pending.toLocaleString()}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pending</p>
+                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-300">{currentReport.pending.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-xs text-gray-500 mb-1">Avg. Processing Time</p>
-                  <p className="text-2xl font-bold text-blue-600">{currentReport.averageProcessingTime} days</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg. Processing Time</p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-300">{currentReport.averageProcessingTime} days</p>
                 </div>
               </>
             )}
@@ -415,7 +415,7 @@ export default function ReportsPage() {
           {reportType === 'bookings' && currentReport.monthlyData && (
             <>
               <div className="mb-8">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Monthly Booking Trends</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Monthly Booking Trends</h3>
                 <div className="h-64 flex items-end space-x-4">
                   {currentReport.monthlyData.map((item: any, i: number) => {
                     const maxBookings = getMaxValue(currentReport.monthlyData, 'bookings');
@@ -431,7 +431,7 @@ export default function ReportsPage() {
                               {item.bookings.toLocaleString()} bookings
                             </div>
                           </div>
-                          <p className="text-center text-xs text-gray-500 mt-2">{item.month}</p>
+                          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">{item.month}</p>
                         </div>
                       </div>
                     );
@@ -440,22 +440,22 @@ export default function ReportsPage() {
               </div>
 
               <div>
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Monthly Breakdown</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Monthly Breakdown</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
                       <tr>
-                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Month</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Bookings</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Revenue</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Month</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Bookings</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Revenue</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {currentReport.monthlyData.map((item: any, i: number) => (
-                        <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-800">{item.month}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-right">{item.bookings.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-right">${item.revenue.toLocaleString()}</td>
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                          <td className="px-4 py-3 text-sm text-gray-800 dark:text-gray-100">{item.month}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">{item.bookings.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-100 text-right">${item.revenue.toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -468,7 +468,7 @@ export default function ReportsPage() {
           {reportType === 'revenue' && currentReport.monthlyRevenue && (
             <>
               <div className="mb-8">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Monthly Revenue Trends</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Monthly Revenue Trends</h3>
                 <div className="h-64 flex items-end space-x-4">
                   {currentReport.monthlyRevenue.map((item: any, i: number) => {
                     const maxRevenue = getMaxValue(currentReport.monthlyRevenue, 'amount');
@@ -484,7 +484,7 @@ export default function ReportsPage() {
                               ${item.amount.toLocaleString()}
                             </div>
                           </div>
-                          <p className="text-center text-xs text-gray-500 mt-2">{item.month}</p>
+                          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">{item.month}</p>
                         </div>
                       </div>
                     );
@@ -493,15 +493,15 @@ export default function ReportsPage() {
               </div>
 
               <div className="mb-8">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Revenue Breakdown by Source</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Revenue Breakdown by Source</h3>
                 <div className="space-y-4">
                   {currentReport.revenueBySource.map((source: any, i: number) => (
                     <div key={i}>
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700">{source.source}</span>
-                        <span className="text-gray-800 font-semibold">${source.amount.toLocaleString()}</span>
+                        <span className="text-gray-700 dark:text-gray-300">{source.source}</span>
+                        <span className="text-gray-800 dark:text-gray-100 font-semibold">${source.amount.toLocaleString()}</span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-emerald-500 rounded-full"
                           style={{ width: `${source.percentage}%` }}
@@ -513,22 +513,22 @@ export default function ReportsPage() {
               </div>
 
               <div>
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Monthly Revenue Details</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Monthly Revenue Details</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
                       <tr>
-                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Month</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Revenue</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Growth</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Month</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Revenue</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Growth</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {currentReport.monthlyRevenue.map((item: any, i: number) => (
-                        <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-800">{item.month}</td>
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-right">${item.amount.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-sm text-green-600 text-right">+{item.growth}%</td>
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                          <td className="px-4 py-3 text-sm text-gray-800 dark:text-gray-100">{item.month}</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-100 text-right">${item.amount.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm text-green-600 dark:text-green-300 text-right">+{item.growth}%</td>
                         </tr>
                       ))}
                     </tbody>
@@ -541,7 +541,7 @@ export default function ReportsPage() {
           {reportType === 'users' && currentReport.userGrowth && (
             <>
               <div className="mb-8">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">User Growth Trends</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">User Growth Trends</h3>
                 <div className="h-64 flex items-end space-x-4">
                   {currentReport.userGrowth.map((item: any, i: number) => {
                     const maxUsers = getMaxValue(currentReport.userGrowth, 'totalUsers');
@@ -557,7 +557,7 @@ export default function ReportsPage() {
                               {item.totalUsers.toLocaleString()} users
                             </div>
                           </div>
-                          <p className="text-center text-xs text-gray-500 mt-2">{item.month}</p>
+                          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">{item.month}</p>
                         </div>
                       </div>
                     );
@@ -566,15 +566,15 @@ export default function ReportsPage() {
               </div>
 
               <div className="mb-8">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Users by Role</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Users by Role</h3>
                 <div className="space-y-4">
                   {currentReport.usersByRole.map((role: any, i: number) => (
                     <div key={i}>
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700">{role.role}</span>
-                        <span className="text-gray-800 font-semibold">{role.count.toLocaleString()}</span>
+                        <span className="text-gray-700 dark:text-gray-300">{role.role}</span>
+                        <span className="text-gray-800 dark:text-gray-100 font-semibold">{role.count.toLocaleString()}</span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-emerald-500 rounded-full"
                           style={{ width: `${role.percentage}%` }}
@@ -586,22 +586,22 @@ export default function ReportsPage() {
               </div>
 
               <div>
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Monthly User Registration</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Monthly User Registration</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
                       <tr>
-                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Month</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">New Users</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Total Users</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Month</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">New Users</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Total Users</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {currentReport.userGrowth.map((item: any, i: number) => (
-                        <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-800">{item.month}</td>
-                          <td className="px-4 py-3 text-sm text-green-600 text-right">+{item.newUsers.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-right">{item.totalUsers.toLocaleString()}</td>
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                          <td className="px-4 py-3 text-sm text-gray-800 dark:text-gray-100">{item.month}</td>
+                          <td className="px-4 py-3 text-sm text-green-600 dark:text-green-300 text-right">+{item.newUsers.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-100 text-right">{item.totalUsers.toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -614,15 +614,15 @@ export default function ReportsPage() {
           {reportType === 'vehicles' && currentReport.vehiclesByType && (
             <>
               <div className="mb-8">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Vehicle Distribution by Type</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Vehicle Distribution by Type</h3>
                 <div className="space-y-4">
                   {currentReport.vehiclesByType.map((type: any, i: number) => (
                     <div key={i}>
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700">{type.type}</span>
-                        <span className="text-gray-800 font-semibold">{type.count.toLocaleString()}</span>
+                        <span className="text-gray-700 dark:text-gray-300">{type.type}</span>
+                        <span className="text-gray-800 dark:text-gray-100 font-semibold">{type.count.toLocaleString()}</span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-teal-500 rounded-full"
                           style={{ width: `${type.percentage}%` }}
@@ -634,24 +634,24 @@ export default function ReportsPage() {
               </div>
 
               <div>
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Top Performing Vehicles</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Top Performing Vehicles</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
                       <tr>
-                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Vehicle</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Bookings</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Revenue</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Rating</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Vehicle</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Bookings</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Revenue</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Rating</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {currentReport.topVehicles.map((vehicle: any, i: number) => (
-                        <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm font-medium text-gray-800">{vehicle.name}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-right">{vehicle.bookings.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-right">${vehicle.revenue.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-right">{vehicle.rating}</td>
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                          <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-100">{vehicle.name}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">{vehicle.bookings.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-100 text-right">${vehicle.revenue.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">{vehicle.rating}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -664,7 +664,7 @@ export default function ReportsPage() {
           {reportType === 'kyc' && currentReport.monthlySubmissions && (
             <>
               <div className="mb-8">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">KYC Submission Trends</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">KYC Submission Trends</h3>
                 <div className="h-64 flex items-end space-x-4">
                   {currentReport.monthlySubmissions.map((item: any, i: number) => {
                     const maxSubmissions = getMaxValue(currentReport.monthlySubmissions, 'submitted');
@@ -680,7 +680,7 @@ export default function ReportsPage() {
                               {item.submitted.toLocaleString()} submissions
                             </div>
                           </div>
-                          <p className="text-center text-xs text-gray-500 mt-2">{item.month}</p>
+                          <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">{item.month}</p>
                         </div>
                       </div>
                     );
@@ -689,26 +689,26 @@ export default function ReportsPage() {
               </div>
 
               <div>
-                <h3 className="text-md font-semibold text-gray-800 mb-4">Monthly KYC Details</h3>
+                <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Monthly KYC Details</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-gray-800">
                       <tr>
-                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500">Month</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Submitted</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Verified</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Rejected</th>
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500">Success Rate</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Month</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Submitted</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Verified</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Rejected</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Success Rate</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {currentReport.monthlySubmissions.map((item: any, i: number) => (
-                        <tr key={i} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-sm text-gray-800">{item.month}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600 text-right">{item.submitted.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-sm text-green-600 text-right">{item.verified.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-sm text-red-600 text-right">{item.rejected.toLocaleString()}</td>
-                          <td className="px-4 py-3 text-sm font-semibold text-gray-800 text-right">
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                          <td className="px-4 py-3 text-sm text-gray-800 dark:text-gray-100">{item.month}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">{item.submitted.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm text-green-600 dark:text-green-300 text-right">{item.verified.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm text-red-600 dark:text-red-300 text-right">{item.rejected.toLocaleString()}</td>
+                          <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-100 text-right">
                             {((item.verified / item.submitted) * 100).toFixed(1)}%
                           </td>
                         </tr>

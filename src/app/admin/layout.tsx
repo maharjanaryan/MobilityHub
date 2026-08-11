@@ -22,6 +22,7 @@ import {
   X
 } from 'lucide-react';
 import NotificationBell from '../component/NotificationBell';
+import ThemeToggle from '../component/ThemeToggle';
 
 
 interface User {
@@ -134,7 +135,7 @@ export default function AdminLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
         <div className="text-center">
           <div className="relative">
             <div className="w-20 h-20 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -142,20 +143,20 @@ export default function AdminLayout({
               <div className="w-8 h-8 bg-emerald-500 rounded-full animate-pulse"></div>
             </div>
           </div>
-          <p className="text-gray-600 font-medium mt-4">Loading dashboard...</p>
+          <p className="text-gray-600 dark:text-gray-300 font-medium mt-4">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
       {/* Mobile menu button */}
       <button
         onClick={() => setSidebarOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-md"
       >
-        <Menu className="w-5 h-5 text-gray-600" />
+        <Menu className="w-5 h-5 text-gray-600 dark:text-gray-300" />
       </button>
 
       {/* Mobile sidebar overlay */}
@@ -168,11 +169,11 @@ export default function AdminLayout({
 
       {/* Sidebar - Fixed for desktop, sliding for mobile */}
       <aside
-        className={`fixed top-0 left-0 z-40 w-72 h-full bg-white shadow-2xl transform transition-all duration-300 ease-in-out lg:translate-x-0 overflow-y-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 left-0 z-40 w-72 h-full bg-white dark:bg-gray-900 shadow-2xl transform transition-all duration-300 ease-in-out lg:translate-x-0 overflow-y-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
       >
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-800">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 relative">
                 <Image
@@ -184,13 +185,13 @@ export default function AdminLayout({
                 />
               </div>
               <div>
-                <span className="font-bold text-xl text-gray-800">MobilityHub</span>
-                <p className="text-xs text-gray-500">Admin Portal</p>
+                <span className="font-bold text-xl text-gray-800 dark:text-gray-100">MobilityHub</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Admin Portal</p>
               </div>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden text-gray-400 hover:text-gray-600 transition-colors"
+              className="lg:hidden text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -201,8 +202,8 @@ export default function AdminLayout({
               href="/admin/dashboard"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/dashboard')
-                ? 'text-emerald-700 bg-emerald-50'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
             >
               <Home className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -213,8 +214,8 @@ export default function AdminLayout({
               href="/admin/users"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/users')
-                ? 'text-emerald-700 bg-emerald-50'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
             >
               <Users className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -225,8 +226,8 @@ export default function AdminLayout({
               href="/admin/kyc"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/kyc')
-                ? 'text-emerald-700 bg-emerald-50'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
             >
               <Shield className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -242,8 +243,8 @@ export default function AdminLayout({
               href="/admin/vehicles"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/vehicles')
-                ? 'text-emerald-700 bg-emerald-50'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
             >
               <Car className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -254,8 +255,8 @@ export default function AdminLayout({
               href="/admin/bookings"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/bookings')
-                ? 'text-emerald-700 bg-emerald-50'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
             >
               <Calendar className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -266,8 +267,8 @@ export default function AdminLayout({
               href="/admin/analytics"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/analytics')
-                ? 'text-emerald-700 bg-emerald-50'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
             >
               <TrendingUp className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -278,8 +279,8 @@ export default function AdminLayout({
               href="/admin/reports"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/reports')
-                ? 'text-emerald-700 bg-emerald-50'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
             >
               <FileText className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -290,8 +291,8 @@ export default function AdminLayout({
               href="/admin/settings"
               onClick={() => setSidebarOpen(false)}
               className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/settings')
-                ? 'text-emerald-700 bg-emerald-50'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                 }`}
             >
               <Settings className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
@@ -299,10 +300,10 @@ export default function AdminLayout({
             </Link>
           </nav>
 
-          <div className="p-4 border-t border-gray-100">
+          <div className="p-4 border-t border-gray-100 dark:border-gray-800">
             <button
               onClick={handleLogout}
-              className="flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 w-full group"
+              className="flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 w-full group"
             >
               <LogOut className="w-5 h-5 group-hover:rotate-180 transition-transform duration-300" />
               <span>Logout</span>
@@ -314,7 +315,7 @@ export default function AdminLayout({
       {/* Main content */}
       <div className="lg:ml-72">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30">
+        <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30">
           <div className="flex items-center justify-between px-4 md:px-6 py-4">
             <div className="flex-1 max-w-lg hidden md:block">
               <div className="relative group">
@@ -322,34 +323,37 @@ export default function AdminLayout({
                 <input
                   type="text"
                   placeholder="Search anything..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                 />
-                <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-md hidden md:block">
+                <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md hidden md:block">
                   ⌘K
                 </kbd>
               </div>
             </div>
 
             <div className="flex items-center space-x-4 ml-auto md:ml-0">
+              {/* Theme Toggle */}
+              <ThemeToggle />
+
               {/* Notification Bell Component */}
               <NotificationBell />
 
-              <button className="text-gray-600 hover:text-emerald-600 transition-colors" onClick={fetchPendingKycCount}>
+              <button className="text-gray-600 dark:text-gray-300 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" onClick={fetchPendingKycCount}>
                 <RefreshCw className="w-5 h-5" />
               </button>
 
-              <div className="flex items-center space-x-3 pl-4 border-l border-gray-200">
+              <div className="flex items-center space-x-3 pl-4 border-l border-gray-200 dark:border-gray-700">
                 <div className="relative group cursor-pointer">
                   <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all">
                     <span className="text-white font-semibold">
                       {user?.fullName?.charAt(0) || 'A'}
                     </span>
                   </div>
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full"></div>
                 </div>
                 <div className="hidden md:block">
-                  <p className="text-sm font-semibold text-gray-800">{user?.fullName || 'Admin User'}</p>
-                  <p className="text-xs text-gray-500">System Administrator</p>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{user?.fullName || 'Admin User'}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">System Administrator</p>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </div>

@@ -275,13 +275,13 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950">
       {/* Sidebar */}
-      <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-800">Messages</h2>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">Messages</h2>
             <button
               onClick={() => setShowNewChat(true)}
               className="p-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition"
@@ -290,13 +290,13 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
             </button>
           </div>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-400" />
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-gray-100 dark:placeholder-gray-500"
             />
           </div>
         </div>
@@ -305,9 +305,9 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
         <div className="flex-1 overflow-y-auto">
           {conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <MessageSquare className="w-12 h-12 text-gray-300 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-700">No messages yet</h3>
-              <p className="text-gray-500 text-sm mt-2">Start a new conversation</p>
+              <MessageSquare className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">No messages yet</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Start a new conversation</p>
             </div>
           ) : (
             conversations.map((conv) => (
@@ -316,8 +316,8 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 onClick={() => setCurrentConversation(conv)}
-                className={`p-4 hover:bg-gray-50 cursor-pointer transition border-l-4 ${currentConversation?.id === conv.id
-                  ? 'border-emerald-500 bg-emerald-50'
+                className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition border-l-4 ${currentConversation?.id === conv.id
+                  ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
                   : 'border-transparent'
                   }`}
               >
@@ -328,10 +328,10 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
                         {conv.otherUserName.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-gray-800 truncate">
+                        <p className="font-semibold text-gray-800 dark:text-gray-100 truncate">
                           {conv.otherUserName}
                         </p>
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                           {conv.lastMessage || 'No messages yet'}
                         </p>
                       </div>
@@ -339,7 +339,7 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
                   </div>
                   <div className="flex flex-col items-end gap-1 ml-2">
                     {conv.lastMessageTime && (
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-400 dark:text-gray-400">
                         {formatTime(conv.lastMessageTime)}
                       </span>
                     )}
@@ -357,31 +357,31 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col bg-gray-50">
+      <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-950">
         {currentConversation ? (
           <>
             {/* Chat Header */}
-            <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
+            <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold">
                   {currentConversation.otherUserName.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-800">
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-100">
                     {currentConversation.otherUserName}
                   </h3>
-                  <p className="text-xs text-gray-500">Online</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Online</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button className="p-2 hover:bg-gray-100 rounded-xl transition">
-                  <Phone className="w-5 h-5 text-gray-600" />
+                <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition">
+                  <Phone className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                 </button>
-                <button className="p-2 hover:bg-gray-100 rounded-xl transition">
-                  <Video className="w-5 h-5 text-gray-600" />
+                <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition">
+                  <Video className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                 </button>
-                <button className="p-2 hover:bg-gray-100 rounded-xl transition">
-                  <MoreVertical className="w-5 h-5 text-gray-600" />
+                <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition">
+                  <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                 </button>
               </div>
             </div>
@@ -393,13 +393,13 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
             >
               {loading ? (
                 <div className="flex justify-center">
-                  <div className="animate-pulse text-gray-500">Loading messages...</div>
+                  <div className="animate-pulse text-gray-500 dark:text-gray-400">Loading messages...</div>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <MessageSquare className="w-12 h-12 text-gray-300 mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-700">No messages yet</h3>
-                  <p className="text-gray-500 text-sm mt-2">Send a message to start the conversation</p>
+                  <MessageSquare className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">No messages yet</h3>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Send a message to start the conversation</p>
                 </div>
               ) : (
                 messages.map((msg, index) => {
@@ -412,7 +412,7 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
                     <React.Fragment key={msg.id}>
                       {showDate && (
                         <div className="flex justify-center">
-                          <span className="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full">
+                          <span className="text-xs text-gray-400 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
                             {formatDate(msg.createdAt)}
                           </span>
                         </div>
@@ -425,18 +425,18 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
                         <div className={`max-w-[70%] ${isOwn ? 'order-2' : 'order-1'}`}>
                           <div className={`rounded-2xl px-4 py-2 ${isOwn
                             ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white'
-                            : 'bg-white text-gray-800 border border-gray-200'
+                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700'
                             }`}>
                             <p className="text-sm whitespace-pre-wrap break-words">{msg.message}</p>
                           </div>
-                          <div className={`flex items-center gap-1 mt-1 text-xs text-gray-400 ${isOwn ? 'justify-end' : 'justify-start'
+                          <div className={`flex items-center gap-1 mt-1 text-xs text-gray-400 dark:text-gray-400 ${isOwn ? 'justify-end' : 'justify-start'
                             }`}>
                             <span>{formatTime(msg.createdAt)}</span>
                             {isOwn && (
                               msg.isRead ? (
                                 <CheckCheck className="w-4 h-4 text-emerald-500" />
                               ) : (
-                                <Check className="w-4 h-4 text-gray-400" />
+                                <Check className="w-4 h-4 text-gray-400 dark:text-gray-400" />
                               )
                             )}
                           </div>
@@ -450,13 +450,13 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
             </div>
 
             {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-4">
+            <div className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 p-4">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition"
                 >
-                  <Plus className="w-5 h-5 text-gray-600" />
+                  <Plus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                 </button>
                 <input
                   ref={fileInputRef}
@@ -469,7 +469,7 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Type a message..."
-                  className="flex-1 bg-gray-100 rounded-xl px-4 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[44px] max-h-[120px]"
+                  className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[44px] max-h-[120px] dark:text-gray-100 dark:placeholder-gray-500"
                   rows={1}
                 />
                 <button
@@ -484,9 +484,9 @@ export default function ChatInterface({ userId, token, initialConversationId }: 
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <MessageSquare className="w-16 h-16 text-gray-300 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700">Welcome to Messages</h3>
-            <p className="text-gray-500 mt-2 max-w-sm">
+            <MessageSquare className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300">Welcome to Messages</h3>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-sm">
               Select a conversation from the sidebar or start a new one
             </p>
           </div>

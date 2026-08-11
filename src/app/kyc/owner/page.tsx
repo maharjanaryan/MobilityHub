@@ -283,14 +283,14 @@ export default function OwnerKYCPage() {
           <React.Fragment key={step}>
             <div className="flex flex-col items-center">
               <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm
-                ${currentStep >= step ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                ${currentStep >= step ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
                 {step}
               </div>
-              <span className={`text-xs mt-2 ${currentStep >= step ? 'text-green-700 font-medium' : 'text-gray-500'}`}>
+              <span className={`text-xs mt-2 ${currentStep >= step ? 'text-green-700 dark:text-green-300 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
                 {step === 1 ? 'Personal' : step === 2 ? 'Identity' : step === 3 ? 'Vehicle' : 'Payment'}
               </span>
             </div>
-            {step < totalSteps && <div className={`w-10 sm:w-16 h-0.5 mx-2 ${currentStep > step ? 'bg-green-600' : 'bg-gray-200'}`} />}
+            {step < totalSteps && <div className={`w-10 sm:w-16 h-0.5 mx-2 ${currentStep > step ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'}`} />}
           </React.Fragment>
         ))}
       </div>
@@ -299,48 +299,48 @@ export default function OwnerKYCPage() {
 
   const renderInputField = useCallback(({ name, label, type = "text", placeholder, required = true, maxLength }: InputFieldProps) => (
     <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-2">{label} {required && '*'}</label>
+      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{label} {required && '*'}</label>
       <input
         type={type}
         name={name}
         value={formData[name] as string}
         onChange={handleInputChange}
         maxLength={maxLength}
-        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${errors[name] ? 'border-red-500' : 'border-gray-300'}`}
+        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 ${errors[name] ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
         placeholder={placeholder}
       />
-      {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
+      {errors[name] && <p className="mt-1 text-sm text-red-600 dark:text-red-300">{errors[name]}</p>}
     </div>
   ), [formData, errors, handleInputChange]);
 
   const renderTextArea = useCallback(({ name, label, placeholder, required = true }: InputFieldProps) => (
     <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-2">{label} {required && '*'}</label>
+      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{label} {required && '*'}</label>
       <textarea
         name={name}
         value={formData[name] as string}
         onChange={handleInputChange}
         rows={3}
-        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent ${errors[name] ? 'border-red-500' : 'border-gray-300'}`}
+        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 ${errors[name] ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
         placeholder={placeholder}
       />
-      {errors[name] && <p className="mt-1 text-sm text-red-600">{errors[name]}</p>}
+      {errors[name] && <p className="mt-1 text-sm text-red-600 dark:text-red-300">{errors[name]}</p>}
     </div>
   ), [formData, errors, handleInputChange]);
 
   const renderFileUpload = useCallback(({ field, label, previewUrl, required = true }: FileUploadProps) => (
     <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-2">{label} {required && '*'}</label>
-      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-green-500 transition-colors">
+      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{label} {required && '*'}</label>
+      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 text-center hover:border-green-500 transition-colors">
         <input
           type="file"
           accept="image/*"
           onChange={(e) => handleFileChange(e, field)}
-          className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+          className="w-full text-sm dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 dark:file:bg-green-900/20 file:text-green-700 dark:file:text-green-300 hover:file:bg-green-100 dark:hover:file:bg-green-900/30"
         />
         {previewUrl && <div className="mt-3"><img src={previewUrl} alt={label} className="max-h-32 w-full object-contain mx-auto rounded border" /></div>}
       </div>
-      {errors[field] && <p className="mt-1 text-sm text-red-600">{errors[field]}</p>}
+      {errors[field] && <p className="mt-1 text-sm text-red-600 dark:text-red-300">{errors[field]}</p>}
     </div>
   ), [errors, handleFileChange]);
 
@@ -365,8 +365,8 @@ export default function OwnerKYCPage() {
               {renderFileUpload({ field: "citizenshipFrontImage", label: "Citizenship Front Image", previewUrl: previewUrls.citizenshipFront })}
               {renderFileUpload({ field: "citizenshipBackImage", label: "Citizenship Back Image", previewUrl: previewUrls.citizenshipBack })}
             </div>
-            <div className="border-t border-gray-200 pt-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Driving License Details</h3>
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Driving License Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {renderInputField({ name: "drivingLicenseNumber", label: "Driving License Number", placeholder: "e.g., DL-1234567890" })}
                 {renderInputField({ name: "drivingLicenseExpiryDate", label: "License Expiry Date", type: "date" })}
@@ -378,8 +378,8 @@ export default function OwnerKYCPage() {
       case 3:
         return (
           <div className="space-y-4">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-              <p className="text-sm text-yellow-800">
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
+              <p className="text-sm text-yellow-800 dark:text-yellow-300">
                 ⚠️ Vehicle ownership documents are mandatory for listing vehicles on MobilityHub.
                 Please ensure your Bluebook and ownership certificate are clear and valid.
               </p>
@@ -405,29 +405,29 @@ export default function OwnerKYCPage() {
   }, [currentStep, renderInputField, renderTextArea, renderFileUpload, previewUrls]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-green-50 via-white to-emerald-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-green-950 dark:via-gray-950 dark:to-emerald-950">
       <HomeHeader />
       <main className="flex-1 py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center p-2 bg-green-100 rounded-full mb-4">
-              <svg className="w-8 h-8 text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="inline-flex items-center justify-center p-2 bg-green-100 dark:bg-green-900/20 rounded-full mb-4">
+              <svg className="w-8 h-8 text-green-700 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Owner KYC Verification</h1>
-            <p className="text-gray-600">Complete verification to list your vehicles for rent</p>
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">Owner KYC Verification</h1>
+            <p className="text-gray-600 dark:text-gray-300">Complete verification to list your vehicles for rent</p>
           </div>
 
           {stepIndicator}
 
           {submitStatus && (
-            <div className={`mb-6 p-4 rounded-lg ${submitStatus.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'}`}>
+            <div className={`mb-6 p-4 rounded-lg ${submitStatus.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'}`}>
               {submitStatus.message}
             </div>
           )}
 
-          <div className="bg-white rounded-xl shadow-lg border border-green-100 overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-green-100 dark:border-gray-700 overflow-hidden">
             <div className="px-4 sm:px-6 py-4 bg-gradient-to-r from-green-700 to-emerald-600">
               <h2 className="text-lg sm:text-xl font-semibold text-white">
                 Step {currentStep}: {currentStep === 1 ? 'Personal Information' : currentStep === 2 ? 'Identity Documents' : currentStep === 3 ? 'Vehicle Documents' : 'Payment Information'}
@@ -436,9 +436,9 @@ export default function OwnerKYCPage() {
 
             <form onSubmit={handleSubmit}>
               <div className="p-4 sm:p-6">{renderStep()}</div>
-              <div className="px-4 sm:px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col-reverse sm:flex-row justify-between gap-3">
+              <div className="px-4 sm:px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex flex-col-reverse sm:flex-row justify-between gap-3">
                 <button type="button" onClick={handlePrevious}
-                  className={`w-full sm:w-auto px-6 py-2 rounded-lg font-semibold transition-colors ${currentStep === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  className={`w-full sm:w-auto px-6 py-2 rounded-lg font-semibold transition-colors ${currentStep === 1 ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
                   disabled={currentStep === 1}>
                   Previous
                 </button>
@@ -456,7 +456,7 @@ export default function OwnerKYCPage() {
               </div>
             </form>
           </div>
-          <div className="mt-6 text-center text-sm text-gray-500">Step {currentStep} of {totalSteps}</div>
+          <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">Step {currentStep} of {totalSteps}</div>
         </div>
       </main>
       <Footer />

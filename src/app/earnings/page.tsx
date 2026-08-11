@@ -43,8 +43,8 @@ const SimpleBarChart = ({ data }: { data: { label: string; amount: number; color
   return (
     <div className="mt-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-gray-700">Monthly Trend</h3>
-        <span className="text-xs text-gray-500">Amount (₹)</span>
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">Monthly Trend</h3>
+        <span className="text-xs text-gray-500 dark:text-gray-400">Amount (₹)</span>
       </div>
       <div className="flex items-end gap-3 h-64">
         {data.map((item, idx) => (
@@ -58,8 +58,8 @@ const SimpleBarChart = ({ data }: { data: { label: string; amount: number; color
               }}
             />
             <div className="text-center">
-              <p className="text-xs font-semibold text-gray-700">{item.label}</p>
-              <p className="text-xs text-gray-500 mt-1">₹{item.amount.toLocaleString()}</p>
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{item.label}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">₹{item.amount.toLocaleString()}</p>
             </div>
           </div>
         ))}
@@ -78,7 +78,7 @@ const SimpleLineChart = ({ data }: { data: { date: string; amount: number }[] })
 
   return (
     <div className="mt-6">
-      <h3 className="text-sm font-medium text-gray-700 mb-4">Daily Performance</h3>
+      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Daily Performance</h3>
       <div className="relative h-48">
         <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
           {/* Grid lines */}
@@ -120,7 +120,7 @@ const SimpleLineChart = ({ data }: { data: { date: string; amount: number }[] })
         </svg>
 
         {/* X-axis labels */}
-        <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-gray-500">
+        <div className="absolute bottom-0 left-0 right-0 flex justify-between text-xs text-gray-500 dark:text-gray-400">
           {data.map((item, idx) => (
             <span key={idx} className="text-center" style={{ width: `${100 / data.length}%` }}>
               {new Date(item.date).getDate()}
@@ -134,13 +134,13 @@ const SimpleLineChart = ({ data }: { data: { date: string; amount: number }[] })
 
 // Statistics card component
 const StatCard = ({ title, value, icon: Icon, trend, color }: any) => (
-  <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+  <div className="bg-white dark:bg-gray-900 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
     <div className="flex items-start justify-between">
       <div>
-        <p className="text-sm text-gray-500 mb-1">{title}</p>
-        <p className="text-2xl font-bold text-gray-800">{value}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{title}</p>
+        <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{value}</p>
         {trend && (
-          <div className={`flex items-center gap-1 mt-2 text-xs ${trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
+          <div className={`flex items-center gap-1 mt-2 text-xs ${trend > 0 ? 'text-green-600 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`}>
             {trend > 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
             <span>{Math.abs(trend)}% from last month</span>
           </div>
@@ -218,7 +218,7 @@ export default function EarningsPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 dark:from-gray-950 via-white dark:via-gray-950 to-gray-50 dark:to-gray-900">
       <HomeHeader />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
@@ -226,20 +226,20 @@ export default function EarningsPage() {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl">
                   <TrendingUp className="w-6 h-6 text-white" />
                 </div>
                 Earnings Dashboard
               </h1>
-              <p className="text-gray-500 mt-2">Track your earnings and performance metrics</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">Track your earnings and performance metrics</p>
             </div>
 
             <div className="flex gap-3">
               <select
                 value={selectedPeriod}
                 onChange={(e) => setSelectedPeriod(e.target.value as any)}
-                className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 <option value="week">This Week</option>
                 <option value="month">This Month</option>
@@ -248,7 +248,7 @@ export default function EarningsPage() {
 
               <button
                 onClick={handleExport}
-                className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm hover:bg-gray-50 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
                 Export
@@ -292,18 +292,18 @@ export default function EarningsPage() {
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Bar Chart */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">Monthly Earnings</h2>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Monthly Earnings</h2>
               <span className="text-xs text-gray-400">Bar Chart</span>
             </div>
             <SimpleBarChart data={barChartData} />
           </div>
 
           {/* Line Chart */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">Daily Trend</h2>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Daily Trend</h2>
               <span className="text-xs text-gray-400">Line Chart</span>
             </div>
             <SimpleLineChart data={lineChartData} />
@@ -312,9 +312,9 @@ export default function EarningsPage() {
 
         {/* Vehicle Performance */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">Vehicle Performance</h2>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Vehicle Performance</h2>
               <Car className="w-5 h-5 text-gray-400" />
             </div>
             <div className="space-y-4">
@@ -323,10 +323,10 @@ export default function EarningsPage() {
                 return (
                   <div key={idx}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="font-medium text-gray-700">{vehicle}</span>
-                      <span className="text-gray-600">₹{amount.toLocaleString()}</span>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">{vehicle}</span>
+                      <span className="text-gray-600 dark:text-gray-300">₹{amount.toLocaleString()}</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all duration-500"
                         style={{
@@ -335,7 +335,7 @@ export default function EarningsPage() {
                         }}
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{percentage.toFixed(1)}% of total earnings</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{percentage.toFixed(1)}% of total earnings</p>
                   </div>
                 );
               })}
@@ -343,19 +343,19 @@ export default function EarningsPage() {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">Recent Activity</h2>
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Recent Activity</h2>
               <span className="text-xs text-gray-400">Last 5 trips</span>
             </div>
             <div className="space-y-3">
               {staticEarnings.slice(-5).reverse().map((earning, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                <div key={idx} className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{earning.vehicle}</p>
-                    <p className="text-xs text-gray-500">{new Date(earning.date).toLocaleDateString()}</p>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{earning.vehicle}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(earning.date).toLocaleDateString()}</p>
                   </div>
-                  <p className="text-sm font-semibold text-green-600">+₹{earning.amount}</p>
+                  <p className="text-sm font-semibold text-green-600 dark:text-green-300">+₹{earning.amount}</p>
                 </div>
               ))}
             </div>
@@ -363,37 +363,37 @@ export default function EarningsPage() {
         </div>
 
         {/* Earnings Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-gray-800">Trip History</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Trip History</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distance</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicle</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Trip ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Distance</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {staticEarnings.map((earning) => (
-                  <tr key={earning.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  <tr key={earning.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                       {new Date(earning.date).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-gray-100">
                       {earning.vehicle}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {earning.tripId || '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                       {earning.distance ? `${earning.distance} km` : '-'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 text-right">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600 dark:text-green-300 text-right">
                       ₹{earning.amount.toLocaleString()}
                     </td>
                   </tr>

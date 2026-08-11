@@ -194,11 +194,11 @@ export default function NotificationBell() {
     <div className="relative" ref={notificationRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-full hover:bg-gray-200 transition-colors"
+        className="relative p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
       >
-        <Bell size={20} className="text-gray-600" />
+        <Bell size={20} className="text-gray-600 dark:text-gray-300" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 min-w-4 h-4 px-1 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
+          <span className="absolute top-0 right-0 min-w-4 h-4 px-1 bg-red-500 dark:bg-red-600 text-white text-[10px] rounded-full flex items-center justify-center">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -206,13 +206,13 @@ export default function NotificationBell() {
 
       {/* Notifications Dropdown */}
       {isOpen && (
-        <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
-          <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-gray-50 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="font-semibold text-gray-800">Notifications</h3>
+        <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
+          <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-gray-50 dark:from-green-900/30 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Notifications</h3>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-xs text-green-600 hover:text-green-700"
+                className="text-xs text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
               >
                 Mark all as read
               </button>
@@ -221,42 +221,50 @@ export default function NotificationBell() {
 
           <div className="max-h-96 overflow-y-auto">
             {isLoading ? (
-              <div className="px-4 py-8 text-center text-gray-500">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 mx-auto mb-2"></div>
+              <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600 dark:border-green-400 mx-auto mb-2"></div>
                 <p className="text-sm">Loading notifications...</p>
               </div>
             ) : error ? (
-              <div className="px-4 py-8 text-center text-red-500">
+              <div className="px-4 py-8 text-center text-red-500 dark:text-red-400">
                 <p className="text-sm">{error}</p>
                 <button
                   onClick={fetchNotifications}
-                  className="mt-2 text-xs text-green-600 hover:text-green-700"
+                  className="mt-2 text-xs text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
                 >
                   Retry
                 </button>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-gray-500">
+              <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
                 No notifications
               </div>
             ) : (
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${notification.status === 'UNREAD' ? 'bg-green-50' : ''
+                  className={`px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors ${notification.status === 'UNREAD'
+                      ? 'bg-green-50 dark:bg-green-900/20'
+                      : ''
                     }`}
                   onClick={() => handleNotificationClick(notification)}
                 >
                   <div className="flex items-start gap-2">
                     <span className="text-lg">{getNotificationIcon(notification.type)}</span>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${notification.status === 'UNREAD' ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>
+                      <p className={`text-sm ${notification.status === 'UNREAD'
+                          ? 'font-semibold text-gray-800 dark:text-gray-100'
+                          : 'text-gray-600 dark:text-gray-400'
+                        }`}>
                         {notification.title}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                      <p className={`text-xs mt-1 line-clamp-2 ${notification.status === 'UNREAD'
+                          ? 'text-gray-700 dark:text-gray-300'
+                          : 'text-gray-500 dark:text-gray-500'
+                        }`}>
                         {notification.message}
                       </p>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                         {new Date(notification.createdAt).toLocaleString()}
                       </p>
                     </div>
@@ -266,13 +274,13 @@ export default function NotificationBell() {
             )}
           </div>
 
-          <div className="px-4 py-2 border-t border-gray-200 text-center">
+          <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-center">
             <button
               onClick={() => {
                 setIsOpen(false);
                 router.push('/notifications');
               }}
-              className="text-sm text-green-600 hover:text-green-700"
+              className="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
             >
               View all notifications
             </button>

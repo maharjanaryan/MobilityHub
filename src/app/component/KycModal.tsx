@@ -110,26 +110,26 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className={`relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border ${config.borderColor}`}
+            className={`relative w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border ${config.borderColor}`}
           >
             {/* Close button - only closes modal, doesn't grant access */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-xl transition-colors z-10"
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors z-10"
             >
-              <X className="w-5 h-5 text-gray-500" />
+              <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
             </button>
 
             {/* Header */}
             <div className={`p-6 ${config.bgColor} border-b ${config.borderColor}`}>
               <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl bg-white shadow-sm`}>
+                <div className={`p-3 rounded-xl bg-white dark:bg-gray-800 shadow-sm`}>
                   <IconComponent className={`w-8 h-8 text-${config.color}-500`} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-800">{config.title}</h3>
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{config.title}</h3>
                   {userName && (
-                    <p className="text-sm text-gray-500">Welcome, {userName}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Welcome, {userName}</p>
                   )}
                 </div>
               </div>
@@ -137,7 +137,7 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
 
             {/* Body */}
             <div className="p-6 space-y-4">
-              <p className="text-gray-600 leading-relaxed">{config.message}</p>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{config.message}</p>
 
               {/* Additional info based on status */}
               <div className={`rounded-xl p-4 border ${config.bgColor} ${config.borderColor}`}>
@@ -160,7 +160,7 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
             </div>
 
             {/* Footer */}
-            <div className="p-6 bg-gray-50 border-t border-gray-100">
+            <div className="p-6 bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-800">
               {config.showAction && (
                 <>
                   <motion.button
@@ -177,7 +177,7 @@ export default function KycModal({ isOpen, onClose, kycStatus, userName }: KycMo
                   {config.showMaybeLater && (
                     <button
                       onClick={onClose}
-                      className="w-full mt-3 py-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                      className="w-full mt-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                     >
                       Maybe later
                     </button>

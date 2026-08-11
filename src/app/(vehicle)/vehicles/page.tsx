@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HomeHeader from "@/app/home/HomeHeader";
+import Header from "@/app/component/Header";
 import Footer from "@/app/component/Footer";
 import KycModal from "@/app/component/KycModal";
 
@@ -73,6 +74,32 @@ export default function VehiclesPage() {
   const [showSort, setShowSort] = useState(false);
   const [kycLoading, setKycLoading] = useState<number | null>(null);
   const [chatLoading, setChatLoading] = useState<number | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Theme state
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Check for dark mode
+  useEffect(() => {
+    const checkDarkMode = () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      setIsDarkMode(isDark);
+    };
+
+    checkDarkMode();
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          checkDarkMode();
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, { attributes: true });
+
+    return () => observer.disconnect();
+  }, []);
 
   // KYC Modal state
   const [showKycModal, setShowKycModal] = useState(false);
@@ -101,11 +128,15 @@ export default function VehiclesPage() {
     return null;
   };
 
-  // ✅ Navigate to map with vehicle location
   const navigateToMapWithVehicle = (vehicle: Vehicle, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Store vehicle data in sessionStorage for the maps page
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      router.push("/signin");
+      return;
+    }
+
     const vehicleData = {
       id: vehicle.id,
       name: vehicle.name,
@@ -117,14 +148,16 @@ export default function VehiclesPage() {
     };
     sessionStorage.setItem('selectedVehicle', JSON.stringify(vehicleData));
 
-    // Navigate to maps page with vehicle coordinates
     router.push(`/maps?vehicleId=${vehicle.id}&lat=${vehicle.lat || 27.7172}&lng=${vehicle.lng || 85.324}&highlight=true`);
   };
 
   useEffect(() => {
     const token = getAccessToken();
+    setIsAuthenticated(!!token);
+
     if (!token) {
-      router.push("/signin");
+      // Still load vehicles even if not authenticated
+      fetchVehicles();
       return;
     }
 
@@ -176,50 +209,38 @@ export default function VehiclesPage() {
     setLoading(true);
     try {
       const token = getAccessToken();
-      if (!token) { router.push("/signin"); return; }
+      const headers: HeadersInit = {
+        "Content-Type": "application/json"
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
 
       const response = await fetch("http://localhost:8080/api/vehicles/recent?page=0&size=100", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
+        headers
       });
 
       if (response.status === 401) {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-        router.push("/signin");
+        setIsAuthenticated(false);
+        // Still try to get vehicles without auth
+        const publicResponse = await fetch("http://localhost:8080/api/vehicles/recent?page=0&size=100");
+        if (publicResponse.ok) {
+          const data = await publicResponse.json();
+          const vehicleList = data.content || [];
+          setVehicles(vehicleList.map((v: any) => transformVehicle(v)));
+        }
+        setLoading(false);
         return;
       }
 
       if (response.ok) {
         const data = await response.json();
         const vehicleList = data.content || [];
-        setVehicles(vehicleList.map((v: any) => ({
-          id: v.id,
-          brand: v.brand,
-          model: v.model,
-          name: `${v.brand} ${v.model}`,
-          category: mapCategory(v.seats),
-          img: v.photos?.[0] || PLACEHOLDER_IMAGE,
-          pricePerDay: v.pricePerDay,
-          rating: v.averageRating || 4.5,
-          range: getRangeByFuelType(v.fuelType),
-          charge: getChargeByFuelType(v.fuelType),
-          location: v.city,
-          city: v.city,
-          tags: extractTags(v),
-          seats: v.seats,
-          transmission: v.transmission,
-          fuelType: v.fuelType,
-          isAvailable: v.isAvailable,
-          photos: v.photos || [],
-          ownerId: v.ownerId || v.owner?.id,
-          ownerName: v.owner?.username || v.owner?.fullName || "Vehicle Owner",
-          lat: v.latitude || v.lat || 27.7172,
-          lng: v.longitude || v.lng || 85.324
-        })));
+        setVehicles(vehicleList.map((v: any) => transformVehicle(v)));
       }
     } catch (error) {
       console.error("Error fetching vehicles:", error);
@@ -227,6 +248,31 @@ export default function VehiclesPage() {
       setLoading(false);
     }
   };
+
+  const transformVehicle = (v: any): Vehicle => ({
+    id: v.id,
+    brand: v.brand,
+    model: v.model,
+    name: `${v.brand} ${v.model}`,
+    category: mapCategory(v.seats),
+    img: v.photos?.[0] || PLACEHOLDER_IMAGE,
+    pricePerDay: v.pricePerDay,
+    rating: v.averageRating || 4.5,
+    range: getRangeByFuelType(v.fuelType),
+    charge: getChargeByFuelType(v.fuelType),
+    location: v.city,
+    city: v.city,
+    tags: extractTags(v),
+    seats: v.seats,
+    transmission: v.transmission,
+    fuelType: v.fuelType,
+    isAvailable: v.isAvailable,
+    photos: v.photos || [],
+    ownerId: v.ownerId || v.owner?.id,
+    ownerName: v.owner?.username || v.owner?.fullName || "Vehicle Owner",
+    lat: v.latitude || v.lat || 27.7172,
+    lng: v.longitude || v.lng || 85.324
+  });
 
   const mapCategory = (seats: number): string => {
     if (seats === 2) return "Bikes";
@@ -262,9 +308,13 @@ export default function VehiclesPage() {
     return tags.slice(0, 3);
   };
 
-  // Start chat with vehicle owner
   const startChatWithOwner = async (vehicleId: number, ownerId: number, ownerName: string, e: React.MouseEvent) => {
     e.stopPropagation();
+
+    if (!isAuthenticated) {
+      router.push("/signin");
+      return;
+    }
 
     const token = getAccessToken();
     if (!token) {
@@ -333,6 +383,11 @@ export default function VehiclesPage() {
   };
 
   const checkKycAndNavigate = async (vehicleId: number) => {
+    if (!isAuthenticated) {
+      router.push("/signin");
+      return;
+    }
+
     if (showKycModal) return;
 
     const token = getAccessToken();
@@ -397,6 +452,10 @@ export default function VehiclesPage() {
   };
 
   const handleVehicleClick = (vehicleId: number) => {
+    if (!isAuthenticated) {
+      router.push("/signin");
+      return;
+    }
     if (showKycModal) return;
     checkKycAndNavigate(vehicleId);
   };
@@ -434,16 +493,19 @@ export default function VehiclesPage() {
     return result;
   }, [searchQuery, activeCategory, selectedLocation, sortBy, priceRange, vehicles]);
 
+  // Loading state with theme support
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100">
-        <HomeHeader />
+      <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
+        {isAuthenticated ? <HomeHeader /> : <Header />}
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
-              <Loader2 className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
+              <Loader2 className={`w-16 h-16 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'} mx-auto mb-4`} />
             </motion.div>
-            <p className="text-gray-600 font-medium">Loading amazing vehicles...</p>
+            <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} font-medium`}>
+              Loading amazing vehicles...
+            </p>
           </div>
         </div>
         <Footer />
@@ -452,14 +514,18 @@ export default function VehiclesPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 font-['Inter',system-ui]">
-      <HomeHeader />
+    <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 via-white to-gray-50'} font-['Inter',system-ui]`}>
+      {/* Conditional Header */}
+      {isAuthenticated ? <HomeHeader /> : <Header />}
 
-      {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white">
+      {/* Hero - Dynamic background based on theme */}
+      <div className={`relative overflow-hidden ${isDarkMode
+        ? 'bg-gradient-to-br from-gray-800 via-gray-900 to-gray-950'
+        : 'bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900'
+        } text-white`}>
         <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-emerald-400 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-400 rounded-full blur-3xl animate-pulse delay-1000" />
+          <div className={`absolute top-0 left-0 w-96 h-96 ${isDarkMode ? 'bg-emerald-600' : 'bg-emerald-400'} rounded-full blur-3xl animate-pulse`} />
+          <div className={`absolute bottom-0 right-0 w-96 h-96 ${isDarkMode ? 'bg-teal-600' : 'bg-teal-400'} rounded-full blur-3xl animate-pulse delay-1000`} />
         </div>
 
         <div className="max-w-7xl mx-auto px-6 py-16 md:py-20 relative z-10">
@@ -564,7 +630,7 @@ export default function VehiclesPage() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl z-20 overflow-hidden border border-gray-100"
+                        className={`absolute right-0 mt-2 w-56 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-2xl z-20 overflow-hidden border ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}
                       >
                         {sortOptions.map(opt => {
                           const Icon = opt.icon;
@@ -572,10 +638,10 @@ export default function VehiclesPage() {
                             <button
                               key={opt.label}
                               onClick={() => { setSortBy(opt.label); setShowSort(false); }}
-                              className="w-full text-left px-4 py-3 text-sm hover:bg-emerald-50 transition flex items-center gap-3 group"
+                              className={`w-full text-left px-4 py-3 text-sm ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'hover:bg-emerald-50'} transition flex items-center gap-3 group`}
                             >
-                              <Icon className="w-4 h-4 text-gray-400 group-hover:text-emerald-600" />
-                              <span className="group-hover:text-emerald-600">{opt.label}</span>
+                              <Icon className={`w-4 h-4 ${isDarkMode ? 'text-gray-500 group-hover:text-emerald-400' : 'text-gray-400 group-hover:text-emerald-600'}`} />
+                              <span className={isDarkMode ? 'group-hover:text-emerald-400' : 'group-hover:text-emerald-600'}>{opt.label}</span>
                               {sortBy === opt.label && <div className="ml-auto w-1.5 h-1.5 bg-emerald-500 rounded-full" />}
                             </button>
                           );
@@ -585,13 +651,15 @@ export default function VehiclesPage() {
                   </AnimatePresence>
                 </div>
 
-                <Link
-                  href="/add-vehicle"
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 hover:scale-105"
-                >
-                  <Plus className="w-4 h-4" />
-                  List Your Vehicle
-                </Link>
+                {isAuthenticated && (
+                  <Link
+                    href="/add-vehicle"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 hover:scale-105"
+                  >
+                    <Plus className="w-4 h-4" />
+                    List Your Vehicle
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -668,15 +736,17 @@ export default function VehiclesPage() {
       </div>
 
       {/* Results */}
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-12 w-full">
-        <div className="flex justify-between items-center mb-8 pb-2 border-b border-gray-200">
+      <main className={`flex-1 max-w-7xl mx-auto px-6 py-12 w-full`}>
+        <div className={`flex justify-between items-center mb-8 pb-2 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Available Vehicles</h2>
-            <p className="text-gray-500 text-sm mt-1">
+            <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+              Available Vehicles
+            </h2>
+            <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm mt-1`}>
               Showing <strong className="text-emerald-600">{filtered.length}</strong> vehicle{filtered.length !== 1 ? "s" : ""} for you
             </p>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className={`flex items-center gap-2 text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
             <Clock className="w-4 h-4" />
             <span>Updated just now</span>
           </div>
@@ -686,13 +756,15 @@ export default function VehiclesPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-20 bg-white rounded-2xl shadow-sm"
+            className={`text-center py-20 ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-sm`}
           >
-            <div className="inline-flex p-4 bg-gray-100 rounded-full mb-4">
-              <Car className="w-12 h-12 text-gray-400" />
+            <div className={`inline-flex p-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} rounded-full mb-4`}>
+              <Car className={`w-12 h-12 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`} />
             </div>
-            <h3 className="text-2xl font-semibold text-gray-700 mb-2">No vehicles found</h3>
-            <p className="text-gray-400 max-w-md mx-auto">
+            <h3 className={`text-2xl font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-2`}>
+              No vehicles found
+            </h3>
+            <p className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'} max-w-md mx-auto`}>
               We couldn't find any vehicles matching your criteria. Try adjusting your filters.
             </p>
             <button
@@ -721,11 +793,11 @@ export default function VehiclesPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ y: -8 }}
-                className="group bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 hover:border-emerald-200"
+                className={`group ${isDarkMode ? 'bg-gray-800 border-gray-700 hover:border-emerald-600' : 'bg-white border-gray-100 hover:border-emerald-200'} rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border`}
               >
                 {/* Image */}
                 <div
-                  className="relative h-52 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden cursor-pointer"
+                  className={`relative h-52 ${isDarkMode ? 'bg-gray-700' : 'bg-gradient-to-br from-gray-100 to-gray-200'} overflow-hidden cursor-pointer`}
                   onClick={() => handleVehicleClick(v.id)}
                 >
                   <img
@@ -735,7 +807,6 @@ export default function VehiclesPage() {
                     onError={e => { (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE; }}
                   />
 
-                  {/* ✅ LOCATION ICON - Navigates to Map with Vehicle Highlighted */}
                   <button
                     onClick={(e) => navigateToMapWithVehicle(v, e)}
                     className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-sm rounded-full hover:bg-white transition shadow-md group/location"
@@ -744,7 +815,6 @@ export default function VehiclesPage() {
                     <MapPin className="w-4 h-4 text-emerald-600 group-hover/location:text-emerald-700 transition-colors" />
                   </button>
 
-                  {/* Map label on hover */}
                   <span className="absolute top-14 right-3 text-[10px] bg-black/70 text-white px-2 py-1 rounded-lg opacity-0 group-hover/location:opacity-100 transition-opacity duration-200 pointer-events-none">
                     View on Map
                   </span>
@@ -761,7 +831,7 @@ export default function VehiclesPage() {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h3
-                        className="font-bold text-gray-800 text-lg group-hover:text-emerald-600 transition-colors cursor-pointer"
+                        className={`font-bold ${isDarkMode ? 'text-gray-100 group-hover:text-emerald-400' : 'text-gray-800 group-hover:text-emerald-600'} text-lg transition-colors cursor-pointer`}
                         onClick={() => handleVehicleClick(v.id)}
                       >
                         {v.name}
@@ -769,37 +839,39 @@ export default function VehiclesPage() {
                       <div className="flex items-center gap-2 mt-1.5">
                         <div className="flex items-center gap-1">
                           <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                          <span className="text-sm font-semibold text-gray-700">{v.rating}</span>
+                          <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            {v.rating}
+                          </span>
                         </div>
-                        <span className="text-gray-300">•</span>
-                        <div className="flex items-center gap-1 text-gray-500 text-sm">
+                        <span className={isDarkMode ? 'text-gray-600' : 'text-gray-300'}>•</span>
+                        <div className={`flex items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>
                           <MapPin className="w-3 h-3" />
                           <span>{v.location}</span>
                         </div>
                       </div>
                       {v.ownerName && (
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} mt-1`}>
                           Owner: {v.ownerName}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
                       <span className="text-2xl font-black text-emerald-600">Rs.{v.pricePerDay}</span>
-                      <span className="text-xs text-gray-400"> /day</span>
+                      <span className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}> /day</span>
                     </div>
                   </div>
 
                   {/* Specs */}
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                  <div className={`flex items-center justify-between mt-4 pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                    <div className={`flex items-center gap-1.5 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       <Users className="w-3.5 h-3.5" />
                       <span>{v.seats} seats</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <div className={`flex items-center gap-1.5 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       <Gauge className="w-3.5 h-3.5" />
                       <span>{v.range}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <div className={`flex items-center gap-1.5 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       <Fuel className="w-3.5 h-3.5" />
                       <span className="capitalize">{v.transmission}</span>
                     </div>
@@ -808,7 +880,7 @@ export default function VehiclesPage() {
                   {/* Tags */}
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {v.tags.map(tag => (
-                      <span key={tag} className="text-[10px] font-medium bg-emerald-50 text-emerald-700 px-2 py-1 rounded-full">
+                      <span key={tag} className={`text-[10px] font-medium ${isDarkMode ? 'bg-emerald-900/50 text-emerald-300' : 'bg-emerald-50 text-emerald-700'} px-2 py-1 rounded-full`}>
                         {tag}
                       </span>
                     ))}
@@ -816,7 +888,6 @@ export default function VehiclesPage() {
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 mt-4">
-                    {/* View Details Button */}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -826,11 +897,10 @@ export default function VehiclesPage() {
                     >
                       {kycLoading === v.id
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> Checking...</>
-                        : "View Details"}
+                        : isAuthenticated ? "View Details" : "Sign in to View"}
                     </motion.button>
 
-                    {/* Chat with Owner Button */}
-                    {v.ownerId && v.ownerId !== getUserData()?.id && (
+                    {isAuthenticated && v.ownerId && v.ownerId !== getUserData()?.id && (
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
@@ -857,7 +927,6 @@ export default function VehiclesPage() {
 
       <Footer />
 
-      {/* KYC Modal */}
       <KycModal
         isOpen={showKycModal}
         onClose={handleKycModalClose}

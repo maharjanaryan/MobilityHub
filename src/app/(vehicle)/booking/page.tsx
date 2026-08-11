@@ -84,17 +84,17 @@ const getStatusBadge = (status: string) => {
   const upperStatus = status?.toUpperCase() || '';
   switch (upperStatus) {
     case 'PENDING':
-      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Pending</span>;
+      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300"><Clock className="w-3 h-3 mr-1" />Pending</span>;
     case 'CONFIRMED':
-      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><CheckCircle className="w-3 h-3 mr-1" />Confirmed</span>;
+      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"><CheckCircle className="w-3 h-3 mr-1" />Confirmed</span>;
     case 'REJECTED':
-      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Rejected</span>;
+      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"><XCircle className="w-3 h-3 mr-1" />Rejected</span>;
     case 'CANCELLED':
-      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"><XCircle className="w-3 h-3 mr-1" />Cancelled</span>;
+      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300"><XCircle className="w-3 h-3 mr-1" />Cancelled</span>;
     case 'COMPLETED':
-      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><CheckCircle className="w-3 h-3 mr-1" />Completed</span>;
+      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"><CheckCircle className="w-3 h-3 mr-1" />Completed</span>;
     default:
-      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{status || 'Unknown'}</span>;
+      return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300">{status || 'Unknown'}</span>;
   }
 };
 
@@ -106,9 +106,9 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
   }, [onClose]);
 
   const colors = {
-    success: 'bg-green-500',
-    error: 'bg-red-500',
-    info: 'bg-blue-500'
+    success: 'bg-green-500 dark:bg-green-600',
+    error: 'bg-red-500 dark:bg-red-600',
+    info: 'bg-blue-500 dark:bg-blue-600'
   };
 
   return (
@@ -144,55 +144,55 @@ function ActionModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
             {action === 'approve' ? 'Approve Booking' : 'Reject Booking'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
             <XCircle className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600">
+        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             <strong>Booking:</strong> {booking.bookingReference}
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             <strong>Vehicle:</strong> {booking.vehicleName}
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             <strong>Dates:</strong> {formatDate(booking.pickupDate)} - {formatDate(booking.dropoffDate)}
           </p>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
             <strong>Total Amount:</strong> {formatCurrency(booking.totalAmount)}
           </p>
         </div>
 
         {action === 'reject' && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Rejection Reason *
             </label>
             <textarea
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
               placeholder="Please provide a reason for rejection..."
             />
           </div>
         )}
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Owner Notes (Optional)
           </label>
           <textarea
             value={ownerNotes}
             onChange={(e) => setOwnerNotes(e.target.value)}
             rows={2}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
             placeholder="Add any notes for the renter..."
           />
         </div>
@@ -200,7 +200,7 @@ function ActionModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             Cancel
           </button>
@@ -209,7 +209,7 @@ function ActionModal({
             disabled={loading || (action === 'reject' && !rejectionReason.trim())}
             className={[
               "flex-1 px-4 py-2 rounded-lg font-medium text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2",
-              action === 'approve' ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
+              action === 'approve' ? "bg-green-600 dark:bg-green-500 hover:bg-green-700 dark:hover:bg-green-600" : "bg-red-600 dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600"
             ].join(" ")}
           >
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -235,87 +235,87 @@ function BookingCard({
   const isPending = booking.bookingStatus?.toUpperCase() === 'PENDING';
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition-all overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all overflow-hidden">
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gray-100 rounded-xl overflow-hidden">
+            <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden">
               {booking.vehicleImage ? (
                 <img src={booking.vehicleImage} alt={booking.vehicleName} className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Car className="w-6 h-6 text-gray-400" />
+                  <Car className="w-6 h-6 text-gray-400 dark:text-gray-500" />
                 </div>
               )}
             </div>
             <div>
-              <h3 className="font-semibold text-gray-800">{booking.vehicleName}</h3>
-              <p className="text-xs text-gray-500">Booking #{booking.bookingReference}</p>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">{booking.vehicleName}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Booking #{booking.bookingReference}</p>
             </div>
           </div>
           {getStatusBadge(booking.bookingStatus)}
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="flex items-center text-sm text-gray-600">
-            <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <Calendar className="w-4 h-4 mr-2 text-gray-400 dark:text-gray-500" />
             {formatDate(booking.pickupDate)} - {formatDate(booking.dropoffDate)}
           </div>
-          <div className="flex items-center text-sm text-gray-600">
-            <Clock className="w-4 h-4 mr-2 text-gray-400" />
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <Clock className="w-4 h-4 mr-2 text-gray-400 dark:text-gray-500" />
             {booking.totalDays} days
           </div>
-          <div className="flex items-center text-sm text-gray-600">
-            <User className="w-4 h-4 mr-2 text-gray-400" />
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <User className="w-4 h-4 mr-2 text-gray-400 dark:text-gray-500" />
             {booking.renterName}
           </div>
-          <div className="flex items-center text-sm text-gray-600">
-            <DollarSign className="w-4 h-4 mr-2 text-gray-400" />
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <DollarSign className="w-4 h-4 mr-2 text-gray-400 dark:text-gray-500" />
             {formatCurrency(booking.totalAmount)}
           </div>
         </div>
 
         {expanded && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <p className="text-xs text-gray-500">Renter Email</p>
-                <p className="font-medium text-gray-700">{booking.renterEmail || 'Not provided'}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Renter Email</p>
+                <p className="font-medium text-gray-700 dark:text-gray-300">{booking.renterEmail || 'Not provided'}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Renter Phone</p>
-                <p className="font-medium text-gray-700">{booking.renterPhone || 'Not provided'}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Renter Phone</p>
+                <p className="font-medium text-gray-700 dark:text-gray-300">{booking.renterPhone || 'Not provided'}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Insurance Type</p>
-                <p className="font-medium text-gray-700 capitalize">{booking.insuranceType || 'None'}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Insurance Type</p>
+                <p className="font-medium text-gray-700 dark:text-gray-300 capitalize">{booking.insuranceType || 'None'}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Insurance Cost</p>
-                <p className="font-medium text-gray-700">{formatCurrency(booking.insuranceCost)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Insurance Cost</p>
+                <p className="font-medium text-gray-700 dark:text-gray-300">{formatCurrency(booking.insuranceCost)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Security Deposit</p>
-                <p className="font-medium text-gray-700">{formatCurrency(booking.securityDeposit)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Security Deposit</p>
+                <p className="font-medium text-gray-700 dark:text-gray-300">{formatCurrency(booking.securityDeposit)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500">Daily Rate</p>
-                <p className="font-medium text-gray-700">{formatCurrency(booking.dailyRate)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Daily Rate</p>
+                <p className="font-medium text-gray-700 dark:text-gray-300">{formatCurrency(booking.dailyRate)}</p>
               </div>
             </div>
             {booking.rejectionReason && (
-              <div className="mt-3 p-2 bg-red-50 rounded-lg">
-                <p className="text-xs text-red-600 font-medium">Rejection Reason:</p>
-                <p className="text-sm text-red-700">{booking.rejectionReason}</p>
+              <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                <p className="text-xs text-red-600 dark:text-red-400 font-medium">Rejection Reason:</p>
+                <p className="text-sm text-red-700 dark:text-red-300">{booking.rejectionReason}</p>
               </div>
             )}
           </div>
         )}
 
-        <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100">
+        <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex-1 px-3 py-2 bg-gray-50 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors flex items-center justify-center gap-1"
+            className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1"
           >
             <Eye className="w-4 h-4" />
             {expanded ? 'Show Less' : 'View Details'}
@@ -325,14 +325,14 @@ function BookingCard({
             <>
               <button
                 onClick={() => onApprove(booking)}
-                className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
+                className="flex-1 px-3 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-700 dark:hover:bg-green-600 transition-colors flex items-center justify-center gap-1"
               >
                 <ThumbsUp className="w-4 h-4" />
                 Approve
               </button>
               <button
                 onClick={() => onReject(booking)}
-                className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center gap-1"
+                className="flex-1 px-3 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-700 dark:hover:bg-red-600 transition-colors flex items-center justify-center gap-1"
               >
                 <ThumbsDown className="w-4 h-4" />
                 Reject
@@ -399,7 +399,6 @@ export default function OwnerBookingsPage() {
           message: 'Access denied. Please complete Owner KYC verification to manage bookings.',
           type: 'error'
         });
-        // Redirect to owner KYC page after 2 seconds
         setTimeout(() => router.push('/kyc/owner'), 2000);
         return false;
       }
@@ -433,8 +432,6 @@ export default function OwnerBookingsPage() {
         url = `http://localhost:8080/api/bookings/owner-bookings?status=${filterStatus.toUpperCase()}&page=0&size=50`;
       }
 
-      console.log('Fetching bookings from:', url);
-
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -462,12 +459,9 @@ export default function OwnerBookingsPage() {
       }
 
       const data = await response.json();
-      console.log('Bookings data:', data);
-
       const bookingsList = data.content || data || [];
       setBookings(bookingsList);
 
-      // Calculate stats
       const pending = bookingsList.filter((b: Booking) => b.bookingStatus?.toUpperCase() === 'PENDING').length;
       const confirmed = bookingsList.filter((b: Booking) => b.bookingStatus?.toUpperCase() === 'CONFIRMED').length;
       setStats({ pending, confirmed, total: bookingsList.length });
@@ -480,12 +474,10 @@ export default function OwnerBookingsPage() {
     }
   }, [filterStatus, router]);
 
-  // Initial check
   useEffect(() => {
     checkOwnerKycStatus();
   }, [checkOwnerKycStatus]);
 
-  // Fetch bookings when authorized
   useEffect(() => {
     if (isAuthorized && !checkingKyc) {
       fetchBookings();
@@ -594,8 +586,8 @@ export default function OwnerBookingsPage() {
     return (
       <>
         <HomeHeader />
-        <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600 dark:text-emerald-400" />
         </div>
         <Footer />
       </>
@@ -616,9 +608,7 @@ export default function OwnerBookingsPage() {
       } else if (ownerStatus === 'REJECTED') {
         return {
           title: 'Owner KYC Verification Rejected',
-          message: kycStatus?.ownerKycStatus === 'REJECTED'
-            ? 'Your owner KYC verification was rejected. Please check the reason and resubmit your documents.'
-            : 'Your owner KYC verification was rejected. Please resubmit with correct information.',
+          message: 'Your owner KYC verification was rejected. Please check the reason and resubmit your documents.',
           buttonText: 'Resubmit Owner KYC',
           buttonAction: '/kyc/owner'
         };
@@ -637,23 +627,23 @@ export default function OwnerBookingsPage() {
     return (
       <>
         <HomeHeader />
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
           <div className="text-center max-w-md mx-auto p-8">
-            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <AlertCircle className="w-10 h-10 text-yellow-600" />
+            <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertCircle className="w-10 h-10 text-yellow-600 dark:text-yellow-400" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-3">{kycMessage.title}</h2>
-            <p className="text-gray-600 mb-6">{kycMessage.message}</p>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-3">{kycMessage.title}</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">{kycMessage.message}</p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => router.push('/home')}
-                className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50"
+                className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 Go to Home
               </button>
               <button
                 onClick={() => router.push(kycMessage.buttonAction)}
-                className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700"
+                className="px-6 py-2.5 bg-emerald-600 dark:bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-700 dark:hover:bg-emerald-600"
               >
                 {kycMessage.buttonText}
               </button>
@@ -668,17 +658,17 @@ export default function OwnerBookingsPage() {
   return (
     <>
       <HomeHeader />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
 
         {/* Header */}
-        <div className="bg-white border-b border-gray-200">
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-800">Booking Management</h1>
-                <p className="text-gray-600 mt-1">Manage and respond to booking requests</p>
+                <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Booking Management</h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">Manage and respond to booking requests</p>
                 {kycStatus?.ownerKycStatus === 'VERIFIED' && (
-                  <p className="text-sm text-green-600 mt-1 flex items-center gap-1">
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
                     <CheckCircle className="w-4 h-4" />
                     Owner KYC Verified ✓
                   </p>
@@ -686,7 +676,7 @@ export default function OwnerBookingsPage() {
               </div>
               <button
                 onClick={fetchBookings}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-emerald-600 dark:bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors flex items-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" />
                 Refresh
@@ -699,52 +689,52 @@ export default function OwnerBookingsPage() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Total Bookings</p>
-                  <p className="text-3xl font-bold text-gray-800">{stats.total}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Bookings</p>
+                  <p className="text-3xl font-bold text-gray-800 dark:text-gray-100">{stats.total}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Pending Approval</p>
-                  <p className="text-3xl font-bold text-yellow-600">{stats.pending}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Pending Approval</p>
+                  <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending}</p>
                 </div>
-                <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-yellow-600" />
+                <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Confirmed Bookings</p>
-                  <p className="text-3xl font-bold text-green-600">{stats.confirmed}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Confirmed Bookings</p>
+                  <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.confirmed}</p>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
               </div>
             </div>
           </div>
 
           {/* Filter Tabs */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6">
-            <div className="p-4 border-b border-gray-100">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700">
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setFilterStatus('all')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === 'all'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                 >
                   All Bookings
@@ -752,8 +742,8 @@ export default function OwnerBookingsPage() {
                 <button
                   onClick={() => setFilterStatus('PENDING')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === 'PENDING'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                 >
                   Pending
@@ -761,8 +751,8 @@ export default function OwnerBookingsPage() {
                 <button
                   onClick={() => setFilterStatus('CONFIRMED')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === 'CONFIRMED'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                 >
                   Confirmed
@@ -770,8 +760,8 @@ export default function OwnerBookingsPage() {
                 <button
                   onClick={() => setFilterStatus('REJECTED')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === 'REJECTED'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                 >
                   Rejected
@@ -779,8 +769,8 @@ export default function OwnerBookingsPage() {
                 <button
                   onClick={() => setFilterStatus('COMPLETED')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === 'COMPLETED'
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                 >
                   Completed
@@ -792,8 +782,8 @@ export default function OwnerBookingsPage() {
           {/* Pending Bookings Section */}
           {filterStatus === 'all' && pendingBookings.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-yellow-600" />
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                 Pending Requests ({pendingBookings.length})
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -812,7 +802,7 @@ export default function OwnerBookingsPage() {
           {/* All/Filtered Bookings Section */}
           <div>
             {filterStatus !== 'all' && (
-              <h2 className="text-lg font-semibold text-gray-800 mb-4">
+              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">
                 {filterStatus === 'PENDING' ? 'Pending Requests' :
                   filterStatus === 'CONFIRMED' ? 'Confirmed Bookings' :
                     filterStatus === 'REJECTED' ? 'Rejected Bookings' : 'Completed Bookings'}
@@ -820,10 +810,10 @@ export default function OwnerBookingsPage() {
             )}
 
             {filteredBookings.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-2xl">
-                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No bookings found</p>
-                <p className="text-sm text-gray-400 mt-1">When you receive booking requests, they will appear here</p>
+              <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-2xl">
+                <Calendar className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-500 dark:text-gray-400">No bookings found</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">When you receive booking requests, they will appear here</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
