@@ -6,7 +6,7 @@ import {
   CalendarCheck, Car, Clock, MapPin, X, ChevronDown,
   Loader2, Filter, ArrowUpDown, Calendar, Users, Wallet,
   CheckCircle, XCircle, Clock as ClockIcon, AlertCircle,
-  Eye, TrendingUp, Search, Info
+  Eye, TrendingUp, Search, Info, FileText, ShieldCheck, ZoomIn
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import HomeHeader from "@/app/home/HomeHeader";
@@ -19,6 +19,7 @@ interface Booking {
   vehicleBrand: string;
   vehicleModel: string;
   vehicleImage: string;
+  vehicleBluebookDocuments: string[];
   renterId: number;
   renterName: string;
   ownerId: number;
@@ -131,6 +132,7 @@ export default function MyBookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const getToken = () => {
     if (typeof window !== 'undefined') {
@@ -155,6 +157,7 @@ export default function MyBookingsPage() {
     vehicleBrand: b.vehicleBrand || b.vehicle?.brand || '',
     vehicleModel: b.vehicleModel || b.vehicle?.model || '',
     vehicleImage: b.vehicleImage || b.vehicle?.photos?.[0] || '/car-placeholder.jpg',
+    vehicleBluebookDocuments: b.vehicleBluebookDocuments || b.vehicle?.bluebookDocuments || [],
     renterId: b.renterId || b.userId || 0,
     renterName: b.renterName || b.renter?.fullName || b.renter?.username || 'N/A',
     ownerId: b.ownerId || b.vehicle?.ownerId || 0,
@@ -396,8 +399,8 @@ export default function MyBookingsPage() {
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${showFilters
-                    ? "bg-emerald-500 text-white"
-                    : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200"
                   }`}
               >
                 <Filter className="w-4 h-4" /> Filter
@@ -420,8 +423,8 @@ export default function MyBookingsPage() {
                       key={opt.value}
                       onClick={() => setStatusFilter(opt.value)}
                       className={`px-4 py-2 rounded-xl text-sm font-medium transition ${statusFilter === opt.value
-                          ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-                          : "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                        ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
+                        : "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
                         }`}
                     >
                       {opt.label}
@@ -653,6 +656,39 @@ export default function MyBookingsPage() {
                   <p className="font-medium text-gray-800 dark:text-gray-200">{selectedBooking.ownerName}</p>
                 </div>
 
+                {/* Bluebook / Vehicle Registration Document - only visible until trip is completed */}
+                {selectedBooking.status?.toUpperCase() !== 'COMPLETED' &&
+                  selectedBooking.vehicleBluebookDocuments &&
+                  selectedBooking.vehicleBluebookDocuments.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">Vehicle Bluebook</p>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Shown for verification purposes and will no longer be visible once this trip is completed.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedBooking.vehicleBluebookDocuments.map((doc, idx) => (
+                          <div
+                            key={idx}
+                            className="relative h-28 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden cursor-pointer group border border-gray-200 dark:border-gray-600"
+                            onClick={() => setZoomedImage(doc)}
+                          >
+                            <img src={doc} alt={`Bluebook ${idx === 0 ? 'Front' : 'Back'}`} className="w-full h-full object-cover" />
+                            <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded">
+                              {idx === 0 ? 'Front' : 'Back'}
+                            </span>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                              <ZoomIn className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                 {/* Rejection reason with dark mode support */}
                 {selectedBooking.status?.toUpperCase() === 'REJECTED' && selectedBooking.rejectionReason && (
                   <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-2">
@@ -686,6 +722,32 @@ export default function MyBookingsPage() {
                 </div>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Bluebook Zoom Modal */}
+      <AnimatePresence>
+        {zoomedImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+            onClick={() => setZoomedImage(null)}
+          >
+            <button
+              onClick={() => setZoomedImage(null)}
+              className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={zoomedImage}
+              alt="Bluebook document"
+              className="max-w-full max-h-full rounded-lg object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
           </motion.div>
         )}
       </AnimatePresence>

@@ -25,7 +25,8 @@ import {
   Clock,
   Gauge,
   Fuel,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 import HomeHeader from '../../home/HomeHeader';
 import Footer from '../../component/Footer';
@@ -217,12 +218,22 @@ export default function AddVehiclePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [kycStatus, setKycStatus] = useState<'verified' | 'pending' | 'rejected' | 'not_submitted'>('not_submitted');
   const [kycLoading, setKycLoading] = useState(true);
+
+  // Vehicle photos
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploadError, setUploadError] = useState<string>('');
-  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Bluebook / registration document
+  const [uploadedBluebook, setUploadedBluebook] = useState<File[]>([]);
+  const [bluebookPreviews, setBluebookPreviews] = useState<string[]>([]);
+  const [bluebookError, setBluebookError] = useState<string>('');
+  const [isCompressingBluebook, setIsCompressingBluebook] = useState(false);
+  const bluebookInputRef = useRef<HTMLInputElement>(null);
+
+  const [notification, setNotification] = useState<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
 
   const [formData, setFormData] = useState({
     brand: '',
@@ -314,6 +325,7 @@ export default function AddVehiclePage() {
     return await Promise.all(base64Promises);
   };
 
+  // ---- Vehicle photo upload ----
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -369,6 +381,62 @@ export default function AddVehiclePage() {
     setImagePreviews(imagePreviews.filter((_, i) => i !== index));
   };
 
+  // ---- Bluebook document upload ----
+  const handleBluebookUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      setIsCompressingBluebook(true);
+      setBluebookError('');
+
+      const newFiles = Array.from(files);
+
+      // Validate total count (front + back = max 2)
+      if (uploadedBluebook.length + newFiles.length > 2) {
+        setBluebookError('You can upload up to 2 images (front and back of the bluebook)');
+        setIsCompressingBluebook(false);
+        return;
+      }
+
+      // Validate individual file sizes
+      const oversizedFiles = newFiles.filter(file => file.size > 10 * 1024 * 1024);
+      if (oversizedFiles.length > 0) {
+        setBluebookError('Each image must be less than 10MB. Please compress your images.');
+        setIsCompressingBluebook(false);
+        return;
+      }
+
+      // Compress images
+      const compressedFiles = await Promise.all(
+        newFiles.map(file => compressImage(file, 1600, 1600, 0.75))
+      );
+
+      // Create previews
+      const newPreviews = compressedFiles.map(file => URL.createObjectURL(file));
+
+      setUploadedBluebook(prev => [...prev, ...compressedFiles]);
+      setBluebookPreviews(prev => [...prev, ...newPreviews]);
+
+      // Clear file input
+      if (bluebookInputRef.current) {
+        bluebookInputRef.current.value = '';
+      }
+
+    } catch (error) {
+      console.error('Bluebook image processing failed:', error);
+      setBluebookError('Failed to process image. Please try with a smaller image.');
+    } finally {
+      setIsCompressingBluebook(false);
+    }
+  };
+
+  const removeBluebookImage = (index: number) => {
+    URL.revokeObjectURL(bluebookPreviews[index]);
+    setUploadedBluebook(uploadedBluebook.filter((_, i) => i !== index));
+    setBluebookPreviews(bluebookPreviews.filter((_, i) => i !== index));
+  };
+
   const toggleFeature = (featureId: string) => {
     setFormData(prev => ({
       ...prev,
@@ -407,6 +475,11 @@ export default function AddVehiclePage() {
         return;
       }
 
+      if (uploadedBluebook.length === 0) {
+        showNotification('error', 'Please upload your vehicle bluebook document', false);
+        return;
+      }
+
       const pricePerDay = parseNumberInput(formData.pricePerDay);
       const securityDeposit = parseNumberInput(formData.securityDeposit);
 
@@ -422,6 +495,7 @@ export default function AddVehiclePage() {
 
       setIsSubmitting(true);
       setUploadError('');
+      setBluebookError('');
 
       const token = localStorage.getItem('accessToken');
       if (!token) {
@@ -432,12 +506,14 @@ export default function AddVehiclePage() {
 
       // Convert images to base64 with size check
       let base64Images: string[] = [];
+      let base64Bluebook: string[] = [];
       try {
         base64Images = await filesToBase64(uploadedImages);
-        console.log(`Converted ${base64Images.length} images to base64`);
+        base64Bluebook = await filesToBase64(uploadedBluebook);
+        console.log(`Converted ${base64Images.length} vehicle photos and ${base64Bluebook.length} bluebook images to base64`);
 
         // Check total payload size
-        const totalSize = JSON.stringify(base64Images).length;
+        const totalSize = JSON.stringify(base64Images).length + JSON.stringify(base64Bluebook).length;
         console.log(`Total images size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
 
         if (totalSize > 10 * 1024 * 1024) {
@@ -473,7 +549,8 @@ export default function AddVehiclePage() {
         minRentalDays: formData.minimumRentalDays,
         maxRentalDays: formData.maximumRentalDays,
         description: formData.description.trim(),
-        photos: base64Images
+        photos: base64Images,
+        bluebookDocuments: base64Bluebook
       };
 
       if (formData.vin && formData.vin.trim()) {
@@ -620,7 +697,9 @@ export default function AddVehiclePage() {
 
     return () => {
       imagePreviews.forEach(preview => URL.revokeObjectURL(preview));
+      bluebookPreviews.forEach(preview => URL.revokeObjectURL(preview));
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const nextStep = () => {
@@ -681,7 +760,7 @@ export default function AddVehiclePage() {
     { number: 3, title: 'Features', icon: Star },
     { number: 4, title: 'Pricing', icon: DollarSign },
     { number: 5, title: 'Location', icon: MapPin },
-    { number: 6, title: 'Photos', icon: Camera }
+    { number: 6, title: 'Photos & Docs', icon: Camera }
   ];
 
   if (kycLoading) {
@@ -1230,60 +1309,126 @@ export default function AddVehiclePage() {
               </div>
             )}
 
-            {/* Step 6: Photos */}
+            {/* Step 6: Photos & Documents */}
             {currentStep === 6 && (
-              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
-                <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">Photos</h2>
-                <p className="text-gray-600 dark:text-gray-300 mb-6">Upload photos of your vehicle (at least 1 photo required, max 5 photos)</p>
+              <div className="space-y-6">
+                {/* Vehicle Photos */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+                  <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">Vehicle Photos</h2>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">Upload photos of your vehicle (at least 1 photo required, max 5 photos)</p>
 
-                {uploadError && (
-                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg text-red-600 dark:text-red-300 text-sm">
-                    {uploadError}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden group">
-                      <img src={preview} alt={`Vehicle ${index + 1}`} className="w-full h-full object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                  {uploadError && (
+                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg text-red-600 dark:text-red-300 text-sm">
+                      {uploadError}
                     </div>
-                  ))}
+                  )}
 
-                  {uploadedImages.length < 5 && (
-                    <label className="aspect-square bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageUpload}
-                        className="hidden"
-                        disabled={isCompressing}
-                      />
-                      {isCompressing ? (
-                        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-2" />
-                      ) : (
-                        <Camera className="w-8 h-8 text-gray-400 mb-2" />
-                      )}
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        {isCompressing ? 'Compressing...' : 'Upload Photo'}
-                      </span>
-                    </label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden group">
+                        <img src={preview} alt={`Vehicle ${index + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {uploadedImages.length < 5 && (
+                      <label className="aspect-square bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageUpload}
+                          className="hidden"
+                          disabled={isCompressing}
+                        />
+                        {isCompressing ? (
+                          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-2" />
+                        ) : (
+                          <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                        )}
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          {isCompressing ? 'Compressing...' : 'Upload Photo'}
+                        </span>
+                      </label>
+                    )}
+                  </div>
+
+                  {uploadedImages.length > 0 && (
+                    <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                      {uploadedImages.length} of 5 photos uploaded
+                    </p>
                   )}
                 </div>
 
-                {uploadedImages.length > 0 && (
-                  <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                    {uploadedImages.length} of 5 photos uploaded
+                {/* Bluebook Document */}
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 md:p-8">
+                  <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-emerald-600" />
+                    Bluebook / Vehicle Registration Document
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">
+                    Upload a clear photo of your vehicle's bluebook (registration document) — front and back if applicable. This is required for verification and is required.
                   </p>
-                )}
+
+                  {bluebookError && (
+                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 rounded-lg text-red-600 dark:text-red-300 text-sm">
+                      {bluebookError}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {bluebookPreviews.map((preview, index) => (
+                      <div key={index} className="relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden group">
+                        <img src={preview} alt={`Bluebook ${index + 1}`} className="w-full h-full object-cover" />
+                        <span className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 text-white text-xs rounded">
+                          {index === 0 ? 'Front' : 'Back'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeBluebookImage(index)}
+                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {uploadedBluebook.length < 2 && (
+                      <label className="aspect-square bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all">
+                        <input
+                          ref={bluebookInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleBluebookUpload}
+                          className="hidden"
+                          disabled={isCompressingBluebook}
+                        />
+                        {isCompressingBluebook ? (
+                          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-2" />
+                        ) : (
+                          <FileText className="w-8 h-8 text-gray-400 mb-2" />
+                        )}
+                        <span className="text-sm text-gray-500 dark:text-gray-400 text-center px-2">
+                          {isCompressingBluebook ? 'Compressing...' : 'Upload Bluebook'}
+                        </span>
+                      </label>
+                    )}
+                  </div>
+
+                  {uploadedBluebook.length > 0 && (
+                    <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                      {uploadedBluebook.length} of 2 bluebook images uploaded
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
@@ -1309,7 +1454,7 @@ export default function AddVehiclePage() {
               ) : (
                 <button
                   type="submit"
-                  disabled={isSubmitting || uploadedImages.length === 0 || isCompressing}
+                  disabled={isSubmitting || uploadedImages.length === 0 || uploadedBluebook.length === 0 || isCompressing || isCompressingBluebook}
                   className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors ml-auto disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isSubmitting ? (

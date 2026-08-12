@@ -26,7 +26,9 @@ import {
   RefreshCw,
   Loader2,
   Filter,
-  X
+  X,
+  FileText,
+  ZoomIn
 } from 'lucide-react';
 
 interface Vehicle {
@@ -57,6 +59,7 @@ interface Vehicle {
   rejectionReason?: string;
   description: string;
   photos: string[];
+  bluebookDocuments?: string[];
   totalRentals: number;
   averageRating: number;
   createdAt: string;
@@ -107,6 +110,7 @@ export default function VehicleManagement() {
   });
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   const getAccessToken = () => {
     if (typeof window !== 'undefined') {
@@ -484,6 +488,14 @@ export default function VehicleManagement() {
                       Pending
                     </span>
                   </div>
+                  {vehicle.bluebookDocuments && vehicle.bluebookDocuments.length > 0 && (
+                    <div className="absolute top-3 left-3">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                        <FileText className="w-3 h-3 mr-1" />
+                        Bluebook attached
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-3">
@@ -737,6 +749,38 @@ export default function VehicleManagement() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Bluebook / Registration Document */}
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      Bluebook Document
+                    </h3>
+                    {selectedVehicle.bluebookDocuments && selectedVehicle.bluebookDocuments.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedVehicle.bluebookDocuments.map((doc, idx) => (
+                          <div
+                            key={idx}
+                            className="relative h-36 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden cursor-pointer group border border-gray-200 dark:border-gray-700"
+                            onClick={() => setZoomedImage(doc)}
+                          >
+                            <img src={doc} alt={`Bluebook ${idx === 0 ? 'Front' : 'Back'}`} className="w-full h-full object-cover" />
+                            <span className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 text-white text-xs rounded">
+                              {idx === 0 ? 'Front' : 'Back'}
+                            </span>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                              <ZoomIn className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                        <p className="text-sm text-yellow-700 dark:text-yellow-300">No bluebook document was submitted for this vehicle.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-4">
                   <div>
@@ -839,6 +883,27 @@ export default function VehicleManagement() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Bluebook Zoom Modal */}
+      {zoomedImage && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+          onClick={() => setZoomedImage(null)}
+        >
+          <button
+            onClick={() => setZoomedImage(null)}
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={zoomedImage}
+            alt="Bluebook document"
+            className="max-w-full max-h-full rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 
