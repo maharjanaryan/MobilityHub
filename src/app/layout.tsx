@@ -1,6 +1,7 @@
 import "./globals.css";
 import type { ReactNode } from "react";
 import { ThemeProvider } from "./component/ThemeProvider";
+import ActiveTripLocationSender from "./component/ActiveTripLocationSender";
 
 // Runs before first paint to apply the persisted theme, avoiding a flash of the
 // wrong theme. No stored preference => stays light (the default).
@@ -21,7 +22,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <ActiveTripLocationSender />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

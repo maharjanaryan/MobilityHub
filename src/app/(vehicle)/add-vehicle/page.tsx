@@ -285,7 +285,8 @@ export default function AddVehiclePage() {
     { value: 'petrol', label: 'Petrol' },
     { value: 'diesel', label: 'Diesel' },
     { value: 'electric', label: 'Electric' },
-    { value: 'hybrid', label: 'Hybrid' }
+    { value: 'hybrid', label: 'Hybrid' },
+    { value: 'manpower', label: 'Manpower' }
   ];
 
   const transmissionTypes = [

@@ -1,7 +1,7 @@
 // app/profile/page.tsx
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import HomeHeader from "../home/HomeHeader";
@@ -15,7 +15,11 @@ import {
   Plus, Eye, Fuel, Gauge, Users,
   XCircle
 } from "lucide-react";
+import OverviewTab from "./Overview";
+import RidesTab from "./RidesTab";
+import MyVehiclesTab from "./MyVehiclesTab";
 
+// Types
 interface UserProfileData {
   id: number;
   username: string;
@@ -58,6 +62,34 @@ interface Vehicle {
   ownerEmail?: string;
 }
 
+interface VehicleBookingStatus {
+  vehicleId: number;
+  vehicleName: string;
+  licensePlate: string;
+  brand: string;
+  model: string;
+  year: number;
+  isCurrentlyBooked: boolean;
+  activeBookings: BookingSummary[];
+  nextAvailableDate: string | null;
+  totalActiveBookings: number;
+}
+
+interface BookingSummary {
+  bookingId: number;
+  bookingReference: string;
+  renterName: string;
+  renterEmail: string;
+  renterPhone: string;
+  pickupDate: string;
+  dropoffDate: string;
+  status: string;
+  totalAmount: number;
+  totalDays: number;
+  paymentStatus: string;
+  paymentMethod: string;
+}
+
 interface EditProfileFormData {
   fullName: string;
   firstName: string;
@@ -93,15 +125,8 @@ const defaultUserData: UserProfileData = {
   canList: false
 };
 
-const rideHistory = [
-  { id: 1, vehicle: "Lucid Air Touring", date: "May 14, 2026", duration: "2h 30m", distance: "85 km", cost: "Rs 1,200", status: "Completed", rating: 5 },
-  { id: 2, vehicle: "Hyundai IONIQ 5", date: "May 10, 2026", duration: "1h 15m", distance: "42 km", cost: "Rs 650", status: "Completed", rating: 4 },
-  { id: 3, vehicle: "BMW i4 eDrive40", date: "May 6, 2026", duration: "3h 00m", distance: "120 km", cost: "Rs 1,800", status: "Completed", rating: 5 },
-];
-
 const API_BASE_URL = "http://localhost:8080";
 
-// Utility functions
 const normalizeAvatarUrl = (url?: string | null) => {
   if (!url) return "/logo.png";
   if (url.startsWith("http") || url.startsWith("data:image") || url.startsWith("/logo.png")) return url;
@@ -114,50 +139,7 @@ const readApiResponse = async (response: Response) => {
   try { return JSON.parse(text); } catch { return text; }
 };
 
-const getFuelTypeIcon = (fuelType: string) => {
-  const icons: Record<string, string> = {
-    electric: '🔋',
-    hybrid: '⚡',
-    petrol: '⛽',
-    diesel: '🛢️'
-  };
-  return icons[fuelType?.toLowerCase()] || '⛽';
-};
-
-const getVehicleStatusBadge = (vehicle: Vehicle) => {
-  if (!vehicle.isVerified && vehicle.rejectionReason) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">
-        <XCircle className="w-3 h-3 mr-1" />
-        Rejected
-      </span>
-    );
-  }
-  if (!vehicle.isVerified) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">
-        <Clock className="w-3 h-3 mr-1" />
-        Pending
-      </span>
-    );
-  }
-  if (vehicle.isAvailable) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-        <CheckCircle className="w-3 h-3 mr-1" />
-        Available
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300">
-      <XCircle className="w-3 h-3 mr-1" />
-      Unavailable
-    </span>
-  );
-};
-
-// Toast Notification Component
+// Toast Component
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error'; onClose: () => void }) => {
   useEffect(() => {
     const timer = setTimeout(onClose, 3000);
@@ -177,7 +159,7 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
   );
 };
 
-// Modal Component with dark mode support
+// Modal Component
 const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) => {
   if (!isOpen) return null;
 
@@ -206,7 +188,7 @@ const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose:
   );
 };
 
-// Avatar Upload Modal with dark mode support
+// Avatar Upload Modal
 const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, currentAvatar }: any) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -339,7 +321,7 @@ const AvatarUploadModal = ({ isOpen, onClose, onUpload, onDelete, loading, curre
   );
 };
 
-// Edit Profile Modal with dark mode support
+// Edit Profile Modal
 const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) => {
   const [formData, setFormData] = useState<EditProfileFormData>({
     fullName: userData.fullName || '',
@@ -562,7 +544,7 @@ const EditProfileModal = ({ isOpen, onClose, userData, onSave, loading }: any) =
   );
 };
 
-// Change Password Modal with dark mode support
+// Change Password Modal
 const ChangePasswordModal = ({ isOpen, onClose, onChangePassword, loading }: any) => {
   const [formData, setFormData] = useState<ChangePasswordFormData>({
     currentPassword: '',
@@ -645,8 +627,10 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [userData, setUserData] = useState<UserProfileData>(defaultUserData);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [vehicleStatuses, setVehicleStatuses] = useState<VehicleBookingStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [vehiclesLoading, setVehiclesLoading] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
@@ -664,7 +648,6 @@ export default function ProfilePage() {
     return null;
   }, []);
 
-  // API Calls
   const fetchUserProfile = useCallback(async (showLoader = true) => {
     const token = getAccessToken();
     if (!token) return;
@@ -735,22 +718,42 @@ export default function ProfilePage() {
     }
   }, [getAccessToken, router, userData.ownerKycStatus]);
 
-  useEffect(() => {
+  const fetchVehicleBookingStatus = useCallback(async () => {
     const token = getAccessToken();
-    if (!token) {
-      router.push('/signin');
+    if (!token || userData.ownerKycStatus !== 'VERIFIED') {
+      setVehicleStatuses([]);
       return;
     }
-    queueMicrotask(() => { void fetchUserProfile(); });
-  }, [getAccessToken, router, fetchUserProfile]);
 
-  useEffect(() => {
-    if (activeTab === 'vehicles') {
-      void fetchUserVehicles();
+    setStatusLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/owner/vehicles/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        router.push('/signin');
+        return;
+      }
+
+      if (!response.ok) throw new Error('Failed to fetch vehicle status');
+
+      const data = await response.json();
+      setVehicleStatuses(Array.isArray(data) ? data : []);
+    } catch (err: any) {
+      console.error('Error fetching vehicle status:', err);
+      setVehicleStatuses([]);
+    } finally {
+      setStatusLoading(false);
     }
-  }, [activeTab, fetchUserVehicles]);
+  }, [getAccessToken, router, userData.ownerKycStatus]);
 
-  // Handlers
   const handleUpdateProfile = async (formData: EditProfileFormData) => {
     const token = getAccessToken();
     if (!token) return;
@@ -918,6 +921,22 @@ export default function ProfilePage() {
     { key: "vehicles", label: "My Vehicles" },
   ];
 
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push('/signin');
+      return;
+    }
+    queueMicrotask(() => { void fetchUserProfile(); });
+  }, [getAccessToken, router, fetchUserProfile]);
+
+  useEffect(() => {
+    if (activeTab === 'vehicles') {
+      void fetchUserVehicles();
+      void fetchVehicleBookingStatus();
+    }
+  }, [activeTab, fetchUserVehicles, fetchVehicleBookingStatus]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
@@ -976,7 +995,7 @@ export default function ProfilePage() {
       />
 
       <main className="flex-1">
-        {/* Hero Section with dark mode support */}
+        {/* Hero Section */}
         <div className="bg-gradient-to-br from-green-950 via-green-900 to-green-800 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-16 pb-28 relative overflow-hidden">
           <div className="max-w-6xl mx-auto px-6 relative z-10">
             <div className="flex items-center gap-8 flex-wrap">
@@ -1028,7 +1047,7 @@ export default function ProfilePage() {
 
         {/* Content Section */}
         <div className="max-w-6xl mx-auto px-6 -mt-12 pb-16 relative z-20">
-          {/* KYC Cards with dark mode support */}
+          {/* KYC Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <div className="bg-white dark:bg-gray-900 rounded-2xl p-5 border border-gray-100 dark:border-gray-800 shadow-sm">
               <div className="flex items-center gap-3 mb-2">
@@ -1059,8 +1078,8 @@ export default function ProfilePage() {
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all ${activeTab === tab.key
-                    ? 'bg-green-600 dark:bg-green-500 text-white shadow-md'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  ? 'bg-green-600 dark:bg-green-500 text-white shadow-md'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800'
                   }`}
               >
                 {tab.label}
@@ -1073,269 +1092,19 @@ export default function ProfilePage() {
             {activeTab === "overview" && <OverviewTab userData={userData} />}
             {activeTab === "rides" && <RidesTab />}
             {activeTab === "vehicles" && (
-              <VehiclesTab
+              <MyVehiclesTab
                 vehicles={vehicles}
                 loading={vehiclesLoading}
                 onViewDetails={openVehicleDetail}
                 userData={userData}
+                vehicleStatuses={vehicleStatuses}
+                statusLoading={statusLoading}
               />
             )}
           </motion.div>
         </div>
       </main>
       <Footer />
-    </div>
-  );
-}
-
-// Overview Tab with dark mode support
-function OverviewTab({ userData }: { userData: UserProfileData }) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
-        <h3 className="font-extrabold text-gray-800 dark:text-gray-100 text-lg mb-5">Personal Information</h3>
-        {[
-          { icon: User, label: "Full Name", value: userData.fullName || userData.username },
-          { icon: Mail, label: "Email", value: userData.email },
-          { icon: Phone, label: "Phone", value: userData.phoneNumber || "Not provided" },
-          { icon: MapPin, label: "Location", value: "Kathmandu, Nepal" },
-        ].map((item, i) => (
-          <div key={i} className={`flex items-center gap-4 py-4 ${i < 3 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}>
-            <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-              <item.icon size={17} className="text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-gray-400 dark:text-gray-500">{item.label}</p>
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{item.value}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
-        <h3 className="font-extrabold text-gray-800 dark:text-gray-100 text-lg mb-5">🌿 Your Eco Impact</h3>
-        <div className="bg-gradient-to-br from-green-950 to-green-800 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-6 mb-4">
-          <p className="text-green-300 dark:text-green-400 text-xs font-bold uppercase tracking-wider mb-2">LIFETIME CO₂ SAVED</p>
-          <p className="text-white text-3xl font-extrabold">1,247 kg</p>
-          <p className="text-green-300 dark:text-green-400 text-sm mt-1">Equivalent to planting 62 trees 🌳</p>
-        </div>
-      </div>
-
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm md:col-span-2">
-        <h3 className="font-extrabold text-gray-800 dark:text-gray-100 text-lg mb-5">Recent Activity</h3>
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          {rideHistory.slice(0, 3).map((ride) => (
-            <div key={ride.id} className="min-w-[260px] bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-5 border border-gray-100 dark:border-gray-700">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-xs font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full">{ride.status}</span>
-                <span className="text-xs text-gray-400 dark:text-gray-500">{ride.date}</span>
-              </div>
-              <p className="font-bold text-gray-800 dark:text-gray-100 text-base">{ride.vehicle}</p>
-              <div className="flex gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1.5">
-                <span className="flex items-center gap-1"><Clock size={12} /> {ride.duration}</span>
-                <span className="flex items-center gap-1"><TrendingUp size={12} /> {ride.distance}</span>
-              </div>
-              <p className="font-bold text-gray-800 dark:text-gray-100 text-base mt-2">{ride.cost}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Rides Tab with dark mode support
-function RidesTab() {
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
-      <h3 className="font-extrabold text-gray-800 dark:text-gray-100 text-lg mb-5">All Rides</h3>
-      {rideHistory.map((ride, i) => (
-        <div key={ride.id} className={`flex items-center gap-5 py-4 ${i < rideHistory.length - 1 ? 'border-b border-gray-100 dark:border-gray-800' : ''}`}>
-          <div className="w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
-            <Car size={22} className="text-green-600 dark:text-green-400" />
-          </div>
-          <div className="flex-1">
-            <p className="font-bold text-gray-800 dark:text-gray-100 text-base">{ride.vehicle}</p>
-            <p className="text-sm text-gray-400 dark:text-gray-500">{ride.date} • {ride.duration} • {ride.distance}</p>
-          </div>
-          <div className="text-right">
-            <p className="font-bold text-gray-800 dark:text-gray-100 text-base">{ride.cost}</p>
-            <div className="flex gap-0.5 justify-end mt-1">
-              {Array.from({ length: ride.rating }).map((_, j) => (<Star key={j} size={12} className="text-yellow-400 fill-yellow-400" />))}
-            </div>
-          </div>
-          <ChevronRight size={18} className="text-gray-300 dark:text-gray-600" />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Vehicles Tab with dark mode support
-function VehiclesTab({ vehicles, loading, onViewDetails, userData }: {
-  vehicles: Vehicle[];
-  loading: boolean;
-  onViewDetails: (vehicle: Vehicle) => void;
-  userData: UserProfileData;
-}) {
-  const router = useRouter();
-
-  if (userData.ownerKycStatus !== 'VERIFIED') {
-    return (
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
-        <div className="text-center py-12">
-          <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-10 h-10 text-yellow-600 dark:text-yellow-300" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">Owner KYC Required</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
-            {userData.ownerKycStatus === 'SUBMITTED' && 'Your Owner KYC is currently under review. You\'ll be able to manage vehicles once verified.'}
-            {userData.ownerKycStatus === 'REJECTED' && 'Your Owner KYC was rejected. Please resubmit your documents for verification.'}
-            {userData.ownerKycStatus === 'NOT_SUBMITTED' && 'Complete your Owner KYC verification to list and manage your vehicles.'}
-          </p>
-          <button
-            onClick={() => router.push('/kyc/owner')}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-yellow-600 dark:bg-yellow-500 text-white rounded-xl hover:bg-yellow-700 dark:hover:bg-yellow-600 transition-colors font-semibold"
-          >
-            <Shield className="w-4 h-4" />
-            Complete KYC
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400 mx-auto mb-4" />
-            <p className="text-gray-600 dark:text-gray-300 text-sm">Loading your vehicles...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (vehicles.length === 0) {
-    return (
-      <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
-        <div className="text-center py-12">
-          <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Car className="w-10 h-10 text-gray-400 dark:text-gray-500" />
-          </div>
-          <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">No Vehicles Listed</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-sm mx-auto">
-            You haven't listed any vehicles yet. Start earning by sharing your vehicle with the community.
-          </p>
-          <button
-            onClick={() => router.push('/add-vehicle')}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 dark:bg-green-500 text-white rounded-xl hover:bg-green-700 dark:hover:bg-green-600 transition-colors font-semibold"
-          >
-            <Plus className="w-4 h-4" />
-            Add Your First Vehicle
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="font-extrabold text-gray-800 dark:text-gray-100 text-lg">My Vehicles ({vehicles.length})</h3>
-        <button
-          onClick={() => router.push('/add-vehicle')}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors text-sm font-semibold"
-        >
-          <Plus className="w-4 h-4" />
-          Add Vehicle
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {vehicles.map((vehicle) => (
-          <div
-            key={vehicle.id}
-            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow"
-          >
-            <div className="relative h-40 bg-gray-100 dark:bg-gray-700">
-              {vehicle.photos && vehicle.photos.length > 0 ? (
-                <img
-                  src={vehicle.photos[0]}
-                  alt={`${vehicle.brand} ${vehicle.model}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/logo.png';
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
-                  <Car className="w-12 h-12 text-gray-400 dark:text-gray-500" />
-                </div>
-              )}
-              <div className="absolute top-3 right-3">
-                {getVehicleStatusBadge(vehicle)}
-              </div>
-              {vehicle.rejectionReason && (
-                <div className="absolute bottom-0 left-0 right-0 bg-red-50/95 dark:bg-red-900/90 backdrop-blur-sm p-1.5 px-3">
-                  <p className="text-xs text-red-700 dark:text-red-300 truncate">
-                    <strong>Rejected:</strong> {vehicle.rejectionReason}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <h4 className="font-semibold text-gray-800 dark:text-gray-100">
-                    {vehicle.brand} {vehicle.model}
-                  </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {vehicle.year} • {vehicle.color}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-green-600 dark:text-green-400">₹{vehicle.pricePerDay}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">per day</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
-                  <Users className="w-3 h-3" />
-                  {vehicle.seats}
-                </div>
-                <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
-                  <span>{getFuelTypeIcon(vehicle.fuelType)}</span>
-                  {vehicle.fuelType}
-                </div>
-                <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300">
-                  <Gauge className="w-3 h-3" />
-                  {vehicle.transmission}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  <MapPin className="w-3 h-3 inline mr-1" />
-                  {vehicle.city || 'Location not set'}
-                </span>
-                <button
-                  onClick={() => onViewDetails(vehicle)}
-                  className="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium flex items-center gap-1 transition-colors"
-                >
-                  <Eye className="w-4 h-4" />
-                  View Details
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

@@ -6,7 +6,8 @@ import {
   CalendarCheck, Car, Clock, MapPin, X, ChevronDown,
   Loader2, Filter, ArrowUpDown, Calendar, Users, Wallet,
   CheckCircle, XCircle, Clock as ClockIcon, AlertCircle,
-  Eye, TrendingUp, Search, Info, FileText, ShieldCheck, ZoomIn
+  Eye, TrendingUp, Search, Info, FileText, ShieldCheck, ZoomIn,
+  Play, Flag
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import HomeHeader from "@/app/home/HomeHeader";
@@ -34,6 +35,8 @@ interface Booking {
   dropoffLocation: string;
   paymentStatus: string;
   rejectionReason?: string;
+  tripStartedAt?: string;
+  tripEndedAt?: string;
 }
 
 const statusConfig: Record<string, any> = {
@@ -42,11 +45,16 @@ const statusConfig: Record<string, any> = {
   REJECTED: { color: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-200 dark:border-red-700", icon: XCircle, label: "Rejected" },
   CANCELLED: { color: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600", icon: XCircle, label: "Cancelled" },
   COMPLETED: { color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border-blue-200 dark:border-blue-700", icon: CheckCircle, label: "Completed" },
-  CONFIRMED: { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-700", icon: CheckCircle, label: "Confirmed" }
+  CONFIRMED: { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-700", icon: CheckCircle, label: "Confirmed" },
+  ACTIVE: { color: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border-purple-200 dark:border-purple-700", icon: ClockIcon, label: "Active" }
 };
 
 const defaultStatus = { color: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600", icon: AlertCircle, label: "Unknown" };
 const getStatusConfig = (status: string) => statusConfig[status?.toUpperCase()?.trim() || 'PENDING'] || defaultStatus;
+
+// ─────────────────────────────────────────────
+// SORT & FILTER OPTIONS
+// ─────────────────────────────────────────────
 
 const sortOptions = [
   { label: "Newest First", icon: Calendar },
@@ -59,10 +67,15 @@ const filterOptions = [
   { label: "All", value: "ALL" },
   { label: "Pending", value: "PENDING" },
   { label: "Confirmed", value: "CONFIRMED" },
+  { label: "Active", value: "ACTIVE" },
   { label: "Completed", value: "COMPLETED" },
   { label: "Rejected", value: "REJECTED" },
   { label: "Cancelled", value: "CANCELLED" }
 ];
+
+// ─────────────────────────────────────────────
+// COMPONENTS
+// ─────────────────────────────────────────────
 
 const StatusBadge = ({ status }: { status: string }) => {
   const config = getStatusConfig(status);
@@ -74,18 +87,12 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-// Helper function to get payment status color with dark mode support
 const getPaymentStatusColor = (paymentStatus: string) => {
   const status = paymentStatus?.toUpperCase() || 'PENDING';
-  if (status === 'COMPLETED' || status === 'PAID' || status === 'SUCCESS') {
-    return 'text-green-600 dark:text-green-400';
-  } else if (status === 'PENDING') {
-    return 'text-yellow-600 dark:text-yellow-400';
-  } else if (status === 'FAILED') {
-    return 'text-red-600 dark:text-red-400';
-  } else if (status === 'REFUNDED') {
-    return 'text-purple-600 dark:text-purple-400';
-  }
+  if (status === 'COMPLETED' || status === 'PAID' || status === 'SUCCESS') return 'text-green-600 dark:text-green-400';
+  if (status === 'PENDING') return 'text-yellow-600 dark:text-yellow-400';
+  if (status === 'FAILED') return 'text-red-600 dark:text-red-400';
+  if (status === 'REFUNDED') return 'text-purple-600 dark:text-purple-400';
   return 'text-gray-600 dark:text-gray-400';
 };
 
@@ -120,6 +127,221 @@ const formatDateShort = (date: string) => {
   } catch { return 'Invalid Date'; }
 };
 
+// ─────────────────────────────────────────────
+// RESULT MODAL (for success/error messages)
+// ─────────────────────────────────────────────
+
+const ResultModal = ({
+  isOpen,
+  onClose,
+  title,
+  message,
+  type = 'success',
+  icon: Icon,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  message: string;
+  type?: 'success' | 'error';
+  icon?: any;
+}) => {
+  if (!isOpen) return null;
+
+  const isSuccess = type === 'success';
+  const bgColor = isSuccess ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20';
+  const borderColor = isSuccess ? 'border-emerald-200 dark:border-emerald-800' : 'border-red-200 dark:border-red-800';
+  const iconColor = isSuccess ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400';
+  const iconBg = isSuccess ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-red-100 dark:bg-red-900/40';
+  const titleColor = isSuccess ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300';
+  const messageColor = isSuccess ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400';
+  const buttonBg = isSuccess ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600';
+
+  const DefaultIcon = isSuccess ? CheckCircle : XCircle;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.85, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.85, y: 20 }}
+            className={`bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full shadow-2xl border ${borderColor} overflow-hidden`}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className={`p-6 text-center ${bgColor}`}>
+              <div className={`w-20 h-20 rounded-full ${iconBg} flex items-center justify-center mx-auto mb-4`}>
+                {Icon ? <Icon className={`w-10 h-10 ${iconColor}`} /> : <DefaultIcon className={`w-10 h-10 ${iconColor}`} />}
+              </div>
+              <h3 className={`text-2xl font-bold ${titleColor} mb-2`}>
+                {title}
+              </h3>
+              <p className={`text-sm ${messageColor}`}>
+                {message}
+              </p>
+            </div>
+            <div className="p-6 bg-gray-50 dark:bg-gray-800/50">
+              <button
+                onClick={onClose}
+                className={`w-full px-6 py-3 ${buttonBg} text-white rounded-xl font-medium transition shadow-lg shadow-${isSuccess ? 'emerald' : 'red'}-500/25`}
+              >
+                Got it
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// ─────────────────────────────────────────────
+// TRIP ACTION MODAL
+// ─────────────────────────────────────────────
+
+const TripActionModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  subMessage,
+  confirmText,
+  confirmColor = "bg-green-500 hover:bg-green-600",
+  loading = false,
+  icon: Icon = Play,
+  bookingDetails
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  subMessage?: string;
+  confirmText: string;
+  confirmColor?: string;
+  loading?: boolean;
+  icon?: any;
+  bookingDetails?: {
+    vehicleName: string;
+    pickupDate: string;
+    dropoffDate: string;
+    totalAmount: number;
+  };
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] flex items-center justify-center p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.9, y: 20 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl max-w-lg w-full shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{title}</h3>
+                <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+
+              {/* Main Message */}
+              <div className="mb-4">
+                <div className={`p-4 rounded-lg border ${title === 'Start Trip'
+                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                  : 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'
+                  }`}>
+                  <p className={`text-sm flex items-start gap-2 ${title === 'Start Trip'
+                    ? 'text-green-700 dark:text-green-400'
+                    : 'text-orange-700 dark:text-orange-400'
+                    }`}>
+                    <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <span>{message}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Booking Details Summary */}
+              {bookingDetails && (
+                <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Booking Summary</p>
+                  <div className="space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">Vehicle</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">{bookingDetails.vehicleName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">Pickup</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">{formatDate(bookingDetails.pickupDate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">Dropoff</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">{formatDate(bookingDetails.dropoffDate)}</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-gray-200 dark:border-gray-600">
+                      <span className="text-gray-500 dark:text-gray-400">Total Amount</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">Rs. {bookingDetails.totalAmount?.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Sub Message */}
+              {subMessage && (
+                <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <span>{subMessage}</span>
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-2">
+                <button
+                  onClick={onClose}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={onConfirm}
+                  disabled={loading}
+                  className={`flex-1 px-4 py-2.5 text-white rounded-xl font-medium transition flex items-center justify-center gap-2 disabled:opacity-50 ${confirmColor}`}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
+                  {loading ? 'Processing...' : confirmText}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// ─────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────
+
 export default function MyBookingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -131,8 +353,28 @@ export default function MyBookingsPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelBookingId, setCancelBookingId] = useState<number | null>(null);
+  const [cancelStatus, setCancelStatus] = useState<'confirm' | 'processing' | 'success' | 'error'>('confirm');
+  const [cancelMessage, setCancelMessage] = useState('');
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  const [showTripModal, setShowTripModal] = useState(false);
+  const [tripAction, setTripAction] = useState<'start' | 'end' | null>(null);
+  const [tripBookingId, setTripBookingId] = useState<number | null>(null);
+
+  // Result modal state
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [resultModalData, setResultModalData] = useState<{
+    title: string;
+    message: string;
+    type: 'success' | 'error';
+    icon?: any;
+  }>({
+    title: '',
+    message: '',
+    type: 'success'
+  });
 
   const getToken = () => {
     if (typeof window !== 'undefined') {
@@ -150,29 +392,111 @@ export default function MyBookingsPage() {
     fetchBookings();
   }, []);
 
-  const mapBooking = (b: any): Booking => ({
-    id: b.id || b.bookingId || 0,
-    vehicleId: b.vehicleId || 0,
-    vehicleName: b.vehicleName || b.vehicle?.name || 'Unknown Vehicle',
-    vehicleBrand: b.vehicleBrand || b.vehicle?.brand || '',
-    vehicleModel: b.vehicleModel || b.vehicle?.model || '',
-    vehicleImage: b.vehicleImage || b.vehicle?.photos?.[0] || '/car-placeholder.jpg',
-    vehicleBluebookDocuments: b.vehicleBluebookDocuments || b.vehicle?.bluebookDocuments || [],
-    renterId: b.renterId || b.userId || 0,
-    renterName: b.renterName || b.renter?.fullName || b.renter?.username || 'N/A',
-    ownerId: b.ownerId || b.vehicle?.ownerId || 0,
-    ownerName: b.ownerName || b.owner?.fullName || b.owner?.username || 'N/A',
-    pickupDate: b.pickupDate || b.startDate || '',
-    dropoffDate: b.dropoffDate || b.endDate || '',
-    totalAmount: b.totalAmount || b.amount || 0,
-    status: b.bookingStatus || b.status || 'PENDING',
-    createdAt: b.createdAt || b.createdDate || new Date().toISOString(),
-    updatedAt: b.updatedAt || b.updatedDate || new Date().toISOString(),
-    pickupLocation: b.pickupLocation || b.location || 'N/A',
-    dropoffLocation: b.dropoffLocation || b.returnLocation || 'N/A',
-    paymentStatus: b.paymentStatus || b.payment?.status || 'PENDING',
-    rejectionReason: b.rejectionReason || null
-  });
+  /**
+   * Get renter/pickup location from booking data
+   * This is where the renter picks up the vehicle
+   */
+  const getRenterLocation = (booking: any): string => {
+    const possibleFields = [
+      booking.renterLocation,
+      booking.pickupLocation,
+      booking.pickup_location,
+      booking.pickupAddress,
+      booking.pickup_address,
+      booking.location,
+      booking.pickup,
+      booking.startLocation,
+      booking.start_location,
+      booking.address,
+      booking.city,
+      booking.renterAddress,
+      booking.renter_address,
+      booking.renter?.address,
+      booking.renter?.location
+    ];
+
+    for (const field of possibleFields) {
+      if (field && field.trim() !== "" && field !== "null" && field !== "undefined") {
+        return field.trim();
+      }
+    }
+
+    if (booking.renterLatitude && booking.renterLongitude) {
+      return `${booking.renterLatitude}, ${booking.renterLongitude}`;
+    }
+
+    return "Location N/A";
+  };
+
+  /**
+   * Get owner/dropoff location from booking data
+   * This is where the vehicle is returned to the owner
+   */
+  const getOwnerLocation = (booking: any): string => {
+    const possibleFields = [
+      booking.ownerLocation,
+      booking.ownerAddress,
+      booking.owner_address,
+      booking.owner?.address,
+      booking.owner?.location,
+      booking.vehicleLocation,
+      booking.vehicleAddress,
+      booking.vehicle_address,
+      booking.vehicle?.address,
+      booking.vehicle?.location,
+      booking.dropoffLocation,
+      booking.dropoff_location,
+      booking.dropoffAddress,
+      booking.dropoff_address,
+      booking.returnLocation,
+      booking.return_location,
+      booking.endLocation,
+      booking.end_location
+    ];
+
+    for (const field of possibleFields) {
+      if (field && field.trim() !== "" && field !== "null" && field !== "undefined") {
+        return field.trim();
+      }
+    }
+
+    if (booking.ownerLatitude && booking.ownerLongitude) {
+      return `${booking.ownerLatitude}, ${booking.ownerLongitude}`;
+    }
+
+    return "Return at owner's location";
+  };
+
+  const mapBooking = (b: any): Booking => {
+    const pickupLocation = getRenterLocation(b);
+    const dropoffLocation = getOwnerLocation(b);
+
+    return {
+      id: b.id || b.bookingId || 0,
+      vehicleId: b.vehicleId || 0,
+      vehicleName: b.vehicleName || b.vehicle?.name || 'Unknown Vehicle',
+      vehicleBrand: b.vehicleBrand || b.vehicle?.brand || '',
+      vehicleModel: b.vehicleModel || b.vehicle?.model || '',
+      vehicleImage: b.vehicleImage || b.vehicle?.photos?.[0] || '/car-placeholder.jpg',
+      vehicleBluebookDocuments: b.vehicleBluebookDocuments || b.vehicle?.bluebookDocuments || [],
+      renterId: b.renterId || b.userId || 0,
+      renterName: b.renterName || b.renter?.fullName || b.renter?.username || 'N/A',
+      ownerId: b.ownerId || b.vehicle?.ownerId || 0,
+      ownerName: b.ownerName || b.owner?.fullName || b.owner?.username || 'N/A',
+      pickupDate: b.pickupDate || b.startDate || '',
+      dropoffDate: b.dropoffDate || b.endDate || '',
+      totalAmount: b.totalAmount || b.amount || 0,
+      status: b.bookingStatus || b.status || 'PENDING',
+      createdAt: b.createdAt || b.createdDate || new Date().toISOString(),
+      updatedAt: b.updatedAt || b.updatedDate || new Date().toISOString(),
+      pickupLocation: pickupLocation,
+      dropoffLocation: dropoffLocation,
+      paymentStatus: b.paymentStatus || b.payment?.status || 'PENDING',
+      rejectionReason: b.rejectionReason || null,
+      tripStartedAt: b.tripStartedAt || null,
+      tripEndedAt: b.tripEndedAt || null
+    };
+  };
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -181,10 +505,7 @@ export default function MyBookingsPage() {
       if (!token) { router.push('/signin'); return; }
 
       const res = await fetch('http://localhost:8080/api/bookings/my-bookings?page=0&size=100', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
 
       if (res.status === 401) {
@@ -197,12 +518,9 @@ export default function MyBookingsPage() {
         const data = await res.json();
         const content = data.content || data || [];
         const mapped = (Array.isArray(content) ? content : []).map((b: any) => mapBooking(b));
-        mapped.sort((a: Booking, b: Booking) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
+        mapped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setBookings(mapped);
       }
-
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
@@ -260,51 +578,205 @@ export default function MyBookingsPage() {
     return { allowed: true, message: '' };
   };
 
-  const handleCancelBooking = async (bookingId: number) => {
+  // ─────────────────────────────────────────────
+  // CANCEL BOOKING
+  // ─────────────────────────────────────────────
+
+  const openCancelModal = (bookingId: number) => {
     const booking = bookings.find(b => b.id === bookingId);
     if (!booking) return;
 
     if (booking.status?.toUpperCase() !== 'PENDING') {
-      alert(`Cannot cancel a booking with status: ${booking.status}`);
+      setResultModalData({
+        title: 'Cannot Cancel',
+        message: `Cannot cancel a booking with status: ${booking.status}`,
+        type: 'error',
+        icon: AlertCircle
+      });
+      setShowResultModal(true);
       return;
     }
 
     const cancelCheck = canCancel(booking.pickupDate);
     if (!cancelCheck.allowed) {
-      alert(`❌ Cannot cancel this booking.\n\n${cancelCheck.message}`);
+      setResultModalData({
+        title: 'Cannot Cancel',
+        message: cancelCheck.message,
+        type: 'error',
+        icon: AlertCircle
+      });
+      setShowResultModal(true);
       return;
     }
 
-    if (!confirm(`Cancel booking for ${booking.vehicleName}?\nPickup: ${formatDate(booking.pickupDate)}\nAmount: Rs. ${booking.totalAmount}`)) {
-      return;
-    }
+    setCancelBookingId(bookingId);
+    setCancelStatus('confirm');
+    setCancelMessage('');
+    setShowCancelModal(true);
+  };
 
-    setCancellingId(bookingId);
+  const handleCancelBooking = async () => {
+    if (!cancelBookingId) return;
+
+    setCancelStatus('processing');
+    setCancelMessage('Processing your cancellation request...');
+
     try {
       const token = getToken();
       if (!token) { router.push('/signin'); return; }
 
-      const response = await fetch(`http://localhost:8080/api/bookings/${bookingId}/cancel`, {
+      const response = await fetch(`http://localhost:8080/api/bookings/${cancelBookingId}/cancel`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
 
       if (response.ok) {
-        alert('✅ Booking cancelled successfully!');
+        setCancelStatus('success');
+        setCancelMessage('✅ Booking cancelled successfully!');
+        // Refresh bookings but keep modal open to show success
         await fetchBookings();
         setShowDetailModal(false);
+        // Close cancel modal after showing success
+        setTimeout(() => {
+          setShowCancelModal(false);
+          setCancelBookingId(null);
+        }, 1500);
       } else {
         const text = await response.text();
         let msg = 'Failed to cancel booking';
         try { const data = JSON.parse(text); msg = data.message || data.error || msg; } catch { msg = text || msg; }
-        alert(`❌ ${msg}`);
+        setCancelStatus('error');
+        setCancelMessage(`❌ ${msg}`);
       }
     } catch {
-      alert('Network error. Please try again.');
-    } finally {
-      setCancellingId(null);
+      setCancelStatus('error');
+      setCancelMessage('❌ Network error. Please try again.');
     }
   };
+
+  // ─────────────────────────────────────────────
+  // START / END TRIP
+  // ─────────────────────────────────────────────
+
+  const openTripModal = (bookingId: number, action: 'start' | 'end') => {
+    const booking = bookings.find(b => b.id === bookingId);
+    if (!booking) return;
+
+    const status = booking.status?.toUpperCase() || '';
+
+    if (action === 'start') {
+      if (status !== 'CONFIRMED' && status !== 'APPROVED') {
+        setResultModalData({
+          title: 'Cannot Start Trip',
+          message: `Cannot start trip. Booking status: ${booking.status}`,
+          type: 'error',
+          icon: AlertCircle
+        });
+        setShowResultModal(true);
+        return;
+      }
+      const pickupDate = new Date(booking.pickupDate);
+      if (new Date() < pickupDate) {
+        setResultModalData({
+          title: 'Cannot Start Trip',
+          message: `Pickup is scheduled for ${formatDate(booking.pickupDate)}. You can only start on or after the pickup date.`,
+          type: 'error',
+          icon: AlertCircle
+        });
+        setShowResultModal(true);
+        return;
+      }
+    } else {
+      if (status !== 'ACTIVE') {
+        setResultModalData({
+          title: 'Cannot End Trip',
+          message: `Cannot end trip. Booking status: ${booking.status}`,
+          type: 'error',
+          icon: AlertCircle
+        });
+        setShowResultModal(true);
+        return;
+      }
+    }
+
+    setTripBookingId(bookingId);
+    setTripAction(action);
+    setShowTripModal(true);
+  };
+
+  const handleTripAction = async () => {
+    if (!tripBookingId || !tripAction) return;
+
+    setActionLoading(tripBookingId);
+    try {
+      const token = getToken();
+      if (!token) { router.push('/signin'); return; }
+
+      const endpoint = tripAction === 'start' ? 'start-trip' : 'end-trip';
+      const response = await fetch(`http://localhost:8080/api/bookings/${tripBookingId}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+
+      if (response.ok) {
+        // Close trip modal first
+        setShowTripModal(false);
+        setTripBookingId(null);
+        setTripAction(null);
+
+        // Show success result modal
+        const successMsg = tripAction === 'start'
+          ? 'Trip started successfully! Drive safe! 🚗'
+          : 'Trip ended successfully! Thank you for using our service! 🙏';
+
+        setResultModalData({
+          title: tripAction === 'start' ? 'Trip Started! 🚗' : 'Trip Ended! 🙏',
+          message: successMsg,
+          type: 'success',
+          icon: tripAction === 'start' ? Play : Flag
+        });
+        setShowResultModal(true);
+
+        // Refresh bookings in background without showing loading
+        await fetchBookings();
+        setShowDetailModal(false);
+      } else {
+        const text = await response.text();
+        let msg = `Failed to ${tripAction} trip`;
+        try { const data = JSON.parse(text); msg = data.message || data.error || msg; } catch { msg = text || msg; }
+
+        setShowTripModal(false);
+        setTripBookingId(null);
+        setTripAction(null);
+
+        setResultModalData({
+          title: tripAction === 'start' ? 'Failed to Start Trip' : 'Failed to End Trip',
+          message: msg,
+          type: 'error',
+          icon: AlertCircle
+        });
+        setShowResultModal(true);
+      }
+    } catch {
+      setShowTripModal(false);
+      setTripBookingId(null);
+      setTripAction(null);
+
+      setResultModalData({
+        title: 'Network Error',
+        message: 'Please check your connection and try again.',
+        type: 'error',
+        icon: AlertCircle
+      });
+      setShowResultModal(true);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // ─────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -348,7 +820,6 @@ export default function MyBookingsPage() {
       <div className="max-w-7xl mx-auto px-6 -mt-4 relative z-10 w-full">
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 md:p-6">
           <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
               <input
@@ -361,7 +832,6 @@ export default function MyBookingsPage() {
             </div>
 
             <div className="flex gap-2">
-              {/* Sort */}
               <div className="relative">
                 <button
                   onClick={() => setShowSort(!showSort)}
@@ -395,7 +865,6 @@ export default function MyBookingsPage() {
                 </AnimatePresence>
               </div>
 
-              {/* Filter toggle */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition ${showFilters
@@ -458,9 +927,14 @@ export default function MyBookingsPage() {
         ) : (
           <div className="space-y-4">
             {filteredBookings.map((booking, index) => {
-              const isPending = booking.status?.toUpperCase() === 'PENDING';
-              const isRejected = booking.status?.toUpperCase() === 'REJECTED';
+              const status = booking.status?.toUpperCase() || '';
+              const isPending = status === 'PENDING';
+              const isRejected = status === 'REJECTED';
+              const isCancelled = status === 'CANCELLED';
+              const isConfirmed = status === 'CONFIRMED' || status === 'APPROVED';
+              const isActive = status === 'ACTIVE';
               const cancelCheck = isPending ? canCancel(booking.pickupDate) : null;
+              const isPickupDateArrived = new Date() >= new Date(booking.pickupDate);
 
               return (
                 <motion.div
@@ -507,11 +981,7 @@ export default function MyBookingsPage() {
                           </div>
                         </div>
 
-                        {/* Payment Status with dark mode support */}
                         <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5" /> {booking.pickupLocation}
-                          </span>
                           <span className="flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5" /> Booked: {formatDate(booking.createdAt)}
                           </span>
@@ -520,7 +990,6 @@ export default function MyBookingsPage() {
                           </span>
                         </div>
 
-                        {/* 24hr warning with dark mode support */}
                         {isPending && cancelCheck && !cancelCheck.allowed && (
                           <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-700 dark:text-yellow-400 flex items-center gap-2">
                             <Clock className="w-4 h-4 flex-shrink-0" />
@@ -530,7 +999,13 @@ export default function MyBookingsPage() {
 
                         {isRejected && <RejectionReason reason={booking.rejectionReason} />}
 
-                        {/* Actions with dark mode support */}
+                        {isCancelled && (
+                          <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                            <XCircle className="w-4 h-4 flex-shrink-0" />
+                            This booking has been cancelled
+                          </div>
+                        )}
+
                         <div className="mt-3 flex flex-wrap gap-2">
                           <button
                             onClick={() => { setSelectedBooking(booking); setShowDetailModal(true); }}
@@ -541,22 +1016,40 @@ export default function MyBookingsPage() {
 
                           {isPending && cancelCheck?.allowed && (
                             <button
-                              onClick={() => handleCancelBooking(booking.id)}
-                              disabled={cancellingId === booking.id}
-                              className="flex items-center gap-1.5 px-4 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-lg text-sm font-medium transition disabled:opacity-50"
+                              onClick={() => openCancelModal(booking.id)}
+                              className="flex items-center gap-1.5 px-4 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-lg text-sm font-medium transition"
                             >
-                              {cancellingId === booking.id
-                                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Cancelling...</>
-                                : <><XCircle className="w-3.5 h-3.5" /> Cancel</>}
+                              <XCircle className="w-3.5 h-3.5" /> Cancel
                             </button>
                           )}
 
-                          {(booking.status?.toUpperCase() === 'APPROVED' || booking.status?.toUpperCase() === 'CONFIRMED') && (
+                          {isConfirmed && isPickupDateArrived && (
                             <button
-                              onClick={() => router.push(`/tracking?bookingId=${booking.id}`)}
-                              className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg text-sm font-medium transition"
+                              onClick={() => openTripModal(booking.id, 'start')}
+                              disabled={actionLoading === booking.id}
+                              className="flex items-center gap-1.5 px-4 py-1.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition disabled:opacity-50"
                             >
-                              <MapPin className="w-3.5 h-3.5" /> Track
+                              {actionLoading === booking.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Play className="w-3.5 h-3.5" />
+                              )}
+                              Start Trip
+                            </button>
+                          )}
+
+                          {isActive && (
+                            <button
+                              onClick={() => openTripModal(booking.id, 'end')}
+                              disabled={actionLoading === booking.id}
+                              className="flex items-center gap-1.5 px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition disabled:opacity-50"
+                            >
+                              {actionLoading === booking.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Flag className="w-3.5 h-3.5" />
+                              )}
+                              End Trip
                             </button>
                           )}
                         </div>
@@ -570,7 +1063,148 @@ export default function MyBookingsPage() {
         )}
       </main>
 
-      {/* Detail Modal with dark mode support */}
+      {/* Cancel Booking Modal */}
+      <AnimatePresence>
+        {showCancelModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4"
+            onClick={() => {
+              if (cancelStatus === 'confirm' || cancelStatus === 'error') {
+                setShowCancelModal(false);
+                setCancelBookingId(null);
+              }
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                    {cancelStatus === 'confirm' && 'Cancel Booking'}
+                    {cancelStatus === 'processing' && 'Processing...'}
+                    {cancelStatus === 'success' && 'Success!'}
+                    {cancelStatus === 'error' && 'Error'}
+                  </h3>
+                  {(cancelStatus === 'confirm' || cancelStatus === 'error') && (
+                    <button
+                      onClick={() => { setShowCancelModal(false); setCancelBookingId(null); }}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                    >
+                      <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    </button>
+                  )}
+                </div>
+
+                {cancelStatus === 'confirm' && (
+                  <div>
+                    <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <p className="text-sm text-yellow-700 dark:text-yellow-400 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                        Are you sure you want to cancel this booking?
+                      </p>
+                    </div>
+                    <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-6">
+                      <p>• This action cannot be undone</p>
+                      <p>• You will receive a full refund</p>
+                      <p>• The vehicle will be available for others to book</p>
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { setShowCancelModal(false); setCancelBookingId(null); }}
+                        className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition"
+                      >
+                        Keep Booking
+                      </button>
+                      <button
+                        onClick={handleCancelBooking}
+                        className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-2"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        Yes, Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {cancelStatus === 'processing' && (
+                  <div className="text-center py-8">
+                    <Loader2 className="w-16 h-16 text-emerald-500 dark:text-emerald-400 animate-spin mx-auto mb-4" />
+                    <p className="text-gray-700 dark:text-gray-300 font-medium">{cancelMessage}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Please wait...</p>
+                  </div>
+                )}
+
+                {cancelStatus === 'success' && (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+                    </div>
+                    <p className="text-green-600 dark:text-green-400 font-medium text-lg">{cancelMessage}</p>
+                  </div>
+                )}
+
+                {cancelStatus === 'error' && (
+                  <div className="text-center py-4">
+                    <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <AlertCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
+                    </div>
+                    <p className="text-red-600 dark:text-red-400 font-medium">{cancelMessage}</p>
+                    <button
+                      onClick={() => { setShowCancelModal(false); setCancelBookingId(null); }}
+                      className="mt-4 px-6 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition"
+                    >
+                      Close
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Trip Action Modal */}
+      <TripActionModal
+        isOpen={showTripModal}
+        onClose={() => { setShowTripModal(false); setTripBookingId(null); setTripAction(null); }}
+        onConfirm={handleTripAction}
+        title={tripAction === 'start' ? 'Start Trip' : 'End Trip'}
+        message={tripAction === 'start'
+          ? 'You are about to start your rental journey. Please ensure you have inspected the vehicle and received the keys from the owner.'
+          : 'You are about to end your rental journey. Please ensure you have returned the keys and the vehicle has been inspected by the owner.'
+        }
+        subMessage={tripAction === 'start'
+          ? 'Once started, the trip timer will begin. You cannot undo this action.'
+          : 'Once ended, the trip will be marked as completed. You cannot undo this action.'
+        }
+        confirmText={tripAction === 'start' ? 'Start Trip' : 'End Trip'}
+        confirmColor={tripAction === 'start' ? 'bg-green-500 hover:bg-green-600' : 'bg-orange-500 hover:bg-orange-600'}
+        loading={!!actionLoading}
+        icon={tripAction === 'start' ? Play : Flag}
+        bookingDetails={
+          tripBookingId ? bookings.find(b => b.id === tripBookingId) : undefined
+        }
+      />
+
+      {/* Result Modal (replaces alert for success/error messages) */}
+      <ResultModal
+        isOpen={showResultModal}
+        onClose={() => setShowResultModal(false)}
+        title={resultModalData.title}
+        message={resultModalData.message}
+        type={resultModalData.type}
+        icon={resultModalData.icon}
+      />
+
+      {/* Detail Modal - Shows only pickup location (renter's location) */}
       <AnimatePresence>
         {showDetailModal && selectedBooking && (
           <motion.div
@@ -598,7 +1232,6 @@ export default function MyBookingsPage() {
                   </button>
                 </div>
 
-                {/* Vehicle */}
                 <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl mb-4">
                   <img
                     src={selectedBooking.vehicleImage}
@@ -612,52 +1245,48 @@ export default function MyBookingsPage() {
                   </div>
                 </div>
 
-                {/* Details Grid */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Booking ID</p>
-                    <p className="font-medium text-gray-800 dark:text-gray-200">#{selectedBooking.id}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
-                    <div className="mt-1"><StatusBadge status={selectedBooking.status} /></div>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Pickup Date</p>
-                    <p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.pickupDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Dropoff Date</p>
-                    <p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.dropoffDate)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Amount</p>
-                    <p className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">Rs. {selectedBooking.totalAmount?.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Payment</p>
-                    <p className={`font-medium ${getPaymentStatusColor(selectedBooking.paymentStatus)}`}>
-                      {selectedBooking.paymentStatus || 'PENDING'}
+                  <div><p className="text-sm text-gray-500 dark:text-gray-400">Booking ID</p><p className="font-medium text-gray-800 dark:text-gray-200">#{selectedBooking.id}</p></div>
+                  <div><p className="text-sm text-gray-500 dark:text-gray-400">Status</p><div className="mt-1"><StatusBadge status={selectedBooking.status} /></div></div>
+                  <div><p className="text-sm text-gray-500 dark:text-gray-400">Pickup Date</p><p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.pickupDate)}</p></div>
+                  <div><p className="text-sm text-gray-500 dark:text-gray-400">Dropoff Date</p><p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.dropoffDate)}</p></div>
+
+                  {/* Only show Pickup Location - removed Return Location */}
+                  <div className="col-span-2">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Pickup Location</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200 flex items-start gap-2">
+                      <MapPin className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                      {selectedBooking.pickupLocation}
                     </p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Pickup Location</p>
-                    <p className="font-medium text-gray-800 dark:text-gray-200">{selectedBooking.pickupLocation}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Booked On</p>
-                    <p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.createdAt)}</p>
-                  </div>
+
+                  <div><p className="text-sm text-gray-500 dark:text-gray-400">Total Amount</p><p className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">Rs. {selectedBooking.totalAmount?.toLocaleString()}</p></div>
+                  <div><p className="text-sm text-gray-500 dark:text-gray-400">Payment</p><p className={`font-medium ${getPaymentStatusColor(selectedBooking.paymentStatus)}`}>{selectedBooking.paymentStatus || 'PENDING'}</p></div>
+                  <div className="col-span-2"><p className="text-sm text-gray-500 dark:text-gray-400">Booked On</p><p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.createdAt)}</p></div>
                 </div>
 
-                {/* Owner info */}
+                {selectedBooking.tripStartedAt && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Trip Started</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.tripStartedAt)}</p>
+                  </div>
+                )}
+                {selectedBooking.tripEndedAt && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Trip Ended</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.tripEndedAt)}</p>
+                  </div>
+                )}
+
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Vehicle Owner</p>
                   <p className="font-medium text-gray-800 dark:text-gray-200">{selectedBooking.ownerName}</p>
                 </div>
 
-                {/* Bluebook / Vehicle Registration Document - only visible until trip is completed */}
+                {/* UPDATED: Bluebook section - Hides for COMPLETED, REJECTED, and CANCELLED */}
                 {selectedBooking.status?.toUpperCase() !== 'COMPLETED' &&
+                  selectedBooking.status?.toUpperCase() !== 'REJECTED' &&
+                  selectedBooking.status?.toUpperCase() !== 'CANCELLED' &&
                   selectedBooking.vehicleBluebookDocuments &&
                   selectedBooking.vehicleBluebookDocuments.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -667,7 +1296,7 @@ export default function MyBookingsPage() {
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1">
                         <ShieldCheck className="w-3.5 h-3.5" />
-                        Shown for verification purposes and will no longer be visible once this trip is completed.
+                        Shown for verification purposes and will no longer be visible once this trip is completed, rejected, or cancelled.
                       </p>
                       <div className="grid grid-cols-2 gap-3">
                         {selectedBooking.vehicleBluebookDocuments.map((doc, idx) => (
@@ -689,7 +1318,6 @@ export default function MyBookingsPage() {
                     </div>
                   )}
 
-                {/* Rejection reason with dark mode support */}
                 {selectedBooking.status?.toUpperCase() === 'REJECTED' && selectedBooking.rejectionReason && (
                   <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-2">
                     <Info className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
@@ -700,25 +1328,75 @@ export default function MyBookingsPage() {
                   </div>
                 )}
 
-                {/* Modal actions */}
-                <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  {selectedBooking.status?.toUpperCase() === 'PENDING' && canCancel(selectedBooking.pickupDate).allowed && (
-                    <button
-                      onClick={() => handleCancelBooking(selectedBooking.id)}
-                      disabled={cancellingId === selectedBooking.id}
-                      className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {cancellingId === selectedBooking.id
-                        ? <><Loader2 className="w-4 h-4 animate-spin" /> Cancelling...</>
-                        : 'Cancel Booking'}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setShowDetailModal(false)}
-                    className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition"
-                  >
-                    Close
-                  </button>
+                {selectedBooking.status?.toUpperCase() === 'CANCELLED' && (
+                  <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl flex items-start gap-2">
+                    <XCircle className="w-5 h-5 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Booking Cancelled</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">This booking has been cancelled and is no longer active.</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  {(() => {
+                    const status = selectedBooking.status?.toUpperCase() || '';
+                    const isPending = status === 'PENDING';
+                    const isConfirmed = status === 'CONFIRMED' || status === 'APPROVED';
+                    const isActive = status === 'ACTIVE';
+                    const isPickupDateArrived = new Date() >= new Date(selectedBooking.pickupDate);
+
+                    return (
+                      <>
+                        {isPending && canCancel(selectedBooking.pickupDate).allowed && (
+                          <button
+                            onClick={() => { setShowDetailModal(false); openCancelModal(selectedBooking.id); }}
+                            className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-2"
+                          >
+                            <XCircle className="w-4 h-4" /> Cancel Booking
+                          </button>
+                        )}
+
+                        {isConfirmed && isPickupDateArrived && (
+                          <button
+                            onClick={() => { setShowDetailModal(false); openTripModal(selectedBooking.id, 'start'); }}
+                            disabled={actionLoading === selectedBooking.id}
+                            className="flex-1 px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
+                            {actionLoading === selectedBooking.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Play className="w-4 h-4" />
+                            )}
+                            Start Trip
+                          </button>
+                        )}
+
+                        {isActive && (
+                          <button
+                            onClick={() => { setShowDetailModal(false); openTripModal(selectedBooking.id, 'end'); }}
+                            disabled={actionLoading === selectedBooking.id}
+                            className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
+                            {actionLoading === selectedBooking.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Flag className="w-4 h-4" />
+                            )}
+                            End Trip
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => setShowDetailModal(false)}
+                          className={`${(isPending && canCancel(selectedBooking.pickupDate).allowed) || isConfirmed || isActive ? 'flex-1' : 'w-full'
+                            } px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition`}
+                        >
+                          Close
+                        </button>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </motion.div>

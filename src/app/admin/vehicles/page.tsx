@@ -488,14 +488,6 @@ export default function VehicleManagement() {
                       Pending
                     </span>
                   </div>
-                  {vehicle.bluebookDocuments && vehicle.bluebookDocuments.length > 0 && (
-                    <div className="absolute top-3 left-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-                        <FileText className="w-3 h-3 mr-1" />
-                        Bluebook attached
-                      </span>
-                    </div>
-                  )}
                 </div>
                 <div className="p-5">
                   <div className="flex items-start justify-between mb-3">

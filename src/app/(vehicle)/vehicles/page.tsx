@@ -131,7 +131,6 @@ export default function VehiclesPage() {
   const navigateToMapWithVehicle = (vehicle: Vehicle, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // Check if user is authenticated
     if (!isAuthenticated) {
       router.push("/signin");
       return;
@@ -156,7 +155,6 @@ export default function VehiclesPage() {
     setIsAuthenticated(!!token);
 
     if (!token) {
-      // Still load vehicles even if not authenticated
       fetchVehicles();
       return;
     }
@@ -226,7 +224,6 @@ export default function VehiclesPage() {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         setIsAuthenticated(false);
-        // Still try to get vehicles without auth
         const publicResponse = await fetch("http://localhost:8080/api/vehicles/recent?page=0&size=100");
         if (publicResponse.ok) {
           const data = await publicResponse.json();
@@ -249,30 +246,84 @@ export default function VehiclesPage() {
     }
   };
 
-  const transformVehicle = (v: any): Vehicle => ({
-    id: v.id,
-    brand: v.brand,
-    model: v.model,
-    name: `${v.brand} ${v.model}`,
-    category: mapCategory(v.seats),
-    img: v.photos?.[0] || PLACEHOLDER_IMAGE,
-    pricePerDay: v.pricePerDay,
-    rating: v.averageRating || 4.5,
-    range: getRangeByFuelType(v.fuelType),
-    charge: getChargeByFuelType(v.fuelType),
-    location: v.city,
-    city: v.city,
-    tags: extractTags(v),
-    seats: v.seats,
-    transmission: v.transmission,
-    fuelType: v.fuelType,
-    isAvailable: v.isAvailable,
-    photos: v.photos || [],
-    ownerId: v.ownerId || v.owner?.id,
-    ownerName: v.owner?.username || v.owner?.fullName || "Vehicle Owner",
-    lat: v.latitude || v.lat || 27.7172,
-    lng: v.longitude || v.lng || 85.324
-  });
+  /**
+   * Get display location from vehicle data
+   */
+  const getDisplayLocation = (v: any): string => {
+    if (v.city && v.city.trim() !== "" && v.city !== "null" && v.city !== "undefined") {
+      return v.city.trim();
+    }
+    if (v.address && v.address.trim() !== "" && v.address !== "null" && v.address !== "undefined") {
+      const addressParts = v.address.split(',').map((part: string) => part.trim());
+      const lastPart = addressParts[addressParts.length - 1];
+      if (lastPart && lastPart !== "" && lastPart !== "null") {
+        return lastPart;
+      }
+      return v.address.trim();
+    }
+    if (v.state && v.state.trim() !== "" && v.state !== "null" && v.state !== "undefined") {
+      return v.state.trim();
+    }
+    return "Location N/A";
+  };
+
+  /**
+   * Get owner name from vehicle data with proper fallbacks
+   */
+  const getOwnerName = (v: any): string => {
+    // Check if ownerName is directly available (from backend)
+    if (v.ownerName && v.ownerName.trim() !== "" && v.ownerName !== "null" && v.ownerName !== "undefined") {
+      return v.ownerName.trim();
+    }
+
+    // Check if owner object exists with username or fullName
+    if (v.owner) {
+      if (v.owner.fullName && v.owner.fullName.trim() !== "") {
+        return v.owner.fullName.trim();
+      }
+      if (v.owner.username && v.owner.username.trim() !== "") {
+        return v.owner.username.trim();
+      }
+    }
+
+    // Check if ownerId exists but no name - use a generic name
+    if (v.ownerId) {
+      return "Vehicle Owner";
+    }
+
+    // Ultimate fallback
+    return "Vehicle Owner";
+  };
+
+  const transformVehicle = (v: any): Vehicle => {
+    const displayLocation = getDisplayLocation(v);
+    const ownerName = getOwnerName(v);
+
+    return {
+      id: v.id,
+      brand: v.brand || "Unknown",
+      model: v.model || "Unknown",
+      name: `${v.brand || "Unknown"} ${v.model || "Unknown"}`,
+      category: mapCategory(v.seats),
+      img: v.photos?.[0] || PLACEHOLDER_IMAGE,
+      pricePerDay: v.pricePerDay || 0,
+      rating: v.averageRating || 4.5,
+      range: getRangeByFuelType(v.fuelType),
+      charge: getChargeByFuelType(v.fuelType),
+      location: displayLocation,
+      city: v.city || "N/A",
+      tags: extractTags(v),
+      seats: v.seats || 4,
+      transmission: v.transmission || "Manual",
+      fuelType: v.fuelType || "Petrol",
+      isAvailable: v.isAvailable !== undefined ? v.isAvailable : true,
+      photos: v.photos || [],
+      ownerId: v.ownerId || v.owner?.id,
+      ownerName: ownerName,
+      lat: v.latitude || v.lat || 27.7172,
+      lng: v.longitude || v.lng || 85.324
+    };
+  };
 
   const mapCategory = (seats: number): string => {
     if (seats === 2) return "Bikes";
@@ -300,9 +351,9 @@ export default function VehiclesPage() {
 
   const extractTags = (vehicle: any): string[] => {
     const tags = [];
-    if (vehicle.transmission === "automatic") tags.push("Automatic");
+    if (vehicle.transmission === "automatic" || vehicle.transmission === "Automatic") tags.push("Automatic");
     if (vehicle.seats >= 5) tags.push("Family Friendly");
-    if (vehicle.fuelType === "electric") tags.push("Eco-Friendly");
+    if (vehicle.fuelType === "electric" || vehicle.fuelType === "Electric") tags.push("Eco-Friendly");
     if (vehicle.pricePerDay < 1000) tags.push("Budget");
     if (vehicle.pricePerDay > 5000) tags.push("Premium");
     return tags.slice(0, 3);
@@ -438,7 +489,7 @@ export default function VehiclesPage() {
         setShowKycModal(true);
       }
     } catch (error) {
-      console.error("❌ Error checking KYC:", error);
+      console.error("Error checking KYC:", error);
       setKycStatus("NOT_SUBMITTED");
       setShowKycModal(true);
     } finally {
@@ -493,7 +544,6 @@ export default function VehiclesPage() {
     return result;
   }, [searchQuery, activeCategory, selectedLocation, sortBy, priceRange, vehicles]);
 
-  // Loading state with theme support
   if (loading) {
     return (
       <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
@@ -515,10 +565,9 @@ export default function VehiclesPage() {
 
   return (
     <div className={`min-h-screen flex flex-col ${isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 via-white to-gray-50'} font-['Inter',system-ui]`}>
-      {/* Conditional Header */}
       {isAuthenticated ? <HomeHeader /> : <Header />}
 
-      {/* Hero - Dynamic background based on theme */}
+      {/* Hero */}
       <div className={`relative overflow-hidden ${isDarkMode
         ? 'bg-gradient-to-br from-gray-800 via-gray-900 to-gray-950'
         : 'bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900'

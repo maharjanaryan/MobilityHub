@@ -7,13 +7,14 @@ import {
   ChevronRight, Shield, Images, Calendar, Loader2, Car,
   Fuel, MapPin, Palette, Hash, Luggage, Banknote, Clock,
   CheckCircle2, FileText, Timer, DoorOpen, X, User, IdCard,
-  FileCheck, AlertTriangle, ScrollText
+  FileCheck, AlertTriangle, ScrollText, Home, Navigation, Percent
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HomeHeader from "../../../home/HomeHeader";
 import Footer from "../../../component/Footer";
 import PaymentModal from "../../../component/payment/PaymentModal";
+import RenterLocationPicker from "../../../component/RenterLocationPicker";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -41,6 +42,8 @@ interface Vehicle {
   city?: string;
   state?: string;
   zipCode?: string;
+  latitude?: number;
+  longitude?: number;
   tags: string[];
   features: string[];
   badge?: string;
@@ -72,6 +75,19 @@ interface BookingResponse {
   createdAt: string;
 }
 
+interface Location {
+  lat: number;
+  lng: number;
+  address: string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Commission Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+const COMMISSION_RATE = 0.08; // 8% service fee
+const COMMISSION_LABEL = "Service Fee";
+const COMMISSION_ICON = Percent;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Auth helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -89,7 +105,7 @@ const clearAuthToken = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Formatting helpers
+// Formatting helpers - FIXED DATE FORMAT
 // ─────────────────────────────────────────────────────────────────────────────
 const titleCase = (value?: string | number | null) => {
   if (value === null || value === undefined || value === "") return "Not provided";
@@ -118,8 +134,13 @@ const getTomorrowInNepal = (): Date => {
   return tomorrow;
 };
 
+// ─── FIXED: Send full date-time format for API ───
 const formatDateForAPI = (date: Date): string => {
-  return getNepalDateString(date);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  // Backend expects LocalDateTime format: YYYY-MM-DDTHH:MM:SS
+  return `${year}-${month}-${day}T00:00:00`;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -151,7 +172,7 @@ function DetailSection({ title, children }: { title: string; children: React.Rea
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Calendar component with dark mode support
+// Calendar component
 // ─────────────────────────────────────────────────────────────────────────────
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
@@ -276,7 +297,7 @@ function MiniCalendar({ selected, onChange, year, month, onPrev, onNext, bookedD
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Terms & Conditions Modal with dark mode support
+// Terms & Conditions Modal
 // ─────────────────────────────────────────────────────────────────────────────
 interface TermsModalProps {
   isOpen: boolean;
@@ -356,6 +377,18 @@ function TermsModal({ isOpen, onClose, onAccept, loading = false }: TermsModalPr
               </ul>
             </section>
 
+            <section>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Home className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
+                Delivery Location
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-gray-600 dark:text-gray-300 list-disc pl-6">
+                <li>You must provide your delivery location where the vehicle will be delivered.</li>
+                <li>The vehicle will be delivered to the location you specify during booking.</li>
+                <li>Please ensure the delivery location is accurate and accessible.</li>
+              </ul>
+            </section>
+
             <section className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
@@ -423,9 +456,17 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   const [showDriverModal, setShowDriverModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
   const [pendingAmount, setPendingAmount] = useState<number>(0);
   const [driverInfo, setDriverInfo] = useState({ name: "", licenseNumber: "" });
+
+  // RENTER LOCATION STATE
+  const [renterLocation, setRenterLocation] = useState<Location>({
+    lat: 27.7172,
+    lng: 85.324,
+    address: ""
+  });
 
   const [activeImg, setActiveImg] = useState(0);
   const [insurance, setInsurance] = useState<"premium" | "standard">("standard");
@@ -506,6 +547,8 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
       city: data.city,
       state: data.state,
       zipCode: data.zipCode,
+      latitude: data.latitude,
+      longitude: data.longitude,
       tags: [data.transmission, data.seats ? `${data.seats} Seats` : undefined,
       data.fuelType, data.year, data.color].filter(Boolean).map(String),
       features: Array.isArray(data.features) ? data.features : [],
@@ -543,15 +586,54 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     return Math.round(ms / (1000 * 60 * 60 * 24));
   })();
 
+  // ─── COMMISSION CALCULATION ───
+  const calculateCommission = (subtotal: number): number => {
+    return Math.round(subtotal * COMMISSION_RATE);
+  };
+
   const calculateTotal = () => {
     if (!vehicle || rentalDays === 0) return 0;
-    return (vehicle.price + insuranceCost) * rentalDays + (vehicle.securityDeposit || 0);
+
+    const rentalSubtotal = vehicle.price * rentalDays;
+    const insuranceTotal = insuranceCost * rentalDays;
+    const commission = calculateCommission(rentalSubtotal + insuranceTotal);
+    const deposit = vehicle.securityDeposit || 0;
+
+    return rentalSubtotal + insuranceTotal + commission + deposit;
+  };
+
+  // Get individual breakdown values
+  const getPriceBreakdown = () => {
+    if (!vehicle || rentalDays === 0) {
+      return { rentalSubtotal: 0, insuranceTotal: 0, commission: 0, deposit: 0, total: 0 };
+    }
+
+    const rentalSubtotal = vehicle.price * rentalDays;
+    const insuranceTotal = insuranceCost * rentalDays;
+    const commission = calculateCommission(rentalSubtotal + insuranceTotal);
+    const deposit = vehicle.securityDeposit || 0;
+    const total = rentalSubtotal + insuranceTotal + commission + deposit;
+
+    return { rentalSubtotal, insuranceTotal, commission, deposit, total };
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // LOCATION HANDLERS
+  // ─────────────────────────────────────────────────────────────────────────────
+  const handleLocationSelect = (lat: number, lng: number, address: string) => {
+    console.log('📍 Vehicle page received location:', { lat, lng, address });
+    setRenterLocation({ lat, lng, address });
   };
 
   const handleProceedToBook = () => {
     if (!getAuthToken()) { router.push("/signin"); return; }
     if (!dateRange[0] || !dateRange[1]) { alert("Please select pickup and dropoff dates"); return; }
     if (rentalDays < 1) { alert("Dropoff date must be after pickup date"); return; }
+
+    if (!renterLocation.address) {
+      alert("Please select your delivery location first");
+      return;
+    }
 
     const tomorrow = getTomorrowInNepal();
     tomorrow.setHours(0, 0, 0, 0);
@@ -571,12 +653,19 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     setShowDriverModal(true);
   };
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // BOOKING HANDLER - FIXED WITH PROPER DATE FORMAT
+  // ─────────────────────────────────────────────────────────────────────────────
   const handleConfirmBooking = async () => {
     if (!driverInfo.name.trim() || !driverInfo.licenseNumber.trim()) {
       alert("Please enter driver name and license number");
       return;
     }
     if (!vehicle || !dateRange[0] || !dateRange[1]) return;
+    if (!renterLocation.address) {
+      alert("Please select your delivery location");
+      return;
+    }
 
     setBookingLoading(true);
     const token = getAuthToken();
@@ -585,8 +674,11 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
       const pickupDate = new Date(dateRange[0]);
       const dropoffDate = new Date(dateRange[1]);
 
+      // ─── FIXED: Use formatDateForAPI which includes time ───
       const pickupDateStr = formatDateForAPI(pickupDate);
       const dropoffDateStr = formatDateForAPI(dropoffDate);
+
+      console.log('📅 Dates for API:', { pickupDateStr, dropoffDateStr });
 
       // Availability check
       const availRes = await fetch(
@@ -610,7 +702,9 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         return;
       }
 
-      // Create booking
+      // ─────────────────────────────────────────────
+      // CREATE BOOKING WITH PROPER DATE FORMAT
+      // ─────────────────────────────────────────────
       const bookingRequest = {
         vehicleId: vehicle.id,
         pickupDate: pickupDateStr,
@@ -619,7 +713,15 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         driverName: driverInfo.name,
         driverLicenseNumber: driverInfo.licenseNumber,
         paymentMethod: "PENDING",
+        renterLocation: renterLocation.address,
+        renterLatitude: renterLocation.lat,
+        renterLongitude: renterLocation.lng,
+        // Include commission in the booking if backend supports it
+        commissionRate: COMMISSION_RATE,
+        commissionAmount: calculateCommission((vehicle.price * rentalDays) + (insuranceCost * rentalDays))
       };
+
+      console.log("📤 Sending booking request:", bookingRequest);
 
       const res = await fetch("http://localhost:8080/api/bookings", {
         method: "POST",
@@ -630,6 +732,10 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         body: JSON.stringify(bookingRequest),
       });
 
+      const responseText = await res.text();
+      console.log("📥 Response status:", res.status);
+      console.log("📥 Response body:", responseText);
+
       if (res.status === 401) {
         clearAuthToken();
         alert("Session expired. Please login again.");
@@ -638,18 +744,22 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
       }
 
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || err.error || "Failed to create booking");
+        let errorMessage = "Failed to create booking";
+        try {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+          errorMessage = responseText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
-      const result = await res.json();
-      console.log("Booking created:", result);
+      const result = JSON.parse(responseText);
+      console.log("✅ Booking created:", result);
 
-      // Close driver modal and show payment modal
       setShowDriverModal(false);
       setDriverInfo({ name: "", licenseNumber: "" });
 
-      // Store booking info for payment
       setPendingBookingId(result.id);
       setPendingAmount(result.totalAmount);
       setShowPaymentModal(true);
@@ -672,7 +782,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     router.push("/my-bookings");
   };
 
-  // Loading State with dark mode support
+  // Loading State
   if (loading) return (
     <div className="min-h-screen bg-[#f8f9fb] dark:bg-gray-950">
       <HomeHeader />
@@ -686,7 +796,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     </div>
   );
 
-  // Error State with dark mode support
+  // Error State
   if (error) return (
     <div className="min-h-screen bg-[#f8f9fb] dark:bg-gray-950">
       <HomeHeader />
@@ -714,6 +824,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
 
   const images = [vehicle.img, ...(vehicle.extraImages ?? [])].slice(0, 5);
   const isElectric = vehicle.fuelType?.toLowerCase() === "electric";
+  const breakdown = getPriceBreakdown();
 
   return (
     <div className="min-h-screen bg-[#f8f9fb] dark:bg-gray-950">
@@ -730,7 +841,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
 
           {/* LEFT COLUMN - Vehicle Details */}
           <div className="flex-1 min-w-0">
-            {/* Gallery with dark mode support */}
+            {/* Gallery */}
             <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden h-[320px] sm:h-[380px]">
               <div className="relative col-span-1 row-span-2 overflow-hidden cursor-pointer bg-gray-200 dark:bg-gray-700" onClick={() => setActiveImg(0)}>
                 <img src={images[activeImg] || images[0]} alt={vehicle.name} className="w-full h-full object-cover hover:scale-105 transition duration-500" />
@@ -750,7 +861,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            {/* Title with dark mode support */}
+            {/* Title */}
             <div className="mt-6 flex flex-wrap items-start gap-3 justify-between">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{vehicle.name}</h1>
@@ -775,7 +886,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
               )}
             </div>
 
-            {/* Specs with dark mode support */}
+            {/* Specs */}
             <div className="mt-5 grid grid-cols-3 gap-3">
               {[
                 { icon: <Gauge className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />, label: "TRANSMISSION", value: titleCase(vehicle.transmission || vehicle.driveType) },
@@ -790,7 +901,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
               ))}
             </div>
 
-            {/* Eco banner with dark mode support */}
+            {/* Eco banner */}
             {isElectric && (
               <div className="mt-5 bg-emerald-900 dark:bg-emerald-950 text-white rounded-2xl p-5 relative overflow-hidden">
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20"><Leaf className="w-20 h-20 text-emerald-400" /></div>
@@ -864,7 +975,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
             )}
           </div>
 
-          {/* RIGHT COLUMN - Booking Card with dark mode support */}
+          {/* RIGHT COLUMN - Booking Card */}
           <div className="lg:w-[320px] xl:w-[340px] flex-shrink-0">
             <div className="sticky top-6 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-5 space-y-5">
 
@@ -873,10 +984,48 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 <span className="text-sm text-gray-400 dark:text-gray-500 pb-0.5">/ day</span>
               </div>
 
+              {/* RENTER LOCATION SELECTOR */}
+              <div>
+                <p className="text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Home className="w-3.5 h-3.5" /> Your Delivery Location
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={renterLocation.address || ''}
+                    readOnly
+                    placeholder="Select your delivery location on map"
+                    className={`flex-1 px-3 py-2 text-sm border rounded-lg cursor-pointer truncate ${renterLocation.address
+                      ? 'border-emerald-500 dark:border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
+                      : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                      }`}
+                    onClick={() => setShowLocationPicker(true)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLocationPicker(true)}
+                    className="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition flex items-center gap-1.5 text-sm whitespace-nowrap"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    <span className="hidden sm:inline">Select</span>
+                  </button>
+                </div>
+                {renterLocation.address ? (
+                  <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Location confirmed
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                    ⚠️ Please select your delivery location
+                  </p>
+                )}
+              </div>
+
               {/* Calendar */}
               <div>
                 <p className="text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" /> Dates &amp; Availability
+                  <Calendar className="w-3.5 h-3.5" /> Dates & Availability
                 </p>
                 <MiniCalendar
                   selected={dateRange}
@@ -897,7 +1046,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
 
-              {/* Insurance with dark mode support */}
+              {/* Insurance */}
               <div>
                 <p className="text-[11px] font-bold text-gray-400 dark:text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5" /> Insurance Protection
@@ -931,25 +1080,41 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
 
-              {/* Price breakdown with dark mode support */}
+              {/* Price breakdown with COMMISSION */}
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 text-xs text-gray-600 dark:text-gray-300 space-y-1.5">
                 <div className="flex justify-between">
                   <span>Rental ({rentalDays} day{rentalDays !== 1 ? "s" : ""})</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(vehicle.price * rentalDays)}</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(breakdown.rentalSubtotal)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Insurance</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(insuranceCost * rentalDays)}</span>
+                  <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(breakdown.insuranceTotal)}</span>
+                </div>
+                {/* ─── COMMISSION ROW ─── */}
+                <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                  <span className="flex items-center gap-1">
+                    <Percent className="w-3 h-3" />
+                    {COMMISSION_LABEL} ({(COMMISSION_RATE * 100).toFixed(0)}%)
+                  </span>
+                  <span className="font-semibold">{formatCurrency(breakdown.commission)}</span>
                 </div>
                 {!!vehicle.securityDeposit && vehicle.securityDeposit > 0 && (
                   <div className="flex justify-between">
                     <span>Security deposit</span>
-                    <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(vehicle.securityDeposit)}</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(breakdown.deposit)}</span>
                   </div>
                 )}
                 <div className="flex justify-between pt-1.5 border-t border-gray-200 dark:border-gray-700 font-bold text-gray-900 dark:text-gray-100 text-sm">
                   <span>Total</span>
-                  <span>{formatCurrency(calculateTotal())}</span>
+                  <span>{formatCurrency(breakdown.total)}</span>
+                </div>
+
+                {/* Commission info tooltip */}
+                <div className="mt-1 pt-1 border-t border-gray-100 dark:border-gray-700/50">
+                  <p className="text-[9px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
+                    <Percent className="w-2.5 h-2.5" />
+                    {COMMISSION_LABEL} helps us provide a secure platform and 24/7 support
+                  </p>
                 </div>
               </div>
 
@@ -958,10 +1123,10 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 whileTap={{ scale: 0.97 }}
                 whileHover={{ scale: 1.01 }}
                 onClick={handleProceedToBook}
-                disabled={!dateRange[0] || !dateRange[1] || rentalDays < 1}
+                disabled={!dateRange[0] || !dateRange[1] || rentalDays < 1 || !renterLocation.address}
                 className={[
                   "w-full py-3.5 bg-emerald-600 dark:bg-emerald-500 text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-200 dark:shadow-emerald-900/30 transition flex items-center justify-center gap-2",
-                  (!dateRange[0] || !dateRange[1] || rentalDays < 1) ? "opacity-50 cursor-not-allowed" : "hover:bg-emerald-700 dark:hover:bg-emerald-600",
+                  (!dateRange[0] || !dateRange[1] || rentalDays < 1 || !renterLocation.address) ? "opacity-50 cursor-not-allowed" : "hover:bg-emerald-700 dark:hover:bg-emerald-600",
                 ].join(" ")}
               >
                 Request to Book <ChevronRight className="w-4 h-4" />
@@ -976,6 +1141,17 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
+      {/* RENTER LOCATION PICKER MODAL */}
+      <RenterLocationPicker
+        isOpen={showLocationPicker}
+        onClose={() => setShowLocationPicker(false)}
+        onLocationSelect={handleLocationSelect}
+        initialLat={renterLocation.lat}
+        initialLng={renterLocation.lng}
+        initialAddress={renterLocation.address}
+        vehicleAddress={vehicle.address || vehicle.location}
+      />
+
       {/* Terms & Conditions Modal */}
       <TermsModal
         isOpen={showTermsModal}
@@ -984,7 +1160,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         loading={bookingLoading}
       />
 
-      {/* Driver Info Modal with dark mode support */}
+      {/* Driver Info Modal */}
       {showDriverModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full p-6">
@@ -1021,6 +1197,17 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                   />
                 </div>
               </div>
+
+              {renterLocation.address && (
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Your Delivery Location</p>
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                    <Navigation className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    {renterLocation.address}
+                  </p>
+                </div>
+              )}
+
               <button
                 onClick={handleConfirmBooking}
                 disabled={bookingLoading}
