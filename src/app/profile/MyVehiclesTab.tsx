@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Car, Shield, Plus, Loader2, CheckCircle, Clock, AlertCircle,
-  XCircle, Users, MapPin, Eye, ChevronRight, Navigation, X
+  XCircle, Users, MapPin, Eye, ChevronRight, Navigation, X, Edit3
 } from 'lucide-react';
+import EditVehicleModal from './EditVehicleModal';
 
 interface UserProfileData {
   id: number;
@@ -156,6 +157,10 @@ export default function MyVehiclesTab({
   const router = useRouter();
   const [showStatus, setShowStatus] = useState(true);
 
+  // Edit Vehicle Modal state
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+
   // Confirm Return Modal state
   const [showConfirmReturnModal, setShowConfirmReturnModal] = useState(false);
   const [confirmReturnBookingId, setConfirmReturnBookingId] = useState<number | null>(null);
@@ -181,6 +186,16 @@ export default function MyVehiclesTab({
       return localStorage.getItem('accessToken') || localStorage.getItem('token');
     }
     return null;
+  };
+
+  const handleEditVehicle = (vehicle: Vehicle) => {
+    setEditingVehicle(vehicle);
+    setShowEditModal(true);
+  };
+
+  const handleEditSuccess = () => {
+    // Refresh the page data
+    window.dispatchEvent(new Event('vehicle-status-updated'));
   };
 
   const openConfirmReturnModal = (bookingId: number, vehicleName: string, renterName: string) => {
@@ -343,6 +358,14 @@ export default function MyVehiclesTab({
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl p-7 border border-gray-100 dark:border-gray-800 shadow-sm">
+      {/* Edit Vehicle Modal */}
+      <EditVehicleModal
+        vehicle={editingVehicle}
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={handleEditSuccess}
+      />
+
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <h3 className="font-extrabold text-gray-800 dark:text-gray-100 text-lg">
@@ -538,7 +561,7 @@ export default function MyVehiclesTab({
                   </div>
                 )}
 
-                {/* Bottom Row - Location, Track, View Details ALL IN ONE LINE */}
+                {/* Bottom Row - Location, Track, Edit, View Details */}
                 <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
                   <span className="text-xs text-gray-500 dark:text-gray-400">
                     <MapPin className="w-3 h-3 inline mr-1" />
@@ -554,6 +577,14 @@ export default function MyVehiclesTab({
                         Track
                       </button>
                     )}
+                    {/* Edit Button - Only show for non-rejected, non-pending vehicles, or allow editing of rejected/pending to fix issues */}
+                    <button
+                      onClick={() => handleEditVehicle(vehicle)}
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex items-center gap-1 transition-colors whitespace-nowrap"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      Edit
+                    </button>
                     <button
                       onClick={() => onViewDetails(vehicle)}
                       className="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium flex items-center gap-1 transition-colors whitespace-nowrap"

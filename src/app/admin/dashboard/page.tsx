@@ -1,7 +1,7 @@
 // app/admin/dashboard/page.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Users,
     Activity,
@@ -19,18 +19,335 @@ import {
     Layers,
     LifeBuoy,
     UserCheck,
-    TrendingUp
+    TrendingUp,
+    Loader2,
+    Percent,
+    Wallet
 } from 'lucide-react';
 import Link from 'next/link';
 
-export default function AdminDashboard() {
-    const [selectedPeriod, setSelectedPeriod] = useState('weekly');
+interface DashboardStats {
+    totalUsers: number;
+    activeOwners: number;
+    totalRevenue: number;
+    platformCommission: number;
+    ownerPayout: number;
+    kycPending: number;
+    activeVehicles: number;
+    totalBookings: number;
+    completedBookings: number;
+    pendingBookings: number;
+    averageRating: number;
+    userGrowth: number;
+    revenueGrowth: number;
+    bookingGrowth: number;
+    vehicleGrowth: number;
+}
 
-    const stats = [
+interface RecentActivity {
+    id: number;
+    user: string;
+    action: string;
+    time: string;
+    icon: any;
+    status: 'success' | 'warning' | 'info';
+}
+
+export default function AdminDashboard() {
+    const [selectedPeriod, setSelectedPeriod] = useState('monthly');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [stats, setStats] = useState<DashboardStats>({
+        totalUsers: 0,
+        activeOwners: 0,
+        totalRevenue: 0,
+        platformCommission: 0,
+        ownerPayout: 0,
+        kycPending: 0,
+        activeVehicles: 0,
+        totalBookings: 0,
+        completedBookings: 0,
+        pendingBookings: 0,
+        averageRating: 0,
+        userGrowth: 0,
+        revenueGrowth: 0,
+        bookingGrowth: 0,
+        vehicleGrowth: 0
+    });
+    const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+    const [chartData, setChartData] = useState<number[]>([]);
+    const [chartLabels, setChartLabels] = useState<string[]>([]);
+
+    const getAuthToken = () => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('accessToken') || localStorage.getItem('token');
+        }
+        return null;
+    };
+
+    const fetchDashboardData = async () => {
+        setLoading(true);
+        setError(null);
+        const token = getAuthToken();
+
+        if (!token) {
+            setError('Please login to view dashboard');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            // Fetch booking statistics
+            const statsRes = await fetch('http://localhost:8080/api/bookings/admin/bookings/stats', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!statsRes.ok) {
+                throw new Error('Failed to fetch statistics');
+            }
+
+            const statsData = await statsRes.json();
+
+            // Fetch all bookings
+            const bookingsRes = await fetch(
+                `http://localhost:8080/api/bookings/admin/bookings?page=0&size=1000`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            if (!bookingsRes.ok) {
+                throw new Error('Failed to fetch bookings');
+            }
+
+            const bookingsData = await bookingsRes.json();
+            const bookings = bookingsData.content || [];
+
+            // Fetch vehicles
+            const vehiclesRes = await fetch('http://localhost:8080/api/vehicles/all?page=0&size=100', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            let vehicles = [];
+            if (vehiclesRes.ok) {
+                const vehicleData = await vehiclesRes.json();
+                vehicles = vehicleData.content || [];
+            }
+
+            // Fetch users
+            const usersRes = await fetch('http://localhost:8080/api/admin/users/statistics', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            let userStats = { totalUsers: 0, activeUsers: 0, newUsers: 0 };
+            if (usersRes.ok) {
+                userStats = await usersRes.json();
+            }
+
+            // Process data
+            const processedStats = processDashboardData(bookings, vehicles, userStats, statsData);
+            setStats(processedStats);
+            setRecentActivities(processRecentActivities(bookings));
+
+            // Generate chart data with labels
+            const { data, labels } = generateChartData(bookings);
+            setChartData(data);
+            setChartLabels(labels);
+
+        } catch (err) {
+            console.error('Error fetching dashboard data:', err);
+            setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const processDashboardData = (bookings: any[], vehicles: any[], userStats: any, statsData: any): DashboardStats => {
+        const completedBookings = bookings.filter(b => b.bookingStatus === 'COMPLETED').length;
+        const pendingBookings = bookings.filter(b => b.bookingStatus === 'PENDING' || b.bookingStatus === 'CONFIRMED').length;
+        const totalBookings = bookings.length;
+
+        const completedPayments = bookings.filter(b => b.paymentStatus === 'COMPLETED');
+        const totalRevenue = completedPayments.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+        const platformCommission = completedPayments.reduce((sum, b) => sum + (b.serviceFee || 0), 0);
+        const ownerPayout = completedPayments.reduce((sum, b) => sum + (b.rentalAmount || 0) + (b.insuranceFee || 0), 0);
+
+        const activeVehicles = vehicles.filter(v => v.isAvailable).length;
+        const avgRating = vehicles.length > 0
+            ? vehicles.reduce((sum, v) => sum + (v.averageRating || 0), 0) / vehicles.length
+            : 0;
+
+        return {
+            totalUsers: userStats.totalUsers || 0,
+            activeOwners: userStats.activeUsers || 0,
+            totalRevenue,
+            platformCommission,
+            ownerPayout,
+            kycPending: statsData?.pendingKyc || 0,
+            activeVehicles,
+            totalBookings,
+            completedBookings,
+            pendingBookings,
+            averageRating: avgRating,
+            userGrowth: 12.5,
+            revenueGrowth: 18.5,
+            bookingGrowth: 22.8,
+            vehicleGrowth: 8.2
+        };
+    };
+
+    const processRecentActivities = (bookings: any[]): RecentActivity[] => {
+        const activities: RecentActivity[] = [];
+        const recentBookings = bookings.slice(0, 6);
+
+        recentBookings.forEach((booking) => {
+            const status = booking.bookingStatus === 'COMPLETED' ? 'success' :
+                booking.bookingStatus === 'REJECTED' ? 'warning' : 'info';
+
+            let action = '';
+            switch (booking.bookingStatus) {
+                case 'COMPLETED':
+                    action = 'Completed booking';
+                    break;
+                case 'PENDING':
+                    action = 'Created new booking';
+                    break;
+                case 'CONFIRMED':
+                    action = 'Confirmed booking';
+                    break;
+                case 'REJECTED':
+                    action = 'Rejected booking';
+                    break;
+                default:
+                    action = 'Booking action';
+            }
+
+            let icon = Activity;
+            switch (booking.bookingStatus) {
+                case 'COMPLETED':
+                    icon = CheckCircle2;
+                    break;
+                case 'PENDING':
+                    icon = Calendar;
+                    break;
+                case 'CONFIRMED':
+                    icon = UserCheck;
+                    break;
+                default:
+                    icon = Activity;
+            }
+
+            const time = booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : 'Today';
+
+            activities.push({
+                id: booking.id,
+                user: booking.renterName || `User ${booking.renterId}`,
+                action: `${action} - ${booking.vehicleName || 'Vehicle'}`,
+                time: time,
+                icon: icon,
+                status: status as 'success' | 'warning' | 'info'
+            });
+        });
+
+        return activities;
+    };
+
+    const generateChartData = (bookings: any[]) => {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const data: number[] = [];
+        const labels: string[] = [];
+
+        // Get current date
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+
+        // Generate data for last 12 months
+        for (let i = 11; i >= 0; i--) {
+            // Calculate the month we're looking at (going backwards from current month)
+            const monthOffset = (currentMonth - i + 12) % 12;
+            const yearOffset = currentMonth - i < 0 ? currentYear - 1 : currentYear;
+
+            // Count bookings for this month
+            const count = bookings.filter(b => {
+                if (!b.createdAt) return false;
+                const date = new Date(b.createdAt);
+                return date.getMonth() === monthOffset && date.getFullYear() === yearOffset;
+            }).length;
+
+            data.push(count);
+            labels.push(months[monthOffset]);
+        }
+
+        return { data, labels };
+    };
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, [selectedPeriod]);
+
+    const handleExport = async () => {
+        try {
+            const token = getAuthToken();
+            const response = await fetch('http://localhost:8080/api/earnings/export', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `dashboard_export_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } else {
+                alert('Failed to export data');
+            }
+        } catch (err) {
+            console.error('Export error:', err);
+            alert('Failed to export data');
+        }
+    };
+
+    const formatCurrency = (amount: number) => {
+        return `Rs. ${amount.toLocaleString()}`;
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-[60vh]">
+                <div className="text-center">
+                    <Loader2 className="w-12 h-12 animate-spin text-emerald-600 dark:text-emerald-400 mx-auto mb-4" />
+                    <p className="text-gray-600 dark:text-gray-300">Loading dashboard...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center h-[60vh]">
+                <div className="text-center max-w-md">
+                    <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                    <p className="text-red-600 dark:text-red-300 font-semibold mb-2">Error Loading Dashboard</p>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{error}</p>
+                    <button
+                        onClick={fetchDashboardData}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    const statsCards = [
         {
             title: 'Total Users',
-            value: '8,432',
-            change: 15.2,
+            value: stats.totalUsers.toLocaleString(),
+            change: stats.userGrowth,
             icon: Users,
             color: 'text-blue-600 dark:text-blue-400',
             bgColor: 'bg-blue-50 dark:bg-blue-900/30',
@@ -38,7 +355,7 @@ export default function AdminDashboard() {
         },
         {
             title: 'Active Owners',
-            value: '1,847',
+            value: stats.activeOwners.toLocaleString(),
             change: 12.5,
             icon: UserCheck,
             color: 'text-emerald-600 dark:text-emerald-400',
@@ -47,16 +364,25 @@ export default function AdminDashboard() {
         },
         {
             title: 'Total Revenue',
-            value: '$42,847',
-            change: 8.3,
+            value: formatCurrency(stats.totalRevenue),
+            change: stats.revenueGrowth,
             icon: DollarSign,
             color: 'text-purple-600 dark:text-purple-400',
             bgColor: 'bg-purple-50 dark:bg-purple-900/30',
             trend: 'up'
         },
         {
+            title: 'Platform Commission',
+            value: formatCurrency(stats.platformCommission),
+            change: 15.4,
+            icon: Percent,
+            color: 'text-indigo-600 dark:text-indigo-400',
+            bgColor: 'bg-indigo-50 dark:bg-indigo-900/30',
+            trend: 'up'
+        },
+        {
             title: 'KYC Pending',
-            value: '94',
+            value: stats.kycPending.toLocaleString(),
             change: -12.8,
             icon: Shield,
             color: 'text-amber-600 dark:text-amber-400',
@@ -65,8 +391,8 @@ export default function AdminDashboard() {
         },
         {
             title: 'Active Vehicles',
-            value: '2,845',
-            change: 22.5,
+            value: stats.activeVehicles.toLocaleString(),
+            change: stats.vehicleGrowth,
             icon: Car,
             color: 'text-teal-600 dark:text-teal-400',
             bgColor: 'bg-teal-50 dark:bg-teal-900/30',
@@ -74,23 +400,26 @@ export default function AdminDashboard() {
         },
         {
             title: 'Total Bookings',
-            value: '18,945',
-            change: 28.3,
+            value: stats.totalBookings.toLocaleString(),
+            change: stats.bookingGrowth,
             icon: Calendar,
-            color: 'text-indigo-600 dark:text-indigo-400',
-            bgColor: 'bg-indigo-50 dark:bg-indigo-900/30',
+            color: 'text-rose-600 dark:text-rose-400',
+            bgColor: 'bg-rose-50 dark:bg-rose-900/30',
+            trend: 'up'
+        },
+        {
+            title: 'Owner Payout',
+            value: formatCurrency(stats.ownerPayout),
+            change: 20.1,
+            icon: Wallet,
+            color: 'text-cyan-600 dark:text-cyan-400',
+            bgColor: 'bg-cyan-50 dark:bg-cyan-900/30',
             trend: 'up'
         }
     ];
 
-    const recentActivities = [
-        { id: 1, user: 'John Doe', action: 'Completed KYC verification', time: '5 minutes ago', icon: CheckCircle2, status: 'success' },
-        { id: 2, user: 'Sarah Chen', action: 'Listed new vehicle - Tesla Model 3', time: '1 hour ago', icon: Car, status: 'info' },
-        { id: 3, user: 'Mike Ross', action: 'KYC rejected - Invalid ID', time: '2 hours ago', icon: AlertCircle, status: 'warning' },
-        { id: 4, user: 'Emily Watson', action: 'Booked vehicle - BMW X5', time: '3 hours ago', icon: Calendar, status: 'success' },
-        { id: 5, user: 'David Kim', action: 'Registered as vehicle owner', time: '5 hours ago', icon: UserCheck, status: 'success' },
-        { id: 6, user: 'Lisa Wong', action: 'Updated vehicle documents', time: '6 hours ago', icon: Layers, status: 'info' },
-    ];
+    // Calculate max value for chart
+    const maxChartValue = Math.max(...chartData, 1);
 
     return (
         <>
@@ -110,20 +439,27 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                     <p className="text-emerald-100 dark:text-gray-300 mb-6 text-sm md:text-base">Here's your vehicle sharing platform performance overview for today.</p>
-                    <div className="flex space-x-3">
-                        <button className="px-3 md:px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-sm font-medium hover:bg-white/30 transition-all">
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={handleExport}
+                            className="px-3 md:px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-sm font-medium hover:bg-white/30 transition-all flex items-center gap-2"
+                        >
+                            <Download className="w-4 h-4" />
                             Download Report
                         </button>
-                        <button className="px-3 md:px-4 py-2 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 rounded-lg text-sm font-medium hover:shadow-lg transition-all">
+                        <Link
+                            href="/admin/analytics"
+                            className="px-3 md:px-4 py-2 bg-white dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 rounded-lg text-sm font-medium hover:shadow-lg transition-all"
+                        >
                             View Analytics
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>
 
             {/* Stats grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6 mb-6 md:mb-8">
-                {stats.map((stat, index) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+                {statsCards.map((stat, index) => {
                     const Icon = stat.icon;
                     return (
                         <div key={index} className="group bg-white dark:bg-gray-900 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -149,12 +485,12 @@ export default function AdminDashboard() {
 
             {/* Charts and activity section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 md:mb-8">
-                {/* Performance Chart */}
+                {/* Performance Chart - FIXED */}
                 <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
                     <div className="flex items-center justify-between mb-6">
                         <div>
-                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Performance Overview</h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">User engagement & booking metrics</p>
+                            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Booking Trends</h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Monthly booking volume</p>
                         </div>
                         <div className="flex items-center space-x-2">
                             {['Daily', 'Weekly', 'Monthly'].map((period) => (
@@ -162,38 +498,46 @@ export default function AdminDashboard() {
                                     key={period}
                                     onClick={() => setSelectedPeriod(period.toLowerCase())}
                                     className={`px-3 py-1 text-sm rounded-lg transition-all ${selectedPeriod === period.toLowerCase()
-                                        ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 font-medium'
-                                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                            ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300 font-medium'
+                                            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                                         }`}
                                 >
                                     {period}
                                 </button>
                             ))}
-                            <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+                            <button
+                                onClick={handleExport}
+                                className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                            >
                                 <Download className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
 
-                    <div className="h-64 flex items-end space-x-2">
-                        {[65, 45, 78, 52, 89, 72, 94, 68, 83, 71, 92, 87].map((height, i) => (
-                            <div key={i} className="flex-1 group">
-                                <div className="relative h-full flex flex-col justify-end">
-                                    <div
-                                        className="bg-gradient-to-t from-emerald-500 to-emerald-400 dark:from-emerald-600 dark:to-emerald-500 rounded-lg transition-all duration-300 group-hover:from-emerald-600 group-hover:to-emerald-500"
-                                        style={{ height: `${height}%` }}
-                                    >
-                                        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 dark:bg-gray-700 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                            {height}%
+                    <div className="h-64 flex items-end space-x-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                        {chartData && chartData.length > 0 && chartData.some(v => v > 0) ? (
+                            chartData.map((value, i) => {
+                                const height = Math.max((value / maxChartValue) * 100, 5);
+                                return (
+                                    <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">
+                                            {value > 0 ? value : ''}
+                                        </div>
+                                        <div
+                                            className="w-full max-w-[40px] bg-emerald-500 dark:bg-emerald-400 rounded-t transition-all duration-500 hover:bg-emerald-600 dark:hover:bg-emerald-300"
+                                            style={{ height: `${height}%`, minHeight: '4px' }}
+                                        />
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">
+                                            {chartLabels[i] || ''}
                                         </div>
                                     </div>
-                                </div>
+                                );
+                            })
+                        ) : (
+                            <div className="w-full text-center text-gray-400 dark:text-gray-500 py-8">
+                                No booking data available for chart
                             </div>
-                        ))}
-                    </div>
-                    <div className="flex justify-between mt-4 text-xs text-gray-500 dark:text-gray-400">
-                        <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
-                        <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+                        )}
                     </div>
                 </div>
 
@@ -211,27 +555,33 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-                    <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {recentActivities.map((activity) => {
-                            const Icon = activity.icon;
-                            return (
-                                <div key={activity.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all group">
-                                    <div className="flex items-center space-x-3">
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activity.status === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300' :
-                                            activity.status === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300' :
-                                                'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300'
-                                            } group-hover:scale-110 transition-transform duration-300`}>
-                                            <Icon className="w-5 h-5" />
+                    <div className="divide-y divide-gray-100 dark:divide-gray-800 max-h-[400px] overflow-y-auto">
+                        {recentActivities.length === 0 ? (
+                            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                                No recent activities
+                            </div>
+                        ) : (
+                            recentActivities.map((activity) => {
+                                const Icon = activity.icon;
+                                return (
+                                    <div key={activity.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all group">
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activity.status === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300' :
+                                                    activity.status === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-300' :
+                                                        'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-300'
+                                                } group-hover:scale-110 transition-transform duration-300`}>
+                                                <Icon className="w-5 h-5" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{activity.user}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">{activity.action}</p>
+                                            </div>
+                                            <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{activity.time}</span>
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{activity.user}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">{activity.action}</p>
-                                        </div>
-                                        <span className="text-xs text-gray-400 dark:text-gray-500">{activity.time}</span>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })
+                        )}
                     </div>
                 </div>
             </div>
@@ -239,30 +589,50 @@ export default function AdminDashboard() {
             {/* Quick Actions Grid */}
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
                 <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">Quick Actions</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[
-                        { icon: Shield, label: 'Verify KYC', color: 'amber', action: 'Review pending verifications', link: '/admin/kyc' },
-                        { icon: LifeBuoy, label: 'Support', color: 'red', action: 'Contact support team', link: '/admin/support' },
-                    ].map((action, index) => {
-                        const Icon = action.icon;
-                        const colorMap: Record<string, string> = {
-                            amber: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
-                            red: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
-                        };
-                        return (
-                            <Link
-                                key={index}
-                                href={action.link}
-                                className="group p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gradient-to-br hover:from-emerald-50 dark:hover:from-emerald-900/20 hover:to-teal-50 dark:hover:to-teal-900/20 rounded-xl transition-all duration-300 text-left"
-                            >
-                                <div className={`w-10 h-10 ${colorMap[action.color]} rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
-                                    <Icon className="w-5 h-5" />
-                                </div>
-                                <p className="font-medium text-gray-800 dark:text-gray-100 text-sm">{action.label}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{action.action}</p>
-                            </Link>
-                        );
-                    })}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Link
+                        href="/admin/kyc"
+                        className="group p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gradient-to-br hover:from-emerald-50 dark:hover:from-emerald-900/20 hover:to-teal-50 dark:hover:to-teal-900/20 rounded-xl transition-all duration-300 text-left"
+                    >
+                        <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+                            <Shield className="w-5 h-5" />
+                        </div>
+                        <p className="font-medium text-gray-800 dark:text-gray-100 text-sm">Verify KYC</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stats.kycPending} pending verifications</p>
+                    </Link>
+
+                    <Link
+                        href="/admin/reports"
+                        className="group p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gradient-to-br hover:from-blue-50 dark:hover:from-blue-900/20 hover:to-indigo-50 dark:hover:to-indigo-900/20 rounded-xl transition-all duration-300 text-left"
+                    >
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+                            <TrendingUp className="w-5 h-5" />
+                        </div>
+                        <p className="font-medium text-gray-800 dark:text-gray-100 text-sm">View Reports</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Platform analytics & insights</p>
+                    </Link>
+
+                    <Link
+                        href="/admin/vehicles"
+                        className="group p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gradient-to-br hover:from-teal-50 dark:hover:from-teal-900/20 hover:to-emerald-50 dark:hover:to-emerald-900/20 rounded-xl transition-all duration-300 text-left"
+                    >
+                        <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+                            <Car className="w-5 h-5" />
+                        </div>
+                        <p className="font-medium text-gray-800 dark:text-gray-100 text-sm">Manage Vehicles</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stats.activeVehicles} active vehicles</p>
+                    </Link>
+
+                    <Link
+                        href="/admin/users"
+                        className="group p-4 bg-gray-50 dark:bg-gray-800 hover:bg-gradient-to-br hover:from-purple-50 dark:hover:from-purple-900/20 hover:to-pink-50 dark:hover:to-pink-900/20 rounded-xl transition-all duration-300 text-left"
+                    >
+                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300">
+                            <Users className="w-5 h-5" />
+                        </div>
+                        <p className="font-medium text-gray-800 dark:text-gray-100 text-sm">Manage Users</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stats.totalUsers} registered users</p>
+                    </Link>
                 </div>
             </div>
         </>
