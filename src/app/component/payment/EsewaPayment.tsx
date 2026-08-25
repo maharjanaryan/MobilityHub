@@ -7,6 +7,8 @@ import { Loader2, CreditCard } from 'lucide-react';
 interface EsewaPaymentProps {
   bookingId: number;
   amount: number;
+  serviceFee: number;
+  insuranceFee: number;
   onSuccess: () => void;
   onError: (error: string) => void;
   onClose: () => void;
@@ -22,6 +24,8 @@ const getAuthToken = () => {
 export default function EsewaPayment({
   bookingId,
   amount,
+  serviceFee,
+  insuranceFee,
   onSuccess,
   onError,
   onClose
@@ -48,6 +52,8 @@ export default function EsewaPayment({
         body: JSON.stringify({
           bookingId: bookingId,
           amount: amount,
+          serviceFee: serviceFee,
+          insuranceFee: insuranceFee,
           paymentMethod: 'ESEWA',
         }),
       });
@@ -66,9 +72,6 @@ export default function EsewaPayment({
       if (data.formData) {
         const formData = JSON.parse(data.formData);
         submitEsewaForm(formData, data.paymentUrl);
-        // Assume success after form submission
-        onSuccess();
-        onClose();
       } else {
         throw new Error('No form data received from eSewa');
       }

@@ -30,7 +30,6 @@ interface KYCRequest {
   submittedAt: string;
   verifiedAt?: string;
   rejectionReason?: string;
-  // Renter specific
   dateOfBirth?: string;
   gender?: string;
   permanentAddress?: string;
@@ -42,7 +41,6 @@ interface KYCRequest {
   drivingLicenseIssueDate?: string;
   drivingLicenseExpiryDate?: string;
   drivingLicenseImage?: string;
-  // Owner specific
   vehicleBluebookNumber?: string;
   vehicleBluebookImage?: string;
   ownershipProofVerified?: boolean;
@@ -65,6 +63,13 @@ interface KYCStatistics {
   totalRejected: number;
 }
 
+interface ModalState {
+  isOpen: boolean;
+  type: 'success' | 'error' | 'info';
+  title: string;
+  message: string;
+}
+
 export default function KYCVerificationPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -80,12 +85,26 @@ export default function KYCVerificationPage() {
   const [statistics, setStatistics] = useState<KYCStatistics | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [modal, setModal] = useState<ModalState>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: ''
+  });
 
   const getAccessToken = useCallback(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('accessToken');
     }
     return null;
+  }, []);
+
+  const showModal = useCallback((type: 'success' | 'error' | 'info', title: string, message: string) => {
+    setModal({ isOpen: true, type, title, message });
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setModal(prev => ({ ...prev, isOpen: false }));
   }, []);
 
   const fetchStatistics = useCallback(async () => {
@@ -183,14 +202,12 @@ export default function KYCVerificationPage() {
 
       if (response.ok) {
         const details = await response.json();
-
         const mergedDetails = {
           ...request,
           ...details,
           kycType: request.kycType,
           id: request.id,
         };
-
         return mergedDetails;
       } else {
         console.error(`Failed to fetch ${request.kycType} KYC details for ID ${request.id}`);
@@ -235,15 +252,27 @@ export default function KYCVerificationPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert(`${selectedRequest.kycType} KYC for ${selectedRequest.fullName} has been approved.`);
+        showModal(
+          'success',
+          'KYC Approved!',
+          `${selectedRequest.kycType} KYC for ${selectedRequest.fullName} has been approved successfully.`
+        );
         setSelectedRequest(null);
         await loadData();
       } else {
-        alert(`Failed to approve: ${data.message || 'Unknown error'}`);
+        showModal(
+          'error',
+          'Approval Failed',
+          data.message || 'Failed to approve KYC. Please try again.'
+        );
       }
     } catch (error) {
       console.error('Error approving KYC:', error);
-      alert('Failed to approve KYC. Please try again.');
+      showModal(
+        'error',
+        'Approval Failed',
+        'Failed to approve KYC. Please try again.'
+      );
     } finally {
       setActionLoading(false);
     }
@@ -276,17 +305,29 @@ export default function KYCVerificationPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert(`${selectedRequest.kycType} KYC for ${selectedRequest.fullName} has been rejected.`);
+        showModal(
+          'success',
+          'KYC Rejected',
+          `${selectedRequest.kycType} KYC for ${selectedRequest.fullName} has been rejected.`
+        );
         setShowRejectModal(false);
         setSelectedRequest(null);
         setRejectionReason('');
         await loadData();
       } else {
-        alert(`Failed to reject: ${data.message || 'Unknown error'}`);
+        showModal(
+          'error',
+          'Rejection Failed',
+          data.message || 'Failed to reject KYC. Please try again.'
+        );
       }
     } catch (error) {
       console.error('Error rejecting KYC:', error);
-      alert('Failed to reject KYC. Please try again.');
+      showModal(
+        'error',
+        'Rejection Failed',
+        'Failed to reject KYC. Please try again.'
+      );
     } finally {
       setActionLoading(false);
     }
@@ -332,6 +373,67 @@ export default function KYCVerificationPage() {
       req.email?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesType && matchesSearch;
   });
+
+  // Modal Component
+  const StatusModal = () => {
+    if (!modal.isOpen) return null;
+
+    const isSuccess = modal.type === 'success';
+    const isError = modal.type === 'error';
+    const icon = isSuccess ? (
+      <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
+        <CheckCircle2 className="w-10 h-10 text-green-600 dark:text-green-400" />
+      </div>
+    ) : isError ? (
+      <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto mb-4">
+        <XCircle className="w-10 h-10 text-red-600 dark:text-red-400" />
+      </div>
+    ) : (
+      <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+        <Shield className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+      </div>
+    );
+
+    const bgColor = isSuccess
+      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+      : isError
+        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+        : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800';
+
+    const textColor = isSuccess
+      ? 'text-green-800 dark:text-green-300'
+      : isError
+        ? 'text-red-800 dark:text-red-300'
+        : 'text-blue-800 dark:text-blue-300';
+
+    const buttonColor = isSuccess
+      ? 'bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600'
+      : isError
+        ? 'bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600'
+        : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600';
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className={`bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full p-6 border ${bgColor}`}>
+          <div className="text-center">
+            {icon}
+            <h3 className={`text-xl font-bold mb-2 ${textColor}`}>
+              {modal.title}
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              {modal.message}
+            </p>
+            <button
+              onClick={closeModal}
+              className={`w-full px-6 py-3 rounded-lg font-semibold text-white transition-colors ${buttonColor}`}
+            >
+              {isSuccess ? 'Continue' : isError ? 'Try Again' : 'OK'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   if (loading && !refreshing) {
     return (
@@ -869,6 +971,9 @@ export default function KYCVerificationPage() {
           </div>
         </div>
       )}
+
+      {/* Status Modal */}
+      <StatusModal />
     </div>
   );
 }

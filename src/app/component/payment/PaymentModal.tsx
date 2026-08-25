@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, Info } from 'lucide-react';
 import KhaltiPayment from './KhaltiPayment';
 import EsewaPayment from './EsewaPayment';
 
@@ -11,6 +11,8 @@ interface PaymentModalProps {
   onClose: () => void;
   bookingId: number;
   amount: number;
+  serviceFee?: number;
+  insuranceFee?: number;
   onPaymentSuccess: () => void;
 }
 
@@ -19,9 +21,16 @@ export default function PaymentModal({
   onClose,
   bookingId,
   amount,
+  serviceFee = 0,
+  insuranceFee = 0,
   onPaymentSuccess,
 }: PaymentModalProps) {
   const [error, setError] = useState<string | null>(null);
+
+  const safeAmount = amount || 0;
+  const safeServiceFee = serviceFee || 0;
+  const safeInsuranceFee = insuranceFee || 0;
+  const rentalAmount = safeAmount - safeServiceFee - safeInsuranceFee;
 
   if (!isOpen) return null;
 
@@ -38,18 +47,41 @@ export default function PaymentModal({
       <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Select Payment Method</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+          >
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2">
           <p className="text-sm text-gray-600 dark:text-gray-300">
             <strong>Booking ID:</strong> #{bookingId}
           </p>
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            <strong>Amount:</strong> Rs. {amount.toLocaleString()}
+            <strong>Total Amount:</strong> Rs. {safeAmount.toLocaleString()}
           </p>
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2 space-y-1">
+            <div className="flex justify-between text-xs">
+              <span className="text-gray-500 dark:text-gray-400">Rental Amount</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                Rs. {rentalAmount.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-gray-500 dark:text-gray-400">Insurance Fee</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-medium">
+                Rs. {safeInsuranceFee.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-gray-500 dark:text-gray-400">Service Fee</span>
+              <span className="text-blue-600 dark:text-blue-400 font-medium">
+                Rs. {safeServiceFee.toLocaleString()}
+              </span>
+            </div>
+          </div>
         </div>
 
         {error && (
@@ -60,10 +92,11 @@ export default function PaymentModal({
         )}
 
         <div className="space-y-3">
-          {/* Khalti Payment Component */}
           <KhaltiPayment
             bookingId={bookingId}
-            amount={amount}
+            amount={safeAmount}
+            serviceFee={safeServiceFee}
+            insuranceFee={safeInsuranceFee}
             onSuccess={() => {
               clearError();
               onPaymentSuccess();
@@ -72,10 +105,11 @@ export default function PaymentModal({
             onClose={onClose}
           />
 
-          {/* eSewa Payment Component */}
           <EsewaPayment
             bookingId={bookingId}
-            amount={amount}
+            amount={safeAmount}
+            serviceFee={safeServiceFee}
+            insuranceFee={safeInsuranceFee}
             onSuccess={() => {
               clearError();
               onPaymentSuccess();
@@ -88,9 +122,6 @@ export default function PaymentModal({
         <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
           <p className="text-xs text-gray-400 text-center">
             You will be redirected to the payment gateway to complete your transaction
-          </p>
-          <p className="text-xs text-gray-400 text-center mt-1">
-            Your booking will be confirmed after successful payment
           </p>
         </div>
       </div>

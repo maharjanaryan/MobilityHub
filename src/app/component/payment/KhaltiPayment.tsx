@@ -7,6 +7,8 @@ import { Loader2, Wallet } from 'lucide-react';
 interface KhaltiPaymentProps {
   bookingId: number;
   amount: number;
+  serviceFee: number;
+  insuranceFee: number;
   onSuccess: () => void;
   onError: (error: string) => void;
   onClose: () => void;
@@ -22,6 +24,8 @@ const getAuthToken = () => {
 export default function KhaltiPayment({
   bookingId,
   amount,
+  serviceFee,
+  insuranceFee,
   onSuccess,
   onError,
   onClose
@@ -48,6 +52,8 @@ export default function KhaltiPayment({
         body: JSON.stringify({
           bookingId: bookingId,
           amount: amount,
+          serviceFee: serviceFee,
+          insuranceFee: insuranceFee,
           paymentMethod: 'KHALTI',
         }),
       });
@@ -64,9 +70,7 @@ export default function KhaltiPayment({
       }
 
       if (data.paymentUrl) {
-        // Open Khalti payment page in new tab
         window.open(data.paymentUrl, '_blank');
-        // Start polling for payment status
         pollKhaltiPaymentStatus(data.pidx);
       } else {
         throw new Error('No payment URL received from Khalti');
@@ -80,7 +84,7 @@ export default function KhaltiPayment({
 
   const pollKhaltiPaymentStatus = async (pidx: string) => {
     let attempts = 0;
-    const maxAttempts = 40; // 2 minutes (40 * 3 seconds)
+    const maxAttempts = 40;
 
     const interval = setInterval(async () => {
       attempts++;

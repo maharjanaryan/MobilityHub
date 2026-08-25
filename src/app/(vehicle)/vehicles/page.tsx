@@ -8,14 +8,13 @@ import {
   Star, X, ChevronDown, Plus, Loader2, Car,
   Fuel, Users, Gauge, Filter, ArrowUpDown, TrendingUp,
   Clock, Sparkles, Leaf, Wallet,
-  MessageSquare
+  MessageSquare, Shield, AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import HomeHeader from "@/app/home/HomeHeader";
 import Header from "@/app/component/Header";
 import Footer from "@/app/component/Footer";
-import KycModal from "@/app/component/KycModal";
 
 // SVG Placeholder as Data URI
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23e5e7eb'/%3E%3Crect x='50' y='80' width='300' height='140' rx='10' fill='%239ca3af'/%3E%3Crect x='70' y='100' width='260' height='80' rx='5' fill='%23d1d5db'/%3E%3Ccircle cx='110' cy='200' r='30' fill='%234b5563'/%3E%3Ccircle cx='290' cy='200' r='30' fill='%234b5563'/%3E%3Crect x='100' y='100' width='50' height='30' rx='3' fill='%239ca3af'/%3E%3Crect x='250' y='100' width='50' height='30' rx='3' fill='%239ca3af'/%3E%3Ctext x='200' y='270' font-family='Arial' font-size='16' fill='%236b7280' text-anchor='middle'%3E🚗 Vehicle%3C/text%3E%3C/svg%3E";
@@ -76,6 +75,10 @@ export default function VehiclesPage() {
   const [chatLoading, setChatLoading] = useState<number | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // KYC Modal state
+  const [showKycModal, setShowKycModal] = useState(false);
+  const [selectedVehicleForKyc, setSelectedVehicleForKyc] = useState<number | null>(null);
+
   // Theme state
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -100,12 +103,6 @@ export default function VehiclesPage() {
 
     return () => observer.disconnect();
   }, []);
-
-  // KYC Modal state
-  const [showKycModal, setShowKycModal] = useState(false);
-  const [kycStatus, setKycStatus] = useState<"VERIFIED" | "APPROVED" | "PENDING" | "REJECTED" | "NOT_SUBMITTED" | null>(null);
-  const [userName, setUserName] = useState("");
-  const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
 
   const getAccessToken = () => {
     if (typeof window !== "undefined") {
@@ -159,47 +156,6 @@ export default function VehiclesPage() {
       return;
     }
 
-    const user = getUserData();
-    if (user) {
-      setUserName(user.fullName || user.username || "User");
-    }
-
-    const checkInitialKyc = async () => {
-      try {
-        const res = await fetch("http://localhost:8080/api/kyc/status", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json"
-          }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const user = getUserData();
-          if (user) {
-            const ownerStatus = data.ownerKycStatus || "NOT_SUBMITTED";
-            const renterStatus = data.renterKycStatus || "NOT_SUBMITTED";
-            const isRenterVerified = renterStatus === "VERIFIED" || renterStatus === "APPROVED";
-            const isOwnerVerified = ownerStatus === "VERIFIED" || ownerStatus === "APPROVED";
-
-            const updatedUser = {
-              ...user,
-              ownerKycStatus: ownerStatus,
-              renterKycStatus: renterStatus,
-              kycStatus: isRenterVerified ? "VERIFIED" : "NOT_SUBMITTED",
-              canList: isOwnerVerified,
-              canBook: isRenterVerified,
-              hasOwnerPrivileges: isOwnerVerified,
-              isKycVerified: isRenterVerified
-            };
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-          }
-        }
-      } catch (error) {
-        console.error("Error checking initial KYC:", error);
-      }
-    };
-
-    checkInitialKyc();
     fetchVehicles();
   }, []);
 
@@ -439,8 +395,6 @@ export default function VehiclesPage() {
       return;
     }
 
-    if (showKycModal) return;
-
     const token = getAccessToken();
     if (!token) {
       router.push("/signin");
@@ -448,7 +402,6 @@ export default function VehiclesPage() {
     }
 
     setKycLoading(vehicleId);
-    setSelectedVehicleId(vehicleId);
 
     try {
       const res = await fetch("http://localhost:8080/api/kyc/status", {
@@ -464,19 +417,17 @@ export default function VehiclesPage() {
         const isRenterVerified = renterStatus === "VERIFIED" || renterStatus === "APPROVED";
 
         if (isRenterVerified) {
+          // KYC is verified, proceed to vehicle details
           router.push(`/vehicles/${vehicleId}`);
           return;
         } else {
-          let statusToShow = "NOT_SUBMITTED";
-          if (renterStatus === "PENDING") statusToShow = "PENDING";
-          else if (renterStatus === "REJECTED") statusToShow = "REJECTED";
-          else statusToShow = "NOT_SUBMITTED";
-
-          setKycStatus(statusToShow as any);
+          // KYC is not verified - show modal
+          setSelectedVehicleForKyc(vehicleId);
           setShowKycModal(true);
           return;
         }
       } else {
+        // API error - check local storage as fallback
         const user = getUserData();
         if (user) {
           const isRenterVerified = user.renterKycStatus === "VERIFIED" || user.renterKycStatus === "APPROVED";
@@ -485,21 +436,18 @@ export default function VehiclesPage() {
             return;
           }
         }
-        setKycStatus("NOT_SUBMITTED");
+        // Not verified - show modal
+        setSelectedVehicleForKyc(vehicleId);
         setShowKycModal(true);
       }
     } catch (error) {
       console.error("Error checking KYC:", error);
-      setKycStatus("NOT_SUBMITTED");
+      // On network error, show modal
+      setSelectedVehicleForKyc(vehicleId);
       setShowKycModal(true);
     } finally {
       setKycLoading(null);
     }
-  };
-
-  const handleKycModalClose = () => {
-    setShowKycModal(false);
-    setSelectedVehicleId(null);
   };
 
   const handleVehicleClick = (vehicleId: number) => {
@@ -507,8 +455,20 @@ export default function VehiclesPage() {
       router.push("/signin");
       return;
     }
-    if (showKycModal) return;
     checkKycAndNavigate(vehicleId);
+  };
+
+  // Handle redirect to KYC page
+  const handleRedirectToKyc = () => {
+    setShowKycModal(false);
+    const returnUrl = selectedVehicleForKyc ? `/vehicles/${selectedVehicleForKyc}` : '/vehicles';
+    router.push(`/kyc/user?returnUrl=${encodeURIComponent(returnUrl)}`);
+  };
+
+  // Handle close modal (go back)
+  const handleCloseKycModal = () => {
+    setShowKycModal(false);
+    setSelectedVehicleForKyc(null);
   };
 
   const filtered = useMemo(() => {
@@ -941,7 +901,7 @@ export default function VehiclesPage() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleVehicleClick(v.id)}
-                      disabled={kycLoading === v.id || showKycModal}
+                      disabled={kycLoading === v.id}
                       className="flex-1 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 disabled:opacity-70 flex items-center justify-center gap-2"
                     >
                       {kycLoading === v.id
@@ -976,12 +936,110 @@ export default function VehiclesPage() {
 
       <Footer />
 
-      <KycModal
-        isOpen={showKycModal}
-        onClose={handleKycModalClose}
-        kycStatus={kycStatus}
-        userName={userName}
-      />
+      {/* KYC Verification Modal - Green Theme */}
+      <AnimatePresence>
+        {showKycModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center px-4"
+            style={{
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(8px)'
+            }}
+            onClick={handleCloseKycModal}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className={`relative max-w-md w-full ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl overflow-hidden`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header with icon - Green Theme */}
+              <div className={`p-6 ${isDarkMode ? 'bg-gray-700/50' : 'bg-emerald-50'} border-b ${isDarkMode ? 'border-gray-700' : 'border-emerald-100'}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2.5 rounded-full ${isDarkMode ? 'bg-emerald-900/30' : 'bg-emerald-100'}`}>
+                    <Shield className={`w-6 h-6 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                  </div>
+                  <div>
+                    <h3 className={`text-lg font-bold ${isDarkMode ? 'text-gray-100' : 'text-gray-800'}`}>
+                      KYC Verification Required
+                    </h3>
+                    <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      To rent vehicles, you need to complete your KYC
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Body - Green Theme */}
+              <div className="p-6">
+                <div className={`flex items-start gap-3 p-4 rounded-xl mb-4 ${isDarkMode ? 'bg-emerald-900/20 border border-emerald-800/30' : 'bg-emerald-50 border border-emerald-200'}`}>
+                  <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                  <div>
+                    <p className={`text-sm font-medium ${isDarkMode ? 'text-emerald-300' : 'text-emerald-800'}`}>
+                      Complete your KYC to access vehicle details
+                    </p>
+                    <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      KYC is required for all renters to ensure a safe and secure rental experience.
+                    </p>
+                  </div>
+                </div>
+
+                <div className={`space-y-2 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p>📋 Please complete your KYC to:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>View detailed vehicle information</li>
+                    <li>Book vehicles for rent</li>
+                    <li>Access full vehicle history</li>
+                    <li>Contact vehicle owners</li>
+                  </ul>
+                </div>
+
+                <div className={`mt-4 p-3 rounded-lg ${isDarkMode ? 'bg-gray-700/50' : 'bg-gray-50'}`}>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <span className="font-medium">⏱️ Quick process:</span> It only takes 2-3 minutes to complete your KYC verification.
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions - Green Theme */}
+              <div className={`p-6 pt-0 flex flex-col sm:flex-row gap-3 ${isDarkMode ? 'border-t border-gray-700' : ''}`}>
+                <button
+                  onClick={handleCloseKycModal}
+                  className="flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
+                  style={{
+                    borderColor: isDarkMode ? '#374151' : '#e5e7eb',
+                    color: isDarkMode ? '#9ca3af' : '#6b7280',
+                    backgroundColor: isDarkMode ? 'transparent' : 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = isDarkMode ? '#374151' : '#f3f4f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                  Go Back
+                </button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleRedirectToKyc}
+                  className="flex-1 px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  <Shield className="w-4 h-4" />
+                  Complete KYC
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

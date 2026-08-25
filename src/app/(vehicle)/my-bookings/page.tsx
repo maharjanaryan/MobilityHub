@@ -37,6 +37,10 @@ interface Booking {
   rejectionReason?: string;
   tripStartedAt?: string;
   tripEndedAt?: string;
+  vehicleDamaged?: boolean;
+  damageNotes?: string;
+  securityDepositReturned?: boolean;
+  securityDepositReturnedAmount?: number;
 }
 
 const statusConfig: Record<string, any> = {
@@ -46,7 +50,12 @@ const statusConfig: Record<string, any> = {
   CANCELLED: { color: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600", icon: XCircle, label: "Cancelled" },
   COMPLETED: { color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border-blue-200 dark:border-blue-700", icon: CheckCircle, label: "Completed" },
   CONFIRMED: { color: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-700", icon: CheckCircle, label: "Confirmed" },
-  ACTIVE: { color: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border-purple-200 dark:border-purple-700", icon: ClockIcon, label: "Active" }
+  ACTIVE: { color: "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-400 border-purple-200 dark:border-purple-700", icon: ClockIcon, label: "Active" },
+  AWAITING_RETURN_CONFIRMATION: {
+    color: "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-400 border-orange-200 dark:border-orange-700",
+    icon: ClockIcon,
+    label: "Awaiting Return Confirmation"
+  },
 };
 
 const defaultStatus = { color: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600", icon: AlertCircle, label: "Unknown" };
@@ -68,6 +77,7 @@ const filterOptions = [
   { label: "Pending", value: "PENDING" },
   { label: "Confirmed", value: "CONFIRMED" },
   { label: "Active", value: "ACTIVE" },
+  { label: "Awaiting Return", value: "AWAITING_RETURN_CONFIRMATION" },
   { label: "Completed", value: "COMPLETED" },
   { label: "Rejected", value: "REJECTED" },
   { label: "Cancelled", value: "CANCELLED" }
@@ -128,7 +138,7 @@ const formatDateShort = (date: string) => {
 };
 
 // ─────────────────────────────────────────────
-// RESULT MODAL (for success/error messages)
+// RESULT MODAL
 // ─────────────────────────────────────────────
 
 const ResultModal = ({
@@ -263,7 +273,6 @@ const TripActionModal = ({
                 </button>
               </div>
 
-              {/* Main Message */}
               <div className="mb-4">
                 <div className={`p-4 rounded-lg border ${title === 'Start Trip'
                   ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
@@ -279,7 +288,6 @@ const TripActionModal = ({
                 </div>
               </div>
 
-              {/* Booking Details Summary */}
               {bookingDetails && (
                 <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Booking Summary</p>
@@ -304,7 +312,6 @@ const TripActionModal = ({
                 </div>
               )}
 
-              {/* Sub Message */}
               {subMessage && (
                 <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                   <p className="text-xs text-yellow-700 dark:text-yellow-400 flex items-start gap-2">
@@ -339,7 +346,7 @@ const TripActionModal = ({
 };
 
 // ─────────────────────────────────────────────
-// MAIN COMPONENT
+// MAIN COMPONENT - Renter's View
 // ─────────────────────────────────────────────
 
 export default function MyBookingsPage() {
@@ -392,10 +399,6 @@ export default function MyBookingsPage() {
     fetchBookings();
   }, []);
 
-  /**
-   * Get renter/pickup location from booking data
-   * This is where the renter picks up the vehicle
-   */
   const getRenterLocation = (booking: any): string => {
     const possibleFields = [
       booking.renterLocation,
@@ -428,10 +431,6 @@ export default function MyBookingsPage() {
     return "Location N/A";
   };
 
-  /**
-   * Get owner/dropoff location from booking data
-   * This is where the vehicle is returned to the owner
-   */
   const getOwnerLocation = (booking: any): string => {
     const possibleFields = [
       booking.ownerLocation,
@@ -494,7 +493,11 @@ export default function MyBookingsPage() {
       paymentStatus: b.paymentStatus || b.payment?.status || 'PENDING',
       rejectionReason: b.rejectionReason || null,
       tripStartedAt: b.tripStartedAt || null,
-      tripEndedAt: b.tripEndedAt || null
+      tripEndedAt: b.tripEndedAt || null,
+      vehicleDamaged: b.vehicleDamaged || false,
+      damageNotes: b.damageNotes || null,
+      securityDepositReturned: b.securityDepositReturned || false,
+      securityDepositReturnedAmount: b.securityDepositReturnedAmount || 0
     };
   };
 
@@ -633,10 +636,8 @@ export default function MyBookingsPage() {
       if (response.ok) {
         setCancelStatus('success');
         setCancelMessage('✅ Booking cancelled successfully!');
-        // Refresh bookings but keep modal open to show success
         await fetchBookings();
         setShowDetailModal(false);
-        // Close cancel modal after showing success
         setTimeout(() => {
           setShowCancelModal(false);
           setCancelBookingId(null);
@@ -655,7 +656,7 @@ export default function MyBookingsPage() {
   };
 
   // ─────────────────────────────────────────────
-  // START / END TRIP
+  // START / END TRIP (Renter only)
   // ─────────────────────────────────────────────
 
   const openTripModal = (bookingId: number, action: 'start' | 'end') => {
@@ -719,25 +720,22 @@ export default function MyBookingsPage() {
       });
 
       if (response.ok) {
-        // Close trip modal first
         setShowTripModal(false);
         setTripBookingId(null);
         setTripAction(null);
 
-        // Show success result modal
         const successMsg = tripAction === 'start'
           ? 'Trip started successfully! Drive safe! 🚗'
-          : 'Trip ended successfully! Thank you for using our service! 🙏';
+          : 'Trip ended successfully! The owner will now confirm the vehicle return. 🚗';
 
         setResultModalData({
-          title: tripAction === 'start' ? 'Trip Started! 🚗' : 'Trip Ended! 🙏',
+          title: tripAction === 'start' ? 'Trip Started! 🚗' : 'Trip Ended! 🚗',
           message: successMsg,
           type: 'success',
           icon: tripAction === 'start' ? Play : Flag
         });
         setShowResultModal(true);
 
-        // Refresh bookings in background without showing loading
         await fetchBookings();
         setShowDetailModal(false);
       } else {
@@ -933,6 +931,7 @@ export default function MyBookingsPage() {
               const isCancelled = status === 'CANCELLED';
               const isConfirmed = status === 'CONFIRMED' || status === 'APPROVED';
               const isActive = status === 'ACTIVE';
+              const isAwaitingReturn = status === 'AWAITING_RETURN_CONFIRMATION';
               const cancelCheck = isPending ? canCancel(booking.pickupDate) : null;
               const isPickupDateArrived = new Date() >= new Date(booking.pickupDate);
 
@@ -989,6 +988,14 @@ export default function MyBookingsPage() {
                             <Wallet className="w-3.5 h-3.5" /> {booking.paymentStatus || 'PENDING'}
                           </span>
                         </div>
+
+                        {/* Awaiting Return Notice - Renter sees this but no action button */}
+                        {isAwaitingReturn && (
+                          <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg text-sm text-orange-700 dark:text-orange-400 flex items-center gap-2">
+                            <Clock className="w-4 h-4 flex-shrink-0" />
+                            Awaiting owner confirmation to complete the return. You will be notified once confirmed.
+                          </div>
+                        )}
 
                         {isPending && cancelCheck && !cancelCheck.allowed && (
                           <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-700 dark:text-yellow-400 flex items-center gap-2">
@@ -1052,6 +1059,8 @@ export default function MyBookingsPage() {
                               End Trip
                             </button>
                           )}
+
+                          {/* NO CONFIRM RETURN BUTTON - This is for owners only */}
                         </div>
                       </div>
                     </div>
@@ -1179,11 +1188,11 @@ export default function MyBookingsPage() {
         title={tripAction === 'start' ? 'Start Trip' : 'End Trip'}
         message={tripAction === 'start'
           ? 'You are about to start your rental journey. Please ensure you have inspected the vehicle and received the keys from the owner.'
-          : 'You are about to end your rental journey. Please ensure you have returned the keys and the vehicle has been inspected by the owner.'
+          : 'You are about to end your rental journey. The owner will confirm the vehicle return and release your security deposit.'
         }
         subMessage={tripAction === 'start'
           ? 'Once started, the trip timer will begin. You cannot undo this action.'
-          : 'Once ended, the trip will be marked as completed. You cannot undo this action.'
+          : 'Once ended, the owner must confirm the vehicle return before the trip is completed.'
         }
         confirmText={tripAction === 'start' ? 'Start Trip' : 'End Trip'}
         confirmColor={tripAction === 'start' ? 'bg-green-500 hover:bg-green-600' : 'bg-orange-500 hover:bg-orange-600'}
@@ -1194,7 +1203,7 @@ export default function MyBookingsPage() {
         }
       />
 
-      {/* Result Modal (replaces alert for success/error messages) */}
+      {/* Result Modal */}
       <ResultModal
         isOpen={showResultModal}
         onClose={() => setShowResultModal(false)}
@@ -1204,7 +1213,7 @@ export default function MyBookingsPage() {
         icon={resultModalData.icon}
       />
 
-      {/* Detail Modal - Shows only pickup location (renter's location) */}
+      {/* Detail Modal */}
       <AnimatePresence>
         {showDetailModal && selectedBooking && (
           <motion.div
@@ -1251,7 +1260,6 @@ export default function MyBookingsPage() {
                   <div><p className="text-sm text-gray-500 dark:text-gray-400">Pickup Date</p><p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.pickupDate)}</p></div>
                   <div><p className="text-sm text-gray-500 dark:text-gray-400">Dropoff Date</p><p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.dropoffDate)}</p></div>
 
-                  {/* Only show Pickup Location - removed Return Location */}
                   <div className="col-span-2">
                     <p className="text-sm text-gray-500 dark:text-gray-400">Pickup Location</p>
                     <p className="font-medium text-gray-800 dark:text-gray-200 flex items-start gap-2">
@@ -1278,12 +1286,35 @@ export default function MyBookingsPage() {
                   </div>
                 )}
 
+                {/* Security Deposit Info - Renter sees this */}
+                {selectedBooking.status?.toUpperCase() === 'COMPLETED' && (
+                  <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Security Deposit</p>
+                    <p className="font-medium text-gray-800 dark:text-gray-200">
+                      {selectedBooking.securityDepositReturned ? (
+                        <span className="text-green-600 dark:text-green-400">
+                          ✅ Released (Rs. {selectedBooking.securityDepositReturnedAmount?.toLocaleString() || '0'})
+                        </span>
+                      ) : (
+                        <span className="text-red-600 dark:text-red-400">
+                          ⚠️ Held - Damage reported
+                        </span>
+                      )}
+                    </p>
+                    {selectedBooking.damageNotes && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        <span className="font-medium">Damage Notes:</span> {selectedBooking.damageNotes}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Vehicle Owner</p>
                   <p className="font-medium text-gray-800 dark:text-gray-200">{selectedBooking.ownerName}</p>
                 </div>
 
-                {/* UPDATED: Bluebook section - Hides for COMPLETED, REJECTED, and CANCELLED */}
+                {/* Bluebook section */}
                 {selectedBooking.status?.toUpperCase() !== 'COMPLETED' &&
                   selectedBooking.status?.toUpperCase() !== 'REJECTED' &&
                   selectedBooking.status?.toUpperCase() !== 'CANCELLED' &&
@@ -1296,7 +1327,7 @@ export default function MyBookingsPage() {
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1">
                         <ShieldCheck className="w-3.5 h-3.5" />
-                        Shown for verification purposes and will no longer be visible once this trip is completed, rejected, or cancelled.
+                        Shown for verification purposes
                       </p>
                       <div className="grid grid-cols-2 gap-3">
                         {selectedBooking.vehicleBluebookDocuments.map((doc, idx) => (

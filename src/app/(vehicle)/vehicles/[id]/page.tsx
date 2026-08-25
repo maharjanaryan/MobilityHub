@@ -86,7 +86,6 @@ interface Location {
 // ─────────────────────────────────────────────────────────────────────────────
 const COMMISSION_RATE = 0.08; // 8% service fee
 const COMMISSION_LABEL = "Service Fee";
-const COMMISSION_ICON = Percent;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Auth helpers
@@ -105,7 +104,7 @@ const clearAuthToken = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Formatting helpers - FIXED DATE FORMAT
+// Formatting helpers
 // ─────────────────────────────────────────────────────────────────────────────
 const titleCase = (value?: string | number | null) => {
   if (value === null || value === undefined || value === "") return "Not provided";
@@ -116,15 +115,8 @@ const titleCase = (value?: string | number | null) => {
 };
 
 const formatCurrency = (value?: number | null) => {
-  if (value === null || value === undefined || Number.isNaN(value)) return "Not set";
+  if (value === null || value === undefined || Number.isNaN(value)) return "Rs. 0";
   return `Rs. ${Number(value).toLocaleString()}`;
-};
-
-const getNepalDateString = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 };
 
 const getTomorrowInNepal = (): Date => {
@@ -134,12 +126,10 @@ const getTomorrowInNepal = (): Date => {
   return tomorrow;
 };
 
-// ─── FIXED: Send full date-time format for API ───
 const formatDateForAPI = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-  // Backend expects LocalDateTime format: YYYY-MM-DDTHH:MM:SS
   return `${year}-${month}-${day}T00:00:00`;
 };
 
@@ -461,7 +451,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   const [pendingAmount, setPendingAmount] = useState<number>(0);
   const [driverInfo, setDriverInfo] = useState({ name: "", licenseNumber: "" });
 
-  // RENTER LOCATION STATE
   const [renterLocation, setRenterLocation] = useState<Location>({
     lat: 27.7172,
     lng: 85.324,
@@ -472,7 +461,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   const [insurance, setInsurance] = useState<"premium" | "standard">("standard");
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
-
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
 
   // Resolve params
@@ -586,23 +574,10 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     return Math.round(ms / (1000 * 60 * 60 * 24));
   })();
 
-  // ─── COMMISSION CALCULATION ───
   const calculateCommission = (subtotal: number): number => {
     return Math.round(subtotal * COMMISSION_RATE);
   };
 
-  const calculateTotal = () => {
-    if (!vehicle || rentalDays === 0) return 0;
-
-    const rentalSubtotal = vehicle.price * rentalDays;
-    const insuranceTotal = insuranceCost * rentalDays;
-    const commission = calculateCommission(rentalSubtotal + insuranceTotal);
-    const deposit = vehicle.securityDeposit || 0;
-
-    return rentalSubtotal + insuranceTotal + commission + deposit;
-  };
-
-  // Get individual breakdown values
   const getPriceBreakdown = () => {
     if (!vehicle || rentalDays === 0) {
       return { rentalSubtotal: 0, insuranceTotal: 0, commission: 0, deposit: 0, total: 0 };
@@ -617,9 +592,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     return { rentalSubtotal, insuranceTotal, commission, deposit, total };
   };
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // LOCATION HANDLERS
-  // ─────────────────────────────────────────────────────────────────────────────
   const handleLocationSelect = (lat: number, lng: number, address: string) => {
     console.log('📍 Vehicle page received location:', { lat, lng, address });
     setRenterLocation({ lat, lng, address });
@@ -653,9 +625,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     setShowDriverModal(true);
   };
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // BOOKING HANDLER - FIXED WITH PROPER DATE FORMAT
-  // ─────────────────────────────────────────────────────────────────────────────
   const handleConfirmBooking = async () => {
     if (!driverInfo.name.trim() || !driverInfo.licenseNumber.trim()) {
       alert("Please enter driver name and license number");
@@ -673,14 +642,11 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     try {
       const pickupDate = new Date(dateRange[0]);
       const dropoffDate = new Date(dateRange[1]);
-
-      // ─── FIXED: Use formatDateForAPI which includes time ───
       const pickupDateStr = formatDateForAPI(pickupDate);
       const dropoffDateStr = formatDateForAPI(dropoffDate);
 
       console.log('📅 Dates for API:', { pickupDateStr, dropoffDateStr });
 
-      // Availability check
       const availRes = await fetch(
         `http://localhost:8080/api/bookings/check-availability` +
         `?vehicleId=${vehicle.id}` +
@@ -702,9 +668,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         return;
       }
 
-      // ─────────────────────────────────────────────
-      // CREATE BOOKING WITH PROPER DATE FORMAT
-      // ─────────────────────────────────────────────
       const bookingRequest = {
         vehicleId: vehicle.id,
         pickupDate: pickupDateStr,
@@ -716,9 +679,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
         renterLocation: renterLocation.address,
         renterLatitude: renterLocation.lat,
         renterLongitude: renterLocation.lng,
-        // Include commission in the booking if backend supports it
-        commissionRate: COMMISSION_RATE,
-        commissionAmount: calculateCommission((vehicle.price * rentalDays) + (insuranceCost * rentalDays))
       };
 
       console.log("📤 Sending booking request:", bookingRequest);
@@ -782,6 +742,8 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     router.push("/my-bookings");
   };
 
+  const breakdown = getPriceBreakdown();
+
   // Loading State
   if (loading) return (
     <div className="min-h-screen bg-[#f8f9fb] dark:bg-gray-950">
@@ -824,7 +786,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
 
   const images = [vehicle.img, ...(vehicle.extraImages ?? [])].slice(0, 5);
   const isElectric = vehicle.fuelType?.toLowerCase() === "electric";
-  const breakdown = getPriceBreakdown();
 
   return (
     <div className="min-h-screen bg-[#f8f9fb] dark:bg-gray-950">
@@ -1090,8 +1051,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                   <span>Insurance</span>
                   <span className="font-semibold text-gray-800 dark:text-gray-200">{formatCurrency(breakdown.insuranceTotal)}</span>
                 </div>
-                {/* ─── COMMISSION ROW ─── */}
-                <div className="flex justify-between text-emerald-700 dark:text-emerald-400">
+                <div className="flex justify-between text-blue-600 dark:text-blue-400">
                   <span className="flex items-center gap-1">
                     <Percent className="w-3 h-3" />
                     {COMMISSION_LABEL} ({(COMMISSION_RATE * 100).toFixed(0)}%)
@@ -1109,7 +1069,6 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                   <span>{formatCurrency(breakdown.total)}</span>
                 </div>
 
-                {/* Commission info tooltip */}
                 <div className="mt-1 pt-1 border-t border-gray-100 dark:border-gray-700/50">
                   <p className="text-[9px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
                     <Percent className="w-2.5 h-2.5" />
@@ -1233,6 +1192,8 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
           }}
           bookingId={pendingBookingId}
           amount={pendingAmount}
+          serviceFee={breakdown.commission}
+          insuranceFee={breakdown.insuranceTotal}
           onPaymentSuccess={handlePaymentSuccess}
         />
       )}
