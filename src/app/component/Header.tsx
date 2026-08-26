@@ -39,7 +39,7 @@ const Header: React.FC = () => {
             Maps
           </li>
           <li className="hover:text-green-600 cursor-pointer" onClick={() => navigateTo("/vehicles")}>Vehicles</li>
-          <li className="hover:text-green-600 cursor-pointer">Gallery</li>
+          <li className="hover:text-green-600 cursor-pointer" onClick={() => navigateTo("/gallery")}>Gallery</li>
           <li
             className="hover:text-green-600 cursor-pointer"
             onClick={() => navigateTo("/about")}
