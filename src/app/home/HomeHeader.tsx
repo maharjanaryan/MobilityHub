@@ -91,7 +91,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     return null;
   }, []);
 
-  // Fetch unread chat count - FIXED with proper error handling
+  // Fetch unread chat count
   const fetchUnreadChatCount = useCallback(async () => {
     const token = getAccessToken();
     if (!token) {
@@ -100,7 +100,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
     }
 
     try {
-      // Try both possible endpoints
       const endpoints = [
         `${API_BASE_URL}/api/chat/unread/count`,
         `${API_BASE_URL}/api/chats/unread/count`,
@@ -118,7 +117,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           });
 
           if (response.status === 401) {
-            // Token expired, redirect to signin
             localStorage.removeItem('accessToken');
             localStorage.removeItem('user');
             router.push('/signin');
@@ -133,18 +131,15 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             break;
           }
         } catch (endpointError) {
-          // Try next endpoint
           console.log(`Endpoint ${endpoint} failed, trying next...`);
         }
       }
 
       if (!success) {
-        // If all endpoints fail, set to 0 (chat may not be implemented)
         console.log("All chat endpoints failed, setting count to 0");
         setUnreadChatCount(0);
       }
     } catch (error) {
-      // Silent fail - don't show error to user
       console.log("Chat count fetch failed (chat service may not be available)");
       setUnreadChatCount(0);
     }
@@ -170,8 +165,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 
       if (response.ok) {
         const data: KYCStatusResponse = await response.json();
-
-        // Map API response to KYC status format
         const renterStatus = mapKYCStatus(data.renterKycStatus);
         const ownerStatus = mapKYCStatus(data.ownerKycStatus);
 
@@ -249,18 +242,46 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       void fetchUserData();
     };
 
-    window.addEventListener('profile-updated', handleProfileUpdated);
+    // 🆕 Listen for new notifications from SSE
+    const handleNewNotification = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const notification = customEvent.detail;
 
-    // Poll every 30 seconds for KYC status updates
+      console.log('🔄 New notification received in HomeHeader:', notification);
+
+      // If notification is KYC or Vehicle related, refresh KYC status
+      if (notification?.type && (
+        notification.type.includes('KYC') ||
+        notification.type.includes('VEHICLE')
+      )) {
+        console.log('📌 KYC/Vehicle notification detected, refreshing KYC status...');
+        void fetchKYCStatus();
+      }
+    };
+
+    // 🆕 Listen for notification count updates
+    const handleCountUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { count } = customEvent.detail || {};
+      console.log('🔔 Notification count updated:', count);
+    };
+
+    window.addEventListener('profile-updated', handleProfileUpdated);
+    window.addEventListener('new-notification', handleNewNotification as EventListener);
+    window.addEventListener('notification-count-update', handleCountUpdate as EventListener);
+
+    // Poll every 30 seconds for KYC status updates (fallback)
     const kycInterval = setInterval(fetchKYCStatus, 30000);
 
-    // Poll every 30 seconds for chat updates (reduced frequency)
+    // Poll every 30 seconds for chat updates
     const chatInterval = setInterval(fetchUnreadChatCount, 30000);
 
     return () => {
       clearInterval(kycInterval);
       clearInterval(chatInterval);
       window.removeEventListener('profile-updated', handleProfileUpdated);
+      window.removeEventListener('new-notification', handleNewNotification as EventListener);
+      window.removeEventListener('notification-count-update', handleCountUpdate as EventListener);
     };
   }, [fetchKYCStatus, fetchUserData, fetchUnreadChatCount]);
 
@@ -299,18 +320,14 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
         console.error('Logout failed on server');
       }
 
-      // Clear all local storage data
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('tokenExpiry');
       localStorage.removeItem('savedEmail');
-
-      // Clear session storage if used
       sessionStorage.clear();
 
-      // Navigate to signin page
       router.push('/signin');
 
     } catch (error) {
@@ -402,7 +419,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
           <h1 className="text-lg sm:text-xl font-bold text-gray-800 dark:text-gray-100 truncate">Mobility Hub</h1>
         </div>
 
-        {/* CENTER: Menu - Icons Removed */}
+        {/* CENTER: Menu */}
         <ul className="hidden lg:flex space-x-8 text-gray-600 dark:text-gray-300 font-medium">
           <li className="hover:text-green-600 dark:hover:text-green-400 cursor-pointer transition-colors" onClick={() => navigateTo("/home")}>
             Home
@@ -441,7 +458,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
             )}
           </button>
 
-          {/* Notification Bell Component */}
+          {/* Notification Bell Component - Now with real-time SSE! */}
           <NotificationBell />
 
           {/* Profile Dropdown */}
@@ -488,7 +505,7 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
                   </div>
                 </div>
 
-                {/* KYC Quick Status */}
+                {/* KYC Quick Status - Will update in real-time! */}
                 <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">KYC Status</p>
                   <div className="flex gap-2">
@@ -568,7 +585,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
       {isMobileMenuOpen && (
         <div className="lg:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
           <div className="max-w-7xl mx-auto px-4 py-3 grid gap-1 text-gray-600 dark:text-gray-300">
-            {/* Main Navigation - Icons Removed */}
             {[
               { label: "Home", path: "/home" },
               { label: "Maps", path: "/maps" },
@@ -586,10 +602,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               </button>
             ))}
 
-            {/* Divider */}
             <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
 
-            {/* Quick Actions */}
             <button
               onClick={() => navigateTo("/chat")}
               className="w-full text-left px-3 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 hover:text-green-700 dark:hover:text-green-400 transition-colors flex items-center justify-between"
@@ -609,7 +623,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               Booking Request
             </button>
 
-            {/* KYC Section */}
             <div className="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
               <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 px-3 py-1">KYC Verification</p>
               <button
@@ -634,7 +647,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               </button>
             </div>
 
-            {/* More Options */}
             <div className="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
               <button
                 onClick={() => navigateTo("/tracking")}
@@ -662,7 +674,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               </button>
             </div>
 
-            {/* Profile & Settings */}
             <div className="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
               <button
                 onClick={() => navigateTo("/profile")}
@@ -678,7 +689,6 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
               </button>
             </div>
 
-            {/* Logout */}
             <div className="border-t border-gray-200 dark:border-gray-700 my-2 pt-2">
               <button
                 onClick={handleLogout}

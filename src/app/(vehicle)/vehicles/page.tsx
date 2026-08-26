@@ -835,43 +835,48 @@ export default function VehiclesPage() {
                   )}
                 </div>
 
-                {/* Content */}
+                {/* Content - FIXED ALIGNMENT */}
                 <div className="p-5">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
+                  {/* Top Row: Title & Price - Properly aligned */}
+                  <div className="flex justify-between items-start gap-2 mb-1">
+                    <div className="flex-1 min-w-0">
                       <h3
-                        className={`font-bold ${isDarkMode ? 'text-gray-100 group-hover:text-emerald-400' : 'text-gray-800 group-hover:text-emerald-600'} text-lg transition-colors cursor-pointer`}
+                        className={`font-bold ${isDarkMode ? 'text-gray-100 group-hover:text-emerald-400' : 'text-gray-800 group-hover:text-emerald-600'} text-lg transition-colors cursor-pointer truncate`}
                         onClick={() => handleVehicleClick(v.id)}
                       >
                         {v.name}
                       </h3>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                          <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            {v.rating}
-                          </span>
-                        </div>
-                        <span className={isDarkMode ? 'text-gray-600' : 'text-gray-300'}>•</span>
-                        <div className={`flex items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm`}>
-                          <MapPin className="w-3 h-3" />
-                          <span>{v.location}</span>
-                        </div>
-                      </div>
-                      {v.ownerName && (
-                        <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} mt-1`}>
-                          Owner: {v.ownerName}
-                        </p>
-                      )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex-shrink-0">
                       <span className="text-2xl font-black text-emerald-600">Rs.{v.pricePerDay}</span>
-                      <span className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}> /day</span>
+                      <span className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} block -mt-0.5`}>/day</span>
                     </div>
                   </div>
 
+                  {/* Rating & Location Row */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                      <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                        {v.rating}
+                      </span>
+                    </div>
+                    <span className={isDarkMode ? 'text-gray-600' : 'text-gray-300'}>•</span>
+                    <div className={`flex items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm truncate`}>
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{v.location}</span>
+                    </div>
+                  </div>
+
+                  {/* Owner Name - New row for better spacing */}
+                  {v.ownerName && (
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} mt-1 truncate`}>
+                      Owner: {v.ownerName}
+                    </p>
+                  )}
+
                   {/* Specs */}
-                  <div className={`flex items-center justify-between mt-4 pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
+                  <div className={`flex items-center justify-between mt-3 pt-3 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-100'}`}>
                     <div className={`flex items-center gap-1.5 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                       <Users className="w-3.5 h-3.5" />
                       <span>{v.seats} seats</span>

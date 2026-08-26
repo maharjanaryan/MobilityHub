@@ -82,10 +82,27 @@ interface Location {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Commission Configuration
+// Dynamic Commission Configuration based on Fuel Type
 // ─────────────────────────────────────────────────────────────────────────────
-const COMMISSION_RATE = 0.08; // 8% service fee
-const COMMISSION_LABEL = "Service Fee";
+const getCommissionRate = (fuelType?: string): number => {
+  if (!fuelType) return 0.08; // Default to 8%
+  const fuel = fuelType.toLowerCase();
+  // Electric and Cycle get 4% commission
+  if (fuel === 'electric' || fuel === 'cycle' || fuel === 'ev' || fuel === 'electric vehicle') {
+    return 0.04; // 4%
+  }
+  // All others (Petrol, Diesel, Hybrid, etc.) get 8% commission
+  return 0.08; // 8%
+};
+
+const getCommissionLabel = (fuelType?: string): string => {
+  if (!fuelType) return 'Service Fee (8%)';
+  const fuel = fuelType.toLowerCase();
+  if (fuel === 'electric' || fuel === 'cycle' || fuel === 'ev' || fuel === 'electric vehicle') {
+    return 'Service Fee (4%)';
+  }
+  return 'Service Fee (8%)';
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Auth helpers
@@ -574,8 +591,10 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     return Math.round(ms / (1000 * 60 * 60 * 24));
   })();
 
-  const calculateCommission = (subtotal: number): number => {
-    return Math.round(subtotal * COMMISSION_RATE);
+  // ─── DYNAMIC COMMISSION CALCULATION ───
+  const calculateCommission = (subtotal: number, fuelType?: string): number => {
+    const rate = getCommissionRate(fuelType);
+    return Math.round(subtotal * rate);
   };
 
   const getPriceBreakdown = () => {
@@ -585,7 +604,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
 
     const rentalSubtotal = vehicle.price * rentalDays;
     const insuranceTotal = insuranceCost * rentalDays;
-    const commission = calculateCommission(rentalSubtotal + insuranceTotal);
+    const commission = calculateCommission(rentalSubtotal + insuranceTotal, vehicle.fuelType);
     const deposit = vehicle.securityDeposit || 0;
     const total = rentalSubtotal + insuranceTotal + commission + deposit;
 
@@ -743,6 +762,9 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
   };
 
   const breakdown = getPriceBreakdown();
+  const commissionRate = getCommissionRate(vehicle?.fuelType);
+  const commissionLabel = getCommissionLabel(vehicle?.fuelType);
+  const commissionPercentage = (commissionRate * 100).toFixed(0);
 
   // Loading State
   if (loading) return (
@@ -1041,7 +1063,7 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
 
-              {/* Price breakdown with COMMISSION */}
+              {/* Price breakdown with DYNAMIC COMMISSION */}
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 text-xs text-gray-600 dark:text-gray-300 space-y-1.5">
                 <div className="flex justify-between">
                   <span>Rental ({rentalDays} day{rentalDays !== 1 ? "s" : ""})</span>
@@ -1054,7 +1076,12 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 <div className="flex justify-between text-blue-600 dark:text-blue-400">
                   <span className="flex items-center gap-1">
                     <Percent className="w-3 h-3" />
-                    {COMMISSION_LABEL} ({(COMMISSION_RATE * 100).toFixed(0)}%)
+                    {commissionLabel} ({commissionPercentage}%)
+                    {vehicle.fuelType && (
+                      <span className="text-[9px] text-gray-400 dark:text-gray-500 font-normal ml-1">
+                        ({vehicle.fuelType})
+                      </span>
+                    )}
                   </span>
                   <span className="font-semibold">{formatCurrency(breakdown.commission)}</span>
                 </div>
@@ -1072,7 +1099,9 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
                 <div className="mt-1 pt-1 border-t border-gray-100 dark:border-gray-700/50">
                   <p className="text-[9px] text-gray-400 dark:text-gray-500 flex items-center gap-1">
                     <Percent className="w-2.5 h-2.5" />
-                    {COMMISSION_LABEL} helps us provide a secure platform and 24/7 support
+                    {commissionLabel} {vehicle.fuelType?.toLowerCase() === 'electric' || vehicle.fuelType?.toLowerCase() === 'cycle'
+                      ? '(reduced rate for eco-friendly vehicles)'
+                      : '(standard rate)'}
                   </p>
                 </div>
               </div>

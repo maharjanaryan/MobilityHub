@@ -725,11 +725,11 @@ export default function MyBookingsPage() {
         setTripAction(null);
 
         const successMsg = tripAction === 'start'
-          ? 'Trip started successfully! Drive safe! 🚗'
+          ? 'Trip started successfully! Drive safe!'
           : 'Trip ended successfully! The owner will now confirm the vehicle return. 🚗';
 
         setResultModalData({
-          title: tripAction === 'start' ? 'Trip Started! 🚗' : 'Trip Ended! 🚗',
+          title: tripAction === 'start' ? 'Trip Started!' : 'Trip Ended!',
           message: successMsg,
           type: 'success',
           icon: tripAction === 'start' ? Play : Flag

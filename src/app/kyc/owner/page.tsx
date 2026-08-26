@@ -6,7 +6,6 @@ import HomeHeader from '@/app/home/HomeHeader';
 import React, { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
-// Types
 interface OwnerKYCFormData {
   fullName: string;
   dateOfBirth: string;
@@ -27,45 +26,13 @@ interface OwnerKYCFormData {
   panNumber: string;
 }
 
-interface FormErrors {
-  [key: string]: string;
-}
-
-type TextFieldName =
-  | 'fullName'
-  | 'dateOfBirth'
-  | 'phoneNumber'
-  | 'permanentAddress'
-  | 'citizenshipNumber'
-  | 'drivingLicenseNumber'
-  | 'drivingLicenseExpiryDate'
-  | 'vehicleBluebookNumber'
-  | 'bankAccountNumber'
-  | 'bankName'
-  | 'bankAccountHolderName'
-  | 'panNumber';
-
+type FormErrors = Record<string, string>;
+type TextFieldName = keyof Omit<OwnerKYCFormData, 'citizenshipFrontImage' | 'citizenshipBackImage' | 'drivingLicenseImage' | 'vehicleBluebookImage' | 'vehicleOwnershipCertificate'>;
 type FileFieldName = 'citizenshipFrontImage' | 'citizenshipBackImage' | 'drivingLicenseImage' | 'vehicleBluebookImage' | 'vehicleOwnershipCertificate';
-
-interface InputFieldProps {
-  name: TextFieldName;
-  label: string;
-  type?: string;
-  placeholder?: string;
-  required?: boolean;
-  maxLength?: number;
-}
-
-interface FileUploadProps {
-  field: FileFieldName;
-  label: string;
-  previewUrl: string;
-  required?: boolean;
-}
 
 export default function OwnerKYCPage() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<OwnerKYCFormData>({
     fullName: '', dateOfBirth: '', phoneNumber: '', permanentAddress: '',
     citizenshipNumber: '', citizenshipFrontImage: null, citizenshipBackImage: null,
@@ -83,28 +50,9 @@ export default function OwnerKYCPage() {
 
   const totalSteps = 4;
 
-  const getAccessToken = () => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('accessToken');
-    }
+  const getToken = () => {
+    if (typeof window !== 'undefined') return localStorage.getItem('accessToken');
     return null;
-  };
-
-  const fileToBase64 = (file: File | string | null): Promise<string | null> => {
-    return new Promise((resolve, reject) => {
-      if (!file) {
-        resolve(null);
-        return;
-      }
-      if (typeof file === 'string') {
-        resolve(file);
-        return;
-      }
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
   };
 
   const validateStep = useCallback((step: number): boolean => {
@@ -150,34 +98,33 @@ export default function OwnerKYCPage() {
     return Object.keys(newErrors).length === 0;
   }, [formData]);
 
-  const handleNext = useCallback(() => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(prev => prev + 1);
+  const handleNext = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    if (validateStep(step)) {
+      setSubmitStatus(null);
+      setStep(prev => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, [validateStep, currentStep]);
+  }, [validateStep, step]);
 
-  const handlePrevious = useCallback(() => {
-    setCurrentStep(prev => prev - 1);
+  const handlePrevious = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setSubmitStatus(null);
+    setStep(prev => prev - 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-
     if (name === 'phoneNumber') {
-      const digitsOnly = value.replace(/\D/g, '').slice(0, 10);
-      setFormData(prev => ({ ...prev, [name]: digitsOnly }));
+      setFormData(prev => ({ ...prev, phoneNumber: value.replace(/\D/g, '').slice(0, 10) }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData(prev => ({ ...prev, [name as TextFieldName]: value }));
     }
-
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   }, [errors]);
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, field: string) => {
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>, field: FileFieldName) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -185,7 +132,6 @@ export default function OwnerKYCPage() {
       setErrors(prev => ({ ...prev, [field]: 'Please upload an image file' }));
       return;
     }
-
     if (file.size > 5 * 1024 * 1024) {
       setErrors(prev => ({ ...prev, [field]: 'File size must be less than 5MB' }));
       return;
@@ -203,8 +149,20 @@ export default function OwnerKYCPage() {
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
   }, [errors]);
 
+  const fileToBase64 = (file: File | string | null): Promise<string | null> => {
+    if (!file) return Promise.resolve(null);
+    if (typeof file === 'string') return Promise.resolve(file);
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+    });
+  };
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!validateStep(4)) {
       setSubmitStatus({ type: 'error', message: 'Please fix the errors above' });
       setTimeout(() => setSubmitStatus(null), 5000);
@@ -215,16 +173,16 @@ export default function OwnerKYCPage() {
     setSubmitStatus(null);
 
     try {
-      const token = getAccessToken();
-      if (!token) {
-        throw new Error('Please login again');
-      }
+      const token = getToken();
+      if (!token) throw new Error('Please login again');
 
-      const citizenshipFrontBase64 = await fileToBase64(formData.citizenshipFrontImage);
-      const citizenshipBackBase64 = await fileToBase64(formData.citizenshipBackImage);
-      const drivingLicenseBase64 = await fileToBase64(formData.drivingLicenseImage);
-      const vehicleBluebookBase64 = await fileToBase64(formData.vehicleBluebookImage);
-      const vehicleOwnershipBase64 = await fileToBase64(formData.vehicleOwnershipCertificate);
+      const [citFront, citBack, dlImage, vbImage, voImage] = await Promise.all([
+        fileToBase64(formData.citizenshipFrontImage),
+        fileToBase64(formData.citizenshipBackImage),
+        fileToBase64(formData.drivingLicenseImage),
+        fileToBase64(formData.vehicleBluebookImage),
+        fileToBase64(formData.vehicleOwnershipCertificate),
+      ]);
 
       const payload = {
         fullName: formData.fullName,
@@ -232,14 +190,14 @@ export default function OwnerKYCPage() {
         phoneNumber: formData.phoneNumber,
         permanentAddress: formData.permanentAddress,
         citizenshipNumber: formData.citizenshipNumber,
-        citizenshipFrontImage: citizenshipFrontBase64,
-        citizenshipBackImage: citizenshipBackBase64,
+        citizenshipFrontImage: citFront,
+        citizenshipBackImage: citBack,
         drivingLicenseNumber: formData.drivingLicenseNumber,
         drivingLicenseExpiryDate: formData.drivingLicenseExpiryDate,
-        drivingLicenseImage: drivingLicenseBase64,
+        drivingLicenseImage: dlImage,
         vehicleBluebookNumber: formData.vehicleBluebookNumber,
-        vehicleBluebookImage: vehicleBluebookBase64,
-        vehicleOwnershipCertificate: vehicleOwnershipBase64,
+        vehicleBluebookImage: vbImage,
+        vehicleOwnershipCertificate: voImage,
         bankAccountNumber: formData.bankAccountNumber,
         bankName: formData.bankName,
         bankAccountHolderName: formData.bankAccountHolderName,
@@ -261,43 +219,34 @@ export default function OwnerKYCPage() {
         throw new Error(data.message || 'Owner KYC submission failed');
       }
 
-      setSubmitStatus({ type: 'success', message: data.message || 'Owner KYC submitted successfully! Our team will verify your documents.' });
+      setSubmitStatus({
+        type: 'success',
+        message: data.message || 'Owner KYC submitted successfully! Our team will verify your documents.'
+      });
 
-      setTimeout(() => {
-        router.push('/home');
-      }, 3000);
-
+      setTimeout(() => router.push('/home'), 3000);
     } catch (error: any) {
       console.error('Submission error:', error);
-      setSubmitStatus({ type: 'error', message: error.message || 'Failed to submit. Please try again.' });
+      setSubmitStatus({
+        type: 'error',
+        message: error.message || 'Failed to submit. Please try again.'
+      });
     } finally {
       setIsSubmitting(false);
       setTimeout(() => setSubmitStatus(null), 5000);
     }
   }, [validateStep, formData, router]);
 
-  const stepIndicator = useMemo(() => (
-    <div className="mb-8 overflow-x-auto pb-2">
-      <div className="flex min-w-max items-center justify-center px-1">
-        {[1, 2, 3, 4].map((step) => (
-          <React.Fragment key={step}>
-            <div className="flex flex-col items-center">
-              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm
-                ${currentStep >= step ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
-                {step}
-              </div>
-              <span className={`text-xs mt-2 ${currentStep >= step ? 'text-green-700 dark:text-green-300 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
-                {step === 1 ? 'Personal' : step === 2 ? 'Identity' : step === 3 ? 'Vehicle' : 'Payment'}
-              </span>
-            </div>
-            {step < totalSteps && <div className={`w-10 sm:w-16 h-0.5 mx-2 ${currentStep > step ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'}`} />}
-          </React.Fragment>
-        ))}
-      </div>
-    </div>
-  ), [currentStep]);
+  const inputClass = "w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500";
 
-  const renderInputField = useCallback(({ name, label, type = "text", placeholder, required = true, maxLength }: InputFieldProps) => (
+  const renderInputField = useCallback(({ name, label, type = "text", placeholder, required = true, maxLength }: {
+    name: TextFieldName;
+    label: string;
+    type?: string;
+    placeholder?: string;
+    required?: boolean;
+    maxLength?: number;
+  }) => (
     <div>
       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{label} {required && '*'}</label>
       <input
@@ -306,14 +255,19 @@ export default function OwnerKYCPage() {
         value={formData[name] as string}
         onChange={handleInputChange}
         maxLength={maxLength}
-        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 ${errors[name] ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
+        className={`${inputClass} ${errors[name] ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
         placeholder={placeholder}
       />
-      {errors[name] && <p className="mt-1 text-sm text-red-600 dark:text-red-300">{errors[name]}</p>}
+      {errors[name] && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors[name]}</p>}
     </div>
   ), [formData, errors, handleInputChange]);
 
-  const renderTextArea = useCallback(({ name, label, placeholder, required = true }: InputFieldProps) => (
+  const renderTextArea = useCallback(({ name, label, placeholder, required = true }: {
+    name: TextFieldName;
+    label: string;
+    placeholder?: string;
+    required?: boolean;
+  }) => (
     <div>
       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{label} {required && '*'}</label>
       <textarea
@@ -321,31 +275,36 @@ export default function OwnerKYCPage() {
         value={formData[name] as string}
         onChange={handleInputChange}
         rows={3}
-        className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 ${errors[name] ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
+        className={`${inputClass} ${errors[name] ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-700'}`}
         placeholder={placeholder}
       />
-      {errors[name] && <p className="mt-1 text-sm text-red-600 dark:text-red-300">{errors[name]}</p>}
+      {errors[name] && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors[name]}</p>}
     </div>
   ), [formData, errors, handleInputChange]);
 
-  const renderFileUpload = useCallback(({ field, label, previewUrl, required = true }: FileUploadProps) => (
+  const renderFileUpload = useCallback(({ field, label, previewUrl, required = true }: {
+    field: FileFieldName;
+    label: string;
+    previewUrl: string;
+    required?: boolean;
+  }) => (
     <div>
       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">{label} {required && '*'}</label>
-      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-4 text-center hover:border-green-500 transition-colors">
+      <div className={`border-2 border-dashed rounded-lg p-4 text-center hover:border-green-500 transition-colors ${errors[field] ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-gray-700'}`}>
         <input
           type="file"
           accept="image/*"
           onChange={(e) => handleFileChange(e, field)}
-          className="w-full text-sm dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 dark:file:bg-green-900/20 file:text-green-700 dark:file:text-green-300 hover:file:bg-green-100 dark:hover:file:bg-green-900/30"
+          className="w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-50 dark:file:bg-green-900/20 file:text-green-700 dark:file:text-green-300 hover:file:bg-green-100 dark:hover:file:bg-green-900/30"
         />
-        {previewUrl && <div className="mt-3"><img src={previewUrl} alt={label} className="max-h-32 w-full object-contain mx-auto rounded border" /></div>}
+        {previewUrl && <div className="mt-3"><img src={previewUrl} alt={label} className="max-h-32 w-full object-contain mx-auto rounded border border-gray-200 dark:border-gray-700" /></div>}
       </div>
-      {errors[field] && <p className="mt-1 text-sm text-red-600 dark:text-red-300">{errors[field]}</p>}
+      {errors[field] && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors[field]}</p>}
     </div>
   ), [errors, handleFileChange]);
 
   const renderStep = useCallback(() => {
-    switch (currentStep) {
+    switch (step) {
       case 1:
         return (
           <div className="space-y-4">
@@ -354,7 +313,7 @@ export default function OwnerKYCPage() {
               {renderInputField({ name: "dateOfBirth", label: "Date of Birth", type: "date" })}
               {renderInputField({ name: "phoneNumber", label: "Phone Number", type: "tel", placeholder: "Enter 10-digit phone number", maxLength: 10 })}
             </div>
-            {renderTextArea({ name: "permanentAddress", label: "Permanent Address", type: "textarea", placeholder: "Enter your permanent address" })}
+            {renderTextArea({ name: "permanentAddress", label: "Permanent Address", placeholder: "Enter your permanent address" })}
           </div>
         );
       case 2:
@@ -402,7 +361,28 @@ export default function OwnerKYCPage() {
         );
       default: return null;
     }
-  }, [currentStep, renderInputField, renderTextArea, renderFileUpload, previewUrls]);
+  }, [step, renderInputField, renderTextArea, renderFileUpload, previewUrls]);
+
+  const stepIndicator = useMemo(() => (
+    <div className="mb-8 overflow-x-auto pb-2">
+      <div className="flex min-w-max items-center justify-center px-1">
+        {[1, 2, 3, 4].map((s) => (
+          <React.Fragment key={s}>
+            <div className="flex flex-col items-center">
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm
+                ${step >= s ? 'bg-green-600 dark:bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
+                {s}
+              </div>
+              <span className={`text-xs mt-2 ${step >= s ? 'text-green-700 dark:text-green-300 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                {s === 1 ? 'Personal' : s === 2 ? 'Identity' : s === 3 ? 'Vehicle' : 'Payment'}
+              </span>
+            </div>
+            {s < totalSteps && <div className={`w-10 sm:w-16 h-0.5 mx-2 ${step > s ? 'bg-green-600 dark:bg-green-500' : 'bg-gray-200 dark:bg-gray-700'}`} />}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  ), [step]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-green-950 dark:via-gray-950 dark:to-emerald-950">
@@ -422,41 +402,51 @@ export default function OwnerKYCPage() {
           {stepIndicator}
 
           {submitStatus && (
-            <div className={`mb-6 p-4 rounded-lg ${submitStatus.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'}`}>
+            <div className={`mb-6 p-4 rounded-lg ${submitStatus.type === 'success'
+              ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300'
+              : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300'}`}>
               {submitStatus.message}
             </div>
           )}
 
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-green-100 dark:border-gray-700 overflow-hidden">
-            <div className="px-4 sm:px-6 py-4 bg-gradient-to-r from-green-700 to-emerald-600">
+            <div className="px-4 sm:px-6 py-4 bg-gradient-to-r from-green-700 to-emerald-600 dark:from-green-700 dark:to-emerald-600">
               <h2 className="text-lg sm:text-xl font-semibold text-white">
-                Step {currentStep}: {currentStep === 1 ? 'Personal Information' : currentStep === 2 ? 'Identity Documents' : currentStep === 3 ? 'Vehicle Documents' : 'Payment Information'}
+                Step {step}: {step === 1 ? 'Personal Information' : step === 2 ? 'Identity Documents' : step === 3 ? 'Vehicle Documents' : 'Payment Information'}
               </h2>
             </div>
 
             <form onSubmit={handleSubmit}>
               <div className="p-4 sm:p-6">{renderStep()}</div>
               <div className="px-4 sm:px-6 py-4 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex flex-col-reverse sm:flex-row justify-between gap-3">
-                <button type="button" onClick={handlePrevious}
-                  className={`w-full sm:w-auto px-6 py-2 rounded-lg font-semibold transition-colors ${currentStep === 1 ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
-                  disabled={currentStep === 1}>
+                <button
+                  type="button"
+                  onClick={handlePrevious}
+                  className={`w-full sm:w-auto px-6 py-2 rounded-lg font-semibold transition-colors ${step === 1
+                    ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+                  disabled={step === 1}>
                   Previous
                 </button>
-                {currentStep < totalSteps ? (
-                  <button type="button" onClick={handleNext}
-                    className="w-full sm:w-auto px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors">
+                {step < totalSteps ? (
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    className="w-full sm:w-auto px-6 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg font-semibold hover:bg-green-700 dark:hover:bg-green-600 transition-colors">
                     Next
                   </button>
                 ) : (
-                  <button type="submit" disabled={isSubmitting}
-                    className="w-full sm:w-auto px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg font-semibold hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full sm:w-auto px-6 py-2 bg-gradient-to-r from-green-600 to-green-700 dark:from-green-500 dark:to-green-600 text-white rounded-lg font-semibold hover:from-green-700 hover:to-green-800 dark:hover:from-green-600 dark:hover:to-green-700 transition-all disabled:opacity-50">
                     {isSubmitting ? 'Submitting...' : 'Submit Owner KYC'}
                   </button>
                 )}
               </div>
             </form>
           </div>
-          <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">Step {currentStep} of {totalSteps}</div>
+          <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">Step {step} of {totalSteps}</div>
         </div>
       </main>
       <Footer />

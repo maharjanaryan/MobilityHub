@@ -22,7 +22,10 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get token from localStorage safely
   const getToken = () => {
@@ -90,11 +93,121 @@ export default function NotificationBell() {
       }
 
       const data = await response.json();
-      setUnreadCount(data.count || 0);
+      const count = data.count || 0;
+      setUnreadCount(count);
+
+      // Dispatch event for HomeHeader to update
+      window.dispatchEvent(new CustomEvent('notification-count-update', {
+        detail: { count }
+      }));
     } catch (error) {
       console.error('Error fetching unread count:', error);
-      // Don't set error here to avoid UI disruption
       setUnreadCount(0);
+    }
+  };
+
+  // Setup SSE connection for real-time notifications
+  const setupSSE = () => {
+    const token = getToken();
+    if (!token) return;
+
+    // Close existing connection if any
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    try {
+      const eventSource = new EventSource(
+        `http://localhost:8080/api/notifications/stream?token=${token}`
+      );
+      eventSourceRef.current = eventSource;
+
+      eventSource.onopen = () => {
+        setIsConnected(true);
+        console.log('✅ SSE connection established for notifications');
+      };
+
+      eventSource.addEventListener('connected', (event) => {
+        console.log('Connected to notification stream:', event.data);
+      });
+
+      eventSource.addEventListener('notification', (event) => {
+        try {
+          const newNotification = JSON.parse(event.data);
+
+          // Add to notifications list
+          setNotifications(prev => [newNotification, ...prev]);
+
+          // Update unread count
+          setUnreadCount(prev => prev + 1);
+
+          // Dispatch global events for other components
+          window.dispatchEvent(new CustomEvent('new-notification', {
+            detail: newNotification
+          }));
+
+          window.dispatchEvent(new CustomEvent('notification-count-update', {
+            detail: { count: unreadCount + 1 }
+          }));
+
+          // Show browser notification if permitted
+          if (Notification.permission === 'granted') {
+            new Notification(newNotification.title, {
+              body: newNotification.message,
+              icon: '/logo.png'
+            });
+          }
+        } catch (error) {
+          console.error('Error parsing notification:', error);
+        }
+      });
+
+      eventSource.onerror = (error) => {
+        // Silently handle SSE error - don't show console errors
+        setIsConnected(false);
+        // Close the failed connection
+        if (eventSourceRef.current) {
+          eventSourceRef.current.close();
+          eventSourceRef.current = null;
+        }
+        // Start polling as fallback
+        startPolling();
+      };
+
+    } catch (error) {
+      // Silently handle setup error
+      console.log('SSE setup failed, using polling mode');
+      setIsConnected(false);
+      startPolling();
+    }
+  };
+
+  // Start polling for notifications
+  const startPolling = () => {
+    // Clear any existing poll interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
+    // Poll every 30 seconds
+    pollIntervalRef.current = setInterval(() => {
+      fetchNotifications();
+      fetchUnreadCount();
+    }, 30000);
+
+    // Initial fetch
+    fetchNotifications();
+    fetchUnreadCount();
+  };
+
+  // Request notification permission
+  const requestNotificationPermission = async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
     }
   };
 
@@ -102,16 +215,26 @@ export default function NotificationBell() {
     // Only fetch if token exists
     const token = getToken();
     if (token) {
+      // Try SSE first
+      setupSSE();
+      requestNotificationPermission();
+
+      // Also fetch immediately
       fetchNotifications();
       fetchUnreadCount();
-
-      // Poll every 60 seconds (less frequent to reduce server load)
-      const interval = setInterval(() => {
-        fetchUnreadCount();
-      }, 60000);
-
-      return () => clearInterval(interval);
     }
+
+    return () => {
+      // Clean up
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
   }, []);
 
   // Close dropdown when clicking outside
@@ -165,7 +288,7 @@ export default function NotificationBell() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'KYC_APPROVED':
+      case 'KYC_VERIFIED':
         return '✅';
       case 'KYC_REJECTED':
         return '❌';
@@ -173,6 +296,12 @@ export default function NotificationBell() {
         return '📋';
       case 'KYC_PENDING_ADMIN':
         return '🔔';
+      case 'VEHICLE_SUBMITTED':
+        return '🚗';
+      case 'VEHICLE_APPROVED':
+        return '✅';
+      case 'VEHICLE_REJECTED':
+        return '❌';
       default:
         return '📢';
     }
@@ -183,10 +312,12 @@ export default function NotificationBell() {
     setIsOpen(false);
 
     // Navigate based on notification type
-    if (notification.type === 'KYC_APPROVED' || notification.type === 'KYC_REJECTED') {
+    if (notification.type === 'KYC_VERIFIED' || notification.type === 'KYC_REJECTED') {
       router.push('/kyc/status');
     } else if (notification.type === 'KYC_PENDING_ADMIN') {
       router.push('/admin/kyc/pending');
+    } else if (notification.type === 'VEHICLE_SUBMITTED' || notification.type === 'VEHICLE_APPROVED' || notification.type === 'VEHICLE_REJECTED') {
+      router.push('/my-vehicles');
     }
   };
 
@@ -195,6 +326,7 @@ export default function NotificationBell() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+        aria-label="Notifications"
       >
         <Bell size={20} className="text-gray-600 dark:text-gray-300" />
         {unreadCount > 0 && (
@@ -208,13 +340,18 @@ export default function NotificationBell() {
       {isOpen && (
         <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
           <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-gray-50 dark:from-green-900/30 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-            <h3 className="font-semibold text-gray-800 dark:text-gray-100">Notifications</h3>
+            <div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-100">Notifications</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {unreadCount} unread
+              </p>
+            </div>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
                 className="text-xs text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
               >
-                Mark all as read
+                Mark all read
               </button>
             )}
           </div>
@@ -237,15 +374,17 @@ export default function NotificationBell() {
               </div>
             ) : notifications.length === 0 ? (
               <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                No notifications
+                <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                <p className="text-sm">No notifications yet</p>
+                <p className="text-xs mt-1">We'll notify you when something arrives</p>
               </div>
             ) : (
               notifications.map((notification) => (
                 <div
                   key={notification.id}
                   className={`px-4 py-3 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors ${notification.status === 'UNREAD'
-                      ? 'bg-green-50 dark:bg-green-900/20'
-                      : ''
+                    ? 'bg-green-50 dark:bg-green-900/20'
+                    : ''
                     }`}
                   onClick={() => handleNotificationClick(notification)}
                 >
@@ -253,14 +392,14 @@ export default function NotificationBell() {
                     <span className="text-lg">{getNotificationIcon(notification.type)}</span>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm ${notification.status === 'UNREAD'
-                          ? 'font-semibold text-gray-800 dark:text-gray-100'
-                          : 'text-gray-600 dark:text-gray-400'
+                        ? 'font-semibold text-gray-800 dark:text-gray-100'
+                        : 'text-gray-600 dark:text-gray-400'
                         }`}>
                         {notification.title}
                       </p>
                       <p className={`text-xs mt-1 line-clamp-2 ${notification.status === 'UNREAD'
-                          ? 'text-gray-700 dark:text-gray-300'
-                          : 'text-gray-500 dark:text-gray-500'
+                        ? 'text-gray-700 dark:text-gray-300'
+                        : 'text-gray-500 dark:text-gray-500'
                         }`}>
                         {notification.message}
                       </p>
@@ -268,6 +407,9 @@ export default function NotificationBell() {
                         {new Date(notification.createdAt).toLocaleString()}
                       </p>
                     </div>
+                    {notification.status === 'UNREAD' && (
+                      <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1" />
+                    )}
                   </div>
                 </div>
               ))
