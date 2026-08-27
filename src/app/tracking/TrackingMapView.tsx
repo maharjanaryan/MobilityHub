@@ -101,6 +101,25 @@ export default function TrackingMapView({ current, trail, vehicleName, isLive, p
 
   const trailCoords: [number, number][] = trail.map((p) => [p.lat, p.lng]);
 
+  // Tile providers with fallbacks
+  const tileProviders = [
+    {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    {
+      url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    {
+      url: "https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+  ];
+
+  // Use the first provider (OSM Standard)
+  const tileProvider = tileProviders[0];
+
   return (
     <MapContainer
       center={center}
@@ -110,8 +129,12 @@ export default function TrackingMapView({ current, trail, vehicleName, isLive, p
       style={{ background: "#f8fafc" }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        attribution={tileProvider.attribution}
+        url={tileProvider.url}
+        crossOrigin={true}
+        keepBuffer={2}
+        updateWhenIdle={true}
+        updateWhenZooming={false}
       />
 
       <FlyToCurrent current={current} />

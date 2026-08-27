@@ -252,6 +252,25 @@ export default function RenterLocationPicker({
     );
   }
 
+  // Tile providers - using OpenStreetMap (no API key required)
+  const tileProviders = [
+    {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    {
+      url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    {
+      url: "https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+  ];
+
+  // Use the first provider (OSM Standard)
+  const tileProvider = tileProviders[0];
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -339,8 +358,12 @@ export default function RenterLocationPicker({
                   style={{ background: '#f8fafc' }}
                 >
                   <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    attribution={tileProvider.attribution}
+                    url={tileProvider.url}
+                    crossOrigin={true}
+                    keepBuffer={2}
+                    updateWhenIdle={true}
+                    updateWhenZooming={false}
                   />
                   <LocationMarker
                     position={position}

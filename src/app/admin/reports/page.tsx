@@ -6,7 +6,6 @@ import {
   FileText,
   Download,
   Calendar,
-  Users,
   Car,
   DollarSign,
   CheckCircle,
@@ -15,17 +14,37 @@ import {
   Mail,
   RefreshCw,
   Star,
-  TrendingUp,
-  TrendingDown,
   Clock,
-  Wallet,
-  Percent,
   AlertCircle,
   Loader2,
   Filter,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  BarChart3,
+  TrendingUp,
+  Users,
+  Percent
 } from 'lucide-react';
+
+// Admin Earnings Types from backend
+interface AdminEarningsSummary {
+  totalEarnings: number;
+  currentMonthEarnings: number;
+  currentWeekEarnings: number;
+  pendingPayout: number;
+  totalWithdrawn: number;
+  totalBookings: number;
+  completedBookings: number;
+  averageRating: number;
+  availableBalance: number;
+}
+
+interface MonthlyCommission {
+  month: string;
+  year: number;
+  earnings: number;
+  bookingCount: number;
+}
 
 interface ReportStats {
   totalBookings: number;
@@ -34,70 +53,23 @@ interface ReportStats {
   totalRevenue: number;
   platformCommission: number;
   ownerPayout: number;
-  totalUsers: number;
-  newUsers: number;
-  activeUsers: number;
   totalVehicles: number;
   activeVehicles: number;
   averageRating: number;
-  pendingKyc: number;
-  verifiedKyc: number;
-  rejectedKyc: number;
-}
-
-interface MonthlyData {
-  month: string;
-  bookings: number;
-  revenue: number;
-  commission: number;
-  ownerPayout: number;
-}
-
-interface RevenueSource {
-  source: string;
-  amount: number;
-  percentage: number;
-}
-
-interface TopVehicle {
-  id: number;
-  name: string;
-  bookings: number;
-  revenue: number;
-  rating: number;
-}
-
-interface UserGrowth {
-  month: string;
-  newUsers: number;
-  totalUsers: number;
-}
-
-interface BookingStatus {
-  status: string;
-  count: number;
-  percentage: number;
-}
-
-interface VehicleType {
-  type: string;
-  count: number;
-  percentage: number;
 }
 
 interface ReportData {
   title: string;
   stats: ReportStats;
-  monthlyData: MonthlyData[];
-  revenueBySource: RevenueSource[];
-  topVehicles: TopVehicle[];
-  bookingsByStatus: BookingStatus[];
-  userGrowth: UserGrowth[];
-  vehiclesByType: VehicleType[];
+  monthlyData: MonthlyCommission[];
+  revenueBySource: { source: string; amount: number; percentage: number }[];
+  topVehicles: { id: number; name: string; bookings: number; revenue: number; rating: number }[];
+  bookingsByStatus: { status: string; count: number; percentage: number }[];
+  vehiclesByType: { type: string; count: number; percentage: number }[];
 }
 
 export default function ReportsPage() {
-  const [reportType, setReportType] = useState('bookings');
+  const [reportType, setReportType] = useState('revenue');
   const [dateRange, setDateRange] = useState('monthly');
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -109,6 +81,7 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState('6months');
 
   const getAuthToken = () => {
     if (typeof window !== 'undefined') {
@@ -129,39 +102,59 @@ export default function ReportsPage() {
     }
 
     try {
-      const statsRes = await fetch('http://localhost:8080/api/bookings/admin/bookings/stats', {
+      let adminEarningsSummary: AdminEarningsSummary | null = null;
+      let monthlyCommissions: MonthlyCommission[] = [];
+      let bookings: any[] = [];
+      let vehicles: any[] = [];
+      let stats: any = {};
+
+      const summaryRes = await fetch('http://localhost:8080/api/earnings/admin/commission', {
         headers: { Authorization: `Bearer ${token}` }
       });
-
-      if (!statsRes.ok) {
-        throw new Error('Failed to fetch statistics');
+      if (summaryRes.ok) {
+        adminEarningsSummary = await summaryRes.json();
+        console.log('Admin Earnings Summary:', adminEarningsSummary);
       }
 
-      const stats = await statsRes.json();
+      const monthlyRes = await fetch(
+        `http://localhost:8080/api/earnings/admin/monthly?year=${new Date().getFullYear()}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (monthlyRes.ok) {
+        monthlyCommissions = await monthlyRes.json();
+      }
 
       const bookingsRes = await fetch(
         `http://localhost:8080/api/bookings/admin/bookings?page=0&size=1000`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (!bookingsRes.ok) {
-        throw new Error('Failed to fetch bookings');
+      if (bookingsRes.ok) {
+        const bookingsData = await bookingsRes.json();
+        bookings = bookingsData.content || [];
       }
-
-      const bookingsData = await bookingsRes.json();
-      const bookings = bookingsData.content || [];
 
       const vehiclesRes = await fetch('http://localhost:8080/api/vehicles/all?page=0&size=100', {
         headers: { Authorization: `Bearer ${token}` }
       });
-
-      let vehicles = [];
       if (vehiclesRes.ok) {
         const vehicleData = await vehiclesRes.json();
         vehicles = vehicleData.content || [];
       }
 
-      const processedData = processReportData(bookings, vehicles, stats);
+      const statsRes = await fetch('http://localhost:8080/api/bookings/admin/bookings/stats', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (statsRes.ok) {
+        stats = await statsRes.json();
+      }
+
+      const processedData = processReportData(
+        bookings,
+        vehicles,
+        stats,
+        adminEarningsSummary,
+        monthlyCommissions
+      );
       setReportData(processedData);
 
     } catch (err) {
@@ -172,89 +165,29 @@ export default function ReportsPage() {
     }
   };
 
-  const processReportData = (bookings: any[], vehicles: any[], stats: any): ReportData => {
-    const totalBookings = bookings.length;
+  const processReportData = (
+    bookings: any[],
+    vehicles: any[],
+    stats: any,
+    adminSummary: AdminEarningsSummary | null,
+    monthlyData: MonthlyCommission[]
+  ): ReportData => {
+    const totalBookings = adminSummary?.totalBookings || bookings.length;
     const completedBookings = bookings.filter(b => b.bookingStatus === 'COMPLETED').length;
     const cancelledBookings = bookings.filter(b =>
       b.bookingStatus === 'CANCELLED' || b.bookingStatus === 'REJECTED'
     ).length;
 
+    const totalCommission = adminSummary?.totalEarnings || 0;
     const totalRevenue = bookings
       .filter(b => b.paymentStatus === 'COMPLETED')
       .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
-    const platformCommission = bookings
-      .filter(b => b.paymentStatus === 'COMPLETED')
-      .reduce((sum, b) => sum + (b.serviceFee || 0), 0);
-
-    const ownerPayout = bookings
-      .filter(b => b.paymentStatus === 'COMPLETED')
-      .reduce((sum, b) => sum + (b.rentalAmount || 0) + (b.insuranceFee || 0), 0);
-
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlyData: MonthlyData[] = [];
-    const now = new Date();
-    const currentMonth = now.getMonth();
-
-    for (let i = 5; i >= 0; i--) {
-      const monthIndex = (currentMonth - i + 12) % 12;
-      const monthName = months[monthIndex];
-      const monthBookings = bookings.filter(b => {
-        const date = new Date(b.createdAt);
-        return date.getMonth() === monthIndex &&
-          date.getFullYear() === now.getFullYear();
-      });
-
-      const monthRevenue = monthBookings
-        .filter(b => b.paymentStatus === 'COMPLETED')
-        .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
-
-      const monthCommission = monthBookings
-        .filter(b => b.paymentStatus === 'COMPLETED')
-        .reduce((sum, b) => sum + (b.serviceFee || 0), 0);
-
-      const monthOwnerPayout = monthBookings
-        .filter(b => b.paymentStatus === 'COMPLETED')
-        .reduce((sum, b) => sum + (b.rentalAmount || 0) + (b.insuranceFee || 0), 0);
-
-      monthlyData.push({
-        month: monthName,
-        bookings: monthBookings.length,
-        revenue: monthRevenue,
-        commission: monthCommission,
-        ownerPayout: monthOwnerPayout
-      });
-    }
-
-    const totalCommission = bookings
-      .filter(b => b.paymentStatus === 'COMPLETED')
-      .reduce((sum, b) => sum + (b.serviceFee || 0), 0);
-
-    const totalInsurance = bookings
-      .filter(b => b.paymentStatus === 'COMPLETED')
-      .reduce((sum, b) => sum + (b.insuranceFee || 0), 0);
-
-    const totalRental = bookings
-      .filter(b => b.paymentStatus === 'COMPLETED')
-      .reduce((sum, b) => sum + (b.rentalAmount || 0), 0);
-
-    const totalRevenueAll = totalCommission + totalInsurance + totalRental;
-
-    const revenueBySource: RevenueSource[] = [
+    const revenueBySource = [
       {
-        source: 'Service Fee (Commission)',
+        source: 'Platform Commission',
         amount: totalCommission,
-        percentage: totalRevenueAll > 0 ? (totalCommission / totalRevenueAll) * 100 : 0
-      },
-      {
-        source: 'Insurance Fee',
-        amount: totalInsurance,
-        percentage: totalRevenueAll > 0 ? (totalInsurance / totalRevenueAll) * 100 : 0
-      },
-      {
-        source: 'Rental Amount',
-        amount: totalRental,
-        percentage: totalRevenueAll > 0 ? (totalRental / totalRevenueAll) * 100 : 0
+        percentage: totalRevenue > 0 ? (totalCommission / totalRevenue) * 100 : 0
       }
     ];
 
@@ -270,7 +203,7 @@ export default function ReportsPage() {
       }
     });
 
-    const topVehicles: TopVehicle[] = Array.from(vehicleStats.entries())
+    const topVehicles = Array.from(vehicleStats.entries())
       .map(([id, stat]) => {
         const vehicle = vehicles.find(v => v.id === id);
         return {
@@ -290,7 +223,7 @@ export default function ReportsPage() {
       statusMap.set(status, (statusMap.get(status) || 0) + 1);
     });
 
-    const bookingsByStatus: BookingStatus[] = Array.from(statusMap.entries())
+    const bookingsByStatus = Array.from(statusMap.entries())
       .map(([status, count]) => ({
         status,
         count,
@@ -304,29 +237,13 @@ export default function ReportsPage() {
       vehicleTypeMap.set(type, (vehicleTypeMap.get(type) || 0) + 1);
     });
 
-    const vehiclesByType: VehicleType[] = Array.from(vehicleTypeMap.entries())
+    const vehiclesByType = Array.from(vehicleTypeMap.entries())
       .map(([type, count]) => ({
         type,
         count,
         percentage: vehicles.length > 0 ? (count / vehicles.length) * 100 : 0
       }))
       .sort((a, b) => b.count - a.count);
-
-    const userGrowth: UserGrowth[] = [];
-    for (let i = 5; i >= 0; i--) {
-      const monthIndex = (currentMonth - i + 12) % 12;
-      const monthName = months[monthIndex];
-      const monthBookings = bookings.filter(b => {
-        const date = new Date(b.createdAt);
-        return date.getMonth() === monthIndex &&
-          date.getFullYear() === now.getFullYear();
-      });
-      userGrowth.push({
-        month: monthName,
-        newUsers: monthBookings.length > 0 ? Math.floor(monthBookings.length * 0.3) : 0,
-        totalUsers: stats?.totalUsers || 0
-      });
-    }
 
     return {
       title: getReportTitle(reportType),
@@ -336,41 +253,31 @@ export default function ReportsPage() {
         cancelledBookings,
         totalRevenue,
         platformCommission: totalCommission,
-        ownerPayout,
-        totalUsers: stats?.totalUsers || 0,
-        newUsers: stats?.newUsers || 0,
-        activeUsers: stats?.activeUsers || 0,
+        ownerPayout: 0,
         totalVehicles: vehicles.length,
         activeVehicles: vehicles.filter(v => v.isAvailable).length,
-        averageRating: vehicles.reduce((sum, v) => sum + (v.averageRating || 0), 0) / (vehicles.length || 1),
-        pendingKyc: stats?.pendingKyc || 0,
-        verifiedKyc: stats?.verifiedKyc || 0,
-        rejectedKyc: stats?.rejectedKyc || 0
+        averageRating: vehicles.reduce((sum, v) => sum + (v.averageRating || 0), 0) / (vehicles.length || 1)
       },
       monthlyData,
       revenueBySource,
       topVehicles,
       bookingsByStatus,
-      userGrowth,
       vehiclesByType
     };
   };
 
   const getReportTitle = (type: string): string => {
     const titles: Record<string, string> = {
-      bookings: 'Booking Report',
       revenue: 'Revenue Report',
-      users: 'User Report',
-      vehicles: 'Vehicle Report',
-      kyc: 'KYC Report',
-      commission: 'Commission Report'
+      bookings: 'Booking Report',
+      vehicles: 'Vehicle Report'
     };
     return titles[type] || 'Report';
   };
 
   useEffect(() => {
     fetchReportData();
-  }, [reportType, dateRange]);
+  }, [reportType, dateRange, selectedPeriod]);
 
   const handleGenerateReport = () => {
     fetchReportData();
@@ -383,7 +290,7 @@ export default function ReportsPage() {
     try {
       const token = getAuthToken();
       const response = await fetch(
-        `http://localhost:8080/api/earnings/export?startDate=${startDate}&endDate=${endDate}`,
+        `http://localhost:8080/api/earnings/admin/export?startDate=${startDate}&endDate=${endDate}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -425,7 +332,7 @@ export default function ReportsPage() {
   };
 
   const getMaxValue = (data: any[], key: string) => {
-    return Math.max(...data.map(item => item[key]), 1);
+    return Math.max(...data.map(item => item[key] || 0), 1);
   };
 
   if (loading) {
@@ -483,7 +390,7 @@ export default function ReportsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Reports</h1>
-            <p className="text-gray-600 dark:text-gray-300">Generate and export comprehensive platform reports</p>
+            <p className="text-gray-600 dark:text-gray-300">Generate and export platform reports</p>
           </div>
           <div className="flex gap-3 flex-wrap">
             <button
@@ -502,12 +409,9 @@ export default function ReportsPage() {
         <div className="p-4 border-b border-gray-100 dark:border-gray-700">
           <div className="flex flex-wrap gap-2">
             {[
-              { id: 'bookings', label: 'Booking Report', icon: Calendar },
               { id: 'revenue', label: 'Revenue Report', icon: DollarSign },
-              { id: 'commission', label: 'Commission Report', icon: Percent },
-              { id: 'users', label: 'User Report', icon: Users },
-              { id: 'vehicles', label: 'Vehicle Report', icon: Car },
-              { id: 'kyc', label: 'KYC Report', icon: FileText }
+              { id: 'bookings', label: 'Booking Report', icon: Calendar },
+              { id: 'vehicles', label: 'Vehicle Report', icon: Car }
             ].map((type) => {
               const Icon = type.icon;
               return (
@@ -515,8 +419,8 @@ export default function ReportsPage() {
                   key={type.id}
                   onClick={() => setReportType(type.id)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center space-x-2 ${reportType === type.id
-                      ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-300'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -580,7 +484,7 @@ export default function ReportsPage() {
       {/* Report Content */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
         {/* Report Header */}
-        <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">{currentReport.title}</h2>
@@ -617,203 +521,114 @@ export default function ReportsPage() {
 
         {/* Report Statistics */}
         <div className="p-6">
-          {/* Key Metrics */}
+          {/* Key Metrics Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {reportType === 'revenue' && (
+              <>
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Revenue</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                    {formatCurrency(currentReport.stats.platformCommission || 0)}
+                  </p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">Platform Commission</p>
+                </div>
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">This Month Revenue</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                    {currentReport.monthlyData.length > 0
+                      ? formatCurrency(currentReport.monthlyData[currentReport.monthlyData.length - 1]?.earnings || 0)
+                      : 'Rs. 0'}
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">Current Month</p>
+                </div>
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Avg. Revenue per Booking</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                    {currentReport.stats.totalBookings > 0
+                      ? formatCurrency(currentReport.stats.platformCommission / currentReport.stats.totalBookings)
+                      : 'Rs. 0'}
+                  </p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Per Booking</p>
+                </div>
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Bookings</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                    {currentReport.stats.totalBookings.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Completed</p>
+                </div>
+              </>
+            )}
+
             {reportType === 'bookings' && (
               <>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Bookings</p>
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Bookings</p>
                   <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.stats.totalBookings.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Completed</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-300">{currentReport.stats.completedBookings.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Completed</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.stats.completedBookings.toLocaleString()}</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
                     {currentReport.stats.totalBookings > 0 ? ((currentReport.stats.completedBookings / currentReport.stats.totalBookings) * 100).toFixed(1) : 0}%
                   </p>
                 </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Cancelled</p>
-                  <p className="text-2xl font-bold text-red-600 dark:text-red-300">{currentReport.stats.cancelledBookings.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Cancelled</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.stats.cancelledBookings.toLocaleString()}</p>
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1">
                     {currentReport.stats.totalBookings > 0 ? ((currentReport.stats.cancelledBookings / currentReport.stats.totalBookings) * 100).toFixed(1) : 0}%
                   </p>
                 </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Revenue</p>
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">{formatCurrency(currentReport.stats.totalRevenue)}</p>
-                </div>
-              </>
-            )}
-
-            {reportType === 'revenue' && (
-              <>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Revenue</p>
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Revenue</p>
                   <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency(currentReport.stats.totalRevenue)}</p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Platform Commission</p>
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">{formatCurrency(currentReport.stats.platformCommission)}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {currentReport.stats.totalRevenue > 0 ? ((currentReport.stats.platformCommission / currentReport.stats.totalRevenue) * 100).toFixed(1) : 0}%
-                  </p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Owner Payout</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-300">{formatCurrency(currentReport.stats.ownerPayout)}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {currentReport.stats.totalRevenue > 0 ? ((currentReport.stats.ownerPayout / currentReport.stats.totalRevenue) * 100).toFixed(1) : 0}%
-                  </p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg. Revenue per Booking</p>
-                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-300">
-                    {currentReport.stats.totalBookings > 0 ? formatCurrency(currentReport.stats.totalRevenue / currentReport.stats.totalBookings) : 'Rs. 0'}
-                  </p>
-                </div>
-              </>
-            )}
-
-            {reportType === 'commission' && (
-              <>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Commission</p>
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">{formatCurrency(currentReport.stats.platformCommission)}</p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Commission Rate</p>
-                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">8%</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Per booking</p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg. Commission per Booking</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-300">
-                    {currentReport.stats.totalBookings > 0 ? formatCurrency(currentReport.stats.platformCommission / currentReport.stats.totalBookings) : 'Rs. 0'}
-                  </p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Bookings with Commission</p>
-                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.stats.totalBookings.toLocaleString()}</p>
-                </div>
-              </>
-            )}
-
-            {reportType === 'users' && (
-              <>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Users</p>
-                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.stats.totalUsers.toLocaleString()}</p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">New Users</p>
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">{currentReport.stats.newUsers.toLocaleString()}</p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Active Users</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-300">{currentReport.stats.activeUsers.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {currentReport.stats.totalUsers > 0 ? ((currentReport.stats.activeUsers / currentReport.stats.totalUsers) * 100).toFixed(1) : 0}% active
-                  </p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Verified KYC</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-300">{currentReport.stats.verifiedKyc.toLocaleString()}</p>
                 </div>
               </>
             )}
 
             {reportType === 'vehicles' && (
               <>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Vehicles</p>
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Vehicles</p>
                   <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.stats.totalVehicles.toLocaleString()}</p>
                 </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Active Vehicles</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-300">{currentReport.stats.activeVehicles.toLocaleString()}</p>
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Active Vehicles</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.stats.activeVehicles.toLocaleString()}</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                    {currentReport.stats.totalVehicles > 0 ? ((currentReport.stats.activeVehicles / currentReport.stats.totalVehicles) * 100).toFixed(1) : 0}%
+                  </p>
                 </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Avg. Rating</p>
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Avg. Rating</p>
                   <div className="flex items-center space-x-1">
                     <Star className="w-5 h-5 text-yellow-400 fill-current" />
                     <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{currentReport.stats.averageRating.toFixed(1)}</p>
                   </div>
                 </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Utilization Rate</p>
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-300">
-                    {currentReport.stats.totalVehicles > 0 ? ((currentReport.stats.activeVehicles / currentReport.stats.totalVehicles) * 100).toFixed(1) : 0}%
-                  </p>
-                </div>
-              </>
-            )}
-
-            {reportType === 'kyc' && (
-              <>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Submissions</p>
-                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                    {(currentReport.stats.pendingKyc + currentReport.stats.verifiedKyc + currentReport.stats.rejectedKyc).toLocaleString()}
-                  </p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Verified</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-300">{currentReport.stats.verifiedKyc.toLocaleString()}</p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Pending</p>
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-300">{currentReport.stats.pendingKyc.toLocaleString()}</p>
-                </div>
-                <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Rejected</p>
-                  <p className="text-2xl font-bold text-red-600 dark:text-red-300">{currentReport.stats.rejectedKyc.toLocaleString()}</p>
+                <div className="p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Total Revenue</p>
+                  <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency(currentReport.stats.totalRevenue)}</p>
                 </div>
               </>
             )}
           </div>
 
-          {/* Vehicle Types - Only for Vehicles report */}
-          {reportType === 'vehicles' && currentReport.vehiclesByType && currentReport.vehiclesByType.length > 0 && (
+          {/* Revenue Breakdown */}
+          {reportType === 'revenue' && currentReport.revenueBySource && (
             <div className="mb-8">
-              <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Vehicle Distribution by Type</h3>
-              <div className="space-y-4">
-                {currentReport.vehiclesByType.map((type: VehicleType, i: number) => (
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Revenue Breakdown</h3>
+              <div className="space-y-3">
+                {currentReport.revenueBySource.map((source, i) => (
                   <div key={i}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-700 dark:text-gray-300">{type.type}</span>
-                      <span className="text-gray-800 dark:text-gray-100 font-semibold">{type.count.toLocaleString()}</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-teal-500 rounded-full"
-                        style={{ width: `${Math.min(type.percentage, 100)}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{type.percentage.toFixed(1)}%</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Revenue Breakdown by Source */}
-          {(reportType === 'revenue' || reportType === 'commission') && currentReport.revenueBySource && (
-            <div className="mb-8">
-              <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Revenue Breakdown by Source</h3>
-              <div className="space-y-4">
-                {currentReport.revenueBySource.map((source: RevenueSource, i: number) => (
-                  <div key={i}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-700 dark:text-gray-300">{source.source}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{source.source}</span>
                       <span className="text-gray-800 dark:text-gray-100 font-semibold">{formatCurrency(source.amount)}</span>
                     </div>
-                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${source.source.includes('Commission') ? 'bg-emerald-500' :
-                            source.source.includes('Insurance') ? 'bg-blue-500' :
-                              'bg-purple-500'
-                          }`}
+                        className="h-full rounded-full bg-emerald-500"
                         style={{ width: `${Math.min(source.percentage, 100)}%` }}
                       />
                     </div>
@@ -824,104 +639,93 @@ export default function ReportsPage() {
             </div>
           )}
 
-          {/* Monthly Data Chart - FIXED */}
-          {currentReport.monthlyData && currentReport.monthlyData.length > 0 && (
+          {/* Monthly Revenue Bar Chart - Revenue Report */}
+          {reportType === 'revenue' && currentReport.monthlyData && currentReport.monthlyData.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                {reportType === 'commission' ? 'Monthly Commission Trends' : 'Monthly Trends'}
-              </h3>
-              <div className="h-64 flex items-end space-x-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-                {currentReport.monthlyData.map((item: MonthlyData, i: number) => {
-                  const value = reportType === 'commission' ? item.commission :
-                    reportType === 'revenue' ? item.revenue :
-                      item.bookings;
-                  const maxValue = getMaxValue(
-                    currentReport.monthlyData,
-                    reportType === 'commission' ? 'commission' :
-                      reportType === 'revenue' ? 'revenue' :
-                        'bookings'
-                  );
-                  const height = Math.max(getChartHeight(value, maxValue), 5);
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Monthly Revenue</h3>
+                <div className="flex gap-1">
+                  {["3months", "6months", "12months"].map((period) => (
+                    <button
+                      key={period}
+                      onClick={() => setSelectedPeriod(period)}
+                      className={`px-3 py-1 text-xs rounded-md transition ${selectedPeriod === period
+                        ? "bg-emerald-600 text-white"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        }`}
+                    >
+                      {period === "3months" ? "3M" : period === "6months" ? "6M" : "12M"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                <div className="h-56 flex items-end space-x-4">
+                  {currentReport.monthlyData.map((item, i) => {
+                    const maxValue = getMaxValue(currentReport.monthlyData, 'earnings');
+                    const height = Math.max(getChartHeight(item.earnings, maxValue), 5);
 
-                  const barColors: Record<string, string> = {
-                    bookings: 'bg-purple-500 dark:bg-purple-400 hover:bg-purple-600 dark:hover:bg-purple-300',
-                    revenue: 'bg-blue-500 dark:bg-blue-400 hover:bg-blue-600 dark:hover:bg-blue-300',
-                    commission: 'bg-emerald-500 dark:bg-emerald-400 hover:bg-emerald-600 dark:hover:bg-emerald-300'
-                  };
-
-                  const barColor = reportType === 'commission' ? barColors.commission :
-                    reportType === 'revenue' ? barColors.revenue :
-                      barColors.bookings;
-
-                  const displayValue = reportType === 'commission' ? formatCurrency(value) :
-                    reportType === 'revenue' ? formatCurrency(value) :
-                      value.toLocaleString();
-
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">
-                        {displayValue}
-                      </div>
-                      <div
-                        className={`w-full max-w-[40px] rounded-t transition-all duration-500 ${barColor}`}
-                        style={{ height: `${height}%`, minHeight: '4px' }}
-                      />
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">
-                        {item.month}
-                      </div>
-                      {reportType === 'revenue' && (
-                        <div className="text-[10px] text-gray-400 dark:text-gray-500">
-                          ({item.bookings})
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center justify-end h-full group">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                          {formatCurrency(item.earnings)}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                        <div
+                          className="w-full max-w-[40px] rounded-t transition-all duration-500 bg-emerald-500 hover:bg-emerald-600 cursor-pointer relative"
+                          style={{ height: `${height}%`, minHeight: '4px' }}
+                        >
+                          <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            {formatCurrency(item.earnings)}
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">
+                          {item.month}
+                        </div>
+                        <div className="text-[10px] text-gray-400 dark:text-gray-500">
+                          {item.bookingCount} bookings
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Y-axis labels */}
+                <div className="flex justify-between mt-2 text-xs text-gray-400 dark:text-gray-500">
+                  <span>0</span>
+                  <span>
+                    {formatCurrency(getMaxValue(currentReport.monthlyData, 'earnings'))}
+                  </span>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Monthly Data Table */}
-          {currentReport.monthlyData && currentReport.monthlyData.length > 0 && (
+          {/* Monthly Revenue Table */}
+          {reportType === 'revenue' && currentReport.monthlyData && currentReport.monthlyData.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">
-                {reportType === 'commission' ? 'Monthly Commission Details' : 'Monthly Breakdown'}
-              </h3>
-              <div className="overflow-x-auto">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Monthly Revenue Details</h3>
+              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
                       <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Month</th>
-                      <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">
-                        {reportType === 'commission' ? 'Commission' : reportType === 'revenue' ? 'Revenue' : 'Bookings'}
-                      </th>
-                      {reportType === 'revenue' && (
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Commission</th>
-                      )}
-                      {reportType === 'revenue' && (
-                        <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Owner Payout</th>
-                      )}
+                      <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Revenue</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Bookings</th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Avg. per Booking</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {currentReport.monthlyData.map((item: MonthlyData, i: number) => (
-                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                    {currentReport.monthlyData.map((item, i) => (
+                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
                         <td className="px-4 py-3 text-sm text-gray-800 dark:text-gray-100">{item.month}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-100 text-right">
-                          {reportType === 'commission' ? formatCurrency(item.commission) :
-                            reportType === 'revenue' ? formatCurrency(item.revenue) :
-                              item.bookings.toLocaleString()}
+                        <td className="px-4 py-3 text-sm font-semibold text-emerald-600 dark:text-emerald-400 text-right">
+                          {formatCurrency(item.earnings)}
                         </td>
-                        {reportType === 'revenue' && (
-                          <>
-                            <td className="px-4 py-3 text-sm text-emerald-600 dark:text-emerald-300 text-right">
-                              {formatCurrency(item.commission)}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-blue-600 dark:text-blue-300 text-right">
-                              {formatCurrency(item.ownerPayout)}
-                            </td>
-                          </>
-                        )}
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">
+                          {item.bookingCount}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">
+                          {item.bookingCount > 0 ? formatCurrency(item.earnings / item.bookingCount) : 'N/A'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -930,14 +734,15 @@ export default function ReportsPage() {
             </div>
           )}
 
-          {/* Top Vehicles */}
+          {/* Top Performing Vehicles */}
           {currentReport.topVehicles && currentReport.topVehicles.length > 0 && (
-            <div>
-              <h3 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-4">Top Performing Vehicles</h3>
-              <div className="overflow-x-auto">
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Top Performing Vehicles</h3>
+              <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Vehicle</th>
                       <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Bookings</th>
                       <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400">Revenue</th>
@@ -945,16 +750,134 @@ export default function ReportsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {currentReport.topVehicles.map((vehicle: TopVehicle, i: number) => (
-                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-100">{vehicle.name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">{vehicle.bookings.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-sm font-semibold text-gray-800 dark:text-gray-100 text-right">{formatCurrency(vehicle.revenue)}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">{vehicle.rating.toFixed(1)}</td>
+                    {currentReport.topVehicles.map((vehicle, i) => (
+                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+                        <td className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500">
+                          #{i + 1}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-100">
+                          {vehicle.name}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">
+                          {vehicle.bookings}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-semibold text-emerald-600 dark:text-emerald-400 text-right">
+                          {formatCurrency(vehicle.revenue)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                            {vehicle.rating.toFixed(1)}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* Booking Status Distribution - All Green */}
+          {reportType === 'bookings' && currentReport.bookingsByStatus && currentReport.bookingsByStatus.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Booking Status Distribution</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {currentReport.bookingsByStatus.map((status, i) => {
+                  const shade = 100 - (i * 8);
+                  const bgColor = `bg-emerald-${Math.min(shade, 500)}`;
+
+                  return (
+                    <div key={i} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 border border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{status.status}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">{status.count}</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">{status.percentage.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-emerald-500"
+                          style={{ width: `${Math.min(status.percentage, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Monthly Booking Trends - For Bookings and Vehicles */}
+          {(reportType === 'bookings' || reportType === 'vehicles') && currentReport.monthlyData && currentReport.monthlyData.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                Monthly Booking Trends
+              </h3>
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                <div className="h-56 flex items-end space-x-4">
+                  {currentReport.monthlyData.map((item, i) => {
+                    const maxValue = getMaxValue(currentReport.monthlyData, 'bookingCount');
+                    const height = Math.max(getChartHeight(item.bookingCount, maxValue), 5);
+
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center justify-end h-full group">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                          {item.bookingCount}
+                        </div>
+                        <div
+                          className="w-full max-w-[40px] rounded-t transition-all duration-500 bg-purple-500 hover:bg-purple-600 cursor-pointer relative"
+                          style={{ height: `${height}%`, minHeight: '4px' }}
+                        >
+                          <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            {item.bookingCount}
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">
+                          {item.month}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-between mt-2 text-xs text-gray-400 dark:text-gray-500">
+                  <span>0</span>
+                  <span>{getMaxValue(currentReport.monthlyData, 'bookingCount')}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Vehicle Types - Vehicle Report */}
+          {reportType === 'vehicles' && currentReport.vehiclesByType && currentReport.vehiclesByType.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Vehicle Distribution by Type</h3>
+              <div className="space-y-3">
+                {currentReport.vehiclesByType.map((type, i) => {
+                  const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#6366f1'];
+                  return (
+                    <div key={i}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600 dark:text-gray-400">{type.type}</span>
+                        <span className="text-gray-800 dark:text-gray-100 font-semibold">{type.count}</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${Math.min(type.percentage, 100)}%`,
+                            backgroundColor: colors[i % colors.length]
+                          }}
+                        />
+                      </div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{type.percentage.toFixed(1)}%</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

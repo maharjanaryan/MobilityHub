@@ -67,7 +67,6 @@ interface LocationData {
   revenue: number;
 }
 
-// Helper function to truncate text
 const truncateText = (text: string, maxLength: number = 20) => {
   if (!text) return 'Unknown';
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
@@ -267,7 +266,6 @@ export default function AnalyticsPage() {
     const locationMap = new Map();
     bookings.forEach(b => {
       const city = b.city || b.renterLocation || 'Unknown';
-      // Truncate long location names
       const truncatedCity = city.length > 25 ? city.substring(0, 22) + '...' : city;
       if (!locationMap.has(truncatedCity)) {
         locationMap.set(truncatedCity, { bookings: 0, revenue: 0, fullName: city });
@@ -400,8 +398,8 @@ export default function AnalyticsPage() {
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Analytics Dashboard</h1>
-            <p className="text-gray-600 dark:text-gray-400">Comprehensive platform performance metrics and insights</p>
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Analytics Dashboard</h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">Comprehensive platform performance metrics and insights</p>
           </div>
           <div className="flex gap-3">
             <select
@@ -419,132 +417,120 @@ export default function AnalyticsPage() {
               className="px-4 py-2 bg-emerald-600 dark:bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-colors flex items-center space-x-2"
             >
               <Download className="w-4 h-4" />
-              <span>Export Report</span>
+              <span>Export</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6 mb-6 md:mb-8">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 dark:text-gray-400 text-sm">Total Revenue</div>
-            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-xl flex items-center justify-center">
-              <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-            </div>
+      {/* Stats Cards - Clean Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Revenue</span>
+            <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency(stats.totalRevenue)}</div>
-          <div className="flex items-center mt-2">
-            <ArrowUpRight className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span className="text-xs text-green-600 dark:text-green-400 ml-1">{stats.revenueChange}%</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">vs last period</span>
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(stats.totalRevenue)}</p>
+          <div className="flex items-center mt-1">
+            <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{stats.revenueChange}%</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">vs last period</span>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 dark:text-gray-400 text-sm">Total Users</div>
-            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-              <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Users</span>
+            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{stats.totalUsers.toLocaleString()}</div>
-          <div className="flex items-center mt-2">
-            <ArrowUpRight className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span className="text-xs text-green-600 dark:text-green-400 ml-1">{stats.usersChange}%</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">vs last period</span>
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stats.totalUsers.toLocaleString()}</p>
+          <div className="flex items-center mt-1">
+            <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{stats.usersChange}%</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">vs last period</span>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 dark:text-gray-400 text-sm">Total Bookings</div>
-            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bookings</span>
+            <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{stats.totalBookings.toLocaleString()}</div>
-          <div className="flex items-center mt-2">
-            <ArrowUpRight className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span className="text-xs text-green-600 dark:text-green-400 ml-1">{stats.bookingsChange}%</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">vs last period</span>
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stats.totalBookings.toLocaleString()}</p>
+          <div className="flex items-center mt-1">
+            <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{stats.bookingsChange}%</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">vs last period</span>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 dark:text-gray-400 text-sm">Active Vehicles</div>
-            <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-xl flex items-center justify-center">
-              <Car className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-            </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vehicles</span>
+            <Car className="w-4 h-4 text-teal-600 dark:text-teal-400" />
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{stats.activeVehicles.toLocaleString()}</div>
-          <div className="flex items-center mt-2">
-            <ArrowUpRight className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span className="text-xs text-green-600 dark:text-green-400 ml-1">{stats.vehiclesChange}%</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">vs last period</span>
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stats.activeVehicles.toLocaleString()}</p>
+          <div className="flex items-center mt-1">
+            <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{stats.vehiclesChange}%</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">vs last period</span>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 dark:text-gray-400 text-sm">Avg. Rating</div>
-            <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
-              <Star className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-            </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rating</span>
+            <Star className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{stats.averageRating.toFixed(1)}</div>
-          <div className="flex items-center mt-2">
-            <ArrowUpRight className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span className="text-xs text-green-600 dark:text-green-400 ml-1">{stats.ratingChange}</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">vs last period</span>
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stats.averageRating.toFixed(1)}</p>
+          <div className="flex items-center mt-1">
+            <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{stats.ratingChange}</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">vs last period</span>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 md:p-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-gray-500 dark:text-gray-400 text-sm">Completion Rate</div>
-            <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-              <Target className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Completion</span>
+            <Target className="w-4 h-4 text-green-600 dark:text-green-400" />
           </div>
-          <div className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100">{stats.completionRate.toFixed(1)}%</div>
-          <div className="flex items-center mt-2">
-            <ArrowUpRight className="w-3 h-3 text-green-600 dark:text-green-400" />
-            <span className="text-xs text-green-600 dark:text-green-400 ml-1">{stats.completionChange}%</span>
-            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">vs last period</span>
+          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{stats.completionRate.toFixed(1)}%</p>
+          <div className="flex items-center mt-1">
+            <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{stats.completionChange}%</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500 ml-1">vs last period</span>
           </div>
         </div>
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Revenue Chart */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Revenue Overview</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Monthly revenue trends</p>
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Revenue Overview</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Monthly revenue trends</p>
             </div>
-            <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+            <button className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
               <Download className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="h-64 flex items-end space-x-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+          <div className="h-56 flex items-end space-x-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
             {revenueData.values.map((value, i) => {
               const height = Math.max(getChartHeight(value, maxRevenue), 5);
               return (
-                <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">
+                <div key={i} className="flex-1 flex flex-col items-center justify-end h-full group">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {formatCurrency(value)}
                   </div>
                   <div
-                    className="w-full max-w-[40px] bg-emerald-500 dark:bg-emerald-400 rounded-t transition-all duration-500 hover:bg-emerald-600 dark:hover:bg-emerald-300"
+                    className="w-full max-w-[32px] bg-emerald-500 dark:bg-emerald-400 rounded-t transition-all duration-500 hover:bg-emerald-600 dark:hover:bg-emerald-300"
                     style={{ height: `${height}%`, minHeight: '4px' }}
                   />
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-2 font-medium">
                     {revenueData.labels[i]}
                   </div>
                 </div>
@@ -554,16 +540,16 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Bookings Chart */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Booking Trends</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Weekly booking volume</p>
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Booking Trends</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Weekly booking volume</p>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex space-x-1">
               <button
                 onClick={() => setChartType('bookings')}
-                className={`p-2 rounded-lg transition-colors ${chartType === 'bookings'
+                className={`p-1.5 rounded-lg transition-colors ${chartType === 'bookings'
                   ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
                   }`}
@@ -572,7 +558,7 @@ export default function AnalyticsPage() {
               </button>
               <button
                 onClick={() => setChartType('revenue')}
-                className={`p-2 rounded-lg transition-colors ${chartType === 'revenue'
+                className={`p-1.5 rounded-lg transition-colors ${chartType === 'revenue'
                   ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
                   : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
                   }`}
@@ -582,19 +568,19 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
-          <div className="h-64 flex items-end space-x-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+          <div className="h-56 flex items-end space-x-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
             {bookingsData.values.map((value, i) => {
               const height = Math.max(getChartHeight(value, maxBooking), 5);
               return (
-                <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">
+                <div key={i} className="flex-1 flex flex-col items-center justify-end h-full group">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mb-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     {value.toLocaleString()}
                   </div>
                   <div
-                    className="w-full max-w-[40px] bg-blue-500 dark:bg-blue-400 rounded-t transition-all duration-500 hover:bg-blue-600 dark:hover:bg-blue-300"
+                    className="w-full max-w-[32px] bg-blue-500 dark:bg-blue-400 rounded-t transition-all duration-500 hover:bg-blue-600 dark:hover:bg-blue-300"
                     style={{ height: `${height}%`, minHeight: '4px' }}
                   />
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium">
+                  <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-2 font-medium">
                     {bookingsData.labels[i]}
                   </div>
                 </div>
@@ -604,89 +590,88 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Additional Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      {/* Bottom Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Vehicles */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Top Performing Vehicles</h2>
-            <Car className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Top Vehicles</h3>
+            <Car className="w-4 h-4 text-gray-400 dark:text-gray-500" />
           </div>
-          <div className="space-y-4">
-            {topVehicles.map((vehicle) => (
-              <div key={vehicle.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{truncateText(vehicle.name, 25)}</p>
-                  <div className="flex items-center space-x-4 mt-1">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{vehicle.bookings} bookings</span>
-                    <div className="flex items-center">
-                      <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                      <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{vehicle.rating.toFixed(1)}</span>
+          <div className="space-y-3">
+            {topVehicles.map((vehicle, index) => (
+              <div key={vehicle.id} className="flex items-center justify-between p-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-all">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-gray-400 dark:text-gray-500 w-5">#{index + 1}</span>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{truncateText(vehicle.name, 22)}</p>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{vehicle.bookings} bookings</span>
+                      <div className="flex items-center">
+                        <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                        <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{vehicle.rating.toFixed(1)}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(vehicle.revenue)}</p>
-                </div>
+                <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(vehicle.revenue)}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Top Users */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        {/* Top Customers */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Top Customers</h2>
-            <Users className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Top Customers</h3>
+            <Users className="w-4 h-4 text-gray-400 dark:text-gray-500" />
           </div>
-          <div className="space-y-4">
-            {topUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 rounded-lg flex items-center justify-center">
-                    <span className="text-emerald-700 dark:text-emerald-300 font-semibold text-sm">
-                      {user.name.split(' ').map(n => n[0]).join('')}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{truncateText(user.name, 20)}</p>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">{user.bookings} bookings</span>
-                      <div className="flex items-center">
-                        <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                        <span className="text-xs text-gray-600 dark:text-gray-300 ml-1">{user.rating.toFixed(1)}</span>
-                      </div>
+          <div className="space-y-3">
+            {topUsers.map((user, index) => (
+              <div key={user.id} className="flex items-center justify-between p-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-all">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-gray-400 dark:text-gray-500 w-5">#{index + 1}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-emerald-700 dark:text-emerald-300 font-semibold text-xs">
+                        {user.name.split(' ').map(n => n[0]).join('')}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{truncateText(user.name, 18)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{user.bookings} bookings</p>
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(user.revenue)}</p>
-                </div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{formatCurrency(user.revenue)}</p>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Location Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Locations - FIXED with truncated names */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+      {/* Bottom Grid - Locations & Insights */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        {/* Top Locations */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Top Locations</h2>
-            <MapPin className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Top Locations</h3>
+            <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500" />
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {locationData.map((location, index) => (
-              <div key={index} className="space-y-2">
+              <div key={index} className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-800 dark:text-gray-100" title={location.city}>
-                    {truncateText(location.city, 40)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-400 dark:text-gray-500 w-5">#{index + 1}</span>
+                    <span className="text-sm font-medium text-gray-800 dark:text-gray-100" title={location.city}>
+                      {truncateText(location.city, 30)}
+                    </span>
+                  </div>
                   <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(location.revenue)}</span>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div className="flex items-center gap-3 pl-7">
+                  <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full"
                       style={{ width: `${(location.bookings / (locationData[0]?.bookings || 1)) * 100}%` }}
@@ -700,81 +685,62 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Platform Insights */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Platform Insights</h2>
-            <Zap className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Platform Insights</h3>
+            <Zap className="w-4 h-4 text-gray-400 dark:text-gray-500" />
           </div>
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Avg. Booking Value</span>
-                  <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <p className="text-xl font-bold text-gray-800 dark:text-gray-100">
-                  {stats.totalBookings > 0 ? formatCurrency(stats.totalRevenue / stats.totalBookings) : 'Rs. 0'}
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">↑ 5.2%</p>
-              </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Platform Commission</span>
-                  <Percent className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency(stats.platformCommission)}</p>
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">8% of revenue</p>
-              </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Owner Payout</span>
-                  <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                </div>
-                <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{formatCurrency(stats.ownerPayout)}</p>
-                <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">↑ {stats.payoutChange}%</p>
-              </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Repeat Customers</span>
-                  <UserCheck className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                </div>
-                <p className="text-xl font-bold text-gray-800 dark:text-gray-100">68.3%</p>
-                <p className="text-xs text-green-600 dark:text-green-400 mt-1">↑ 4.5%</p>
-              </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Avg. Booking Value</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">
+                {stats.totalBookings > 0 ? formatCurrency(stats.totalRevenue / stats.totalBookings) : 'Rs. 0'}
+              </p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">↑ 5.2%</p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Commission</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">{formatCurrency(stats.platformCommission)}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">8% of revenue</p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Owner Payout</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">{formatCurrency(stats.ownerPayout)}</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">↑ {stats.payoutChange}%</p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Repeat Rate</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-gray-100 mt-0.5">68.3%</p>
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">↑ 4.5%</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Growth Indicators */}
-      <div className="mt-8 bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-6 text-white">
-        <div className="flex items-center justify-between mb-4">
+      {/* Growth Banner */}
+      <div className="mt-6 bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-gray-800 dark:to-gray-900 rounded-xl p-5 text-white">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-lg font-semibold">Platform Growth Summary</h3>
-            <p className="text-emerald-100 dark:text-gray-300 text-sm mt-1">Year-over-year performance</p>
+            <h4 className="text-sm font-semibold">Platform Growth Summary</h4>
+            <p className="text-emerald-100 dark:text-gray-400 text-xs mt-0.5">Year-over-year performance metrics</p>
           </div>
-          <Zap className="w-8 h-8 text-white/80 dark:text-gray-400" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div>
-            <p className="text-emerald-100 dark:text-gray-300 text-sm">User Growth</p>
-            <p className="text-2xl font-bold mt-1">+{stats.usersChange}%</p>
-            <p className="text-xs text-emerald-100 dark:text-gray-400 mt-1">vs previous year</p>
-          </div>
-          <div>
-            <p className="text-emerald-100 dark:text-gray-300 text-sm">Revenue Growth</p>
-            <p className="text-2xl font-bold mt-1">+{stats.revenueChange}%</p>
-            <p className="text-xs text-emerald-100 dark:text-gray-400 mt-1">vs previous year</p>
-          </div>
-          <div>
-            <p className="text-emerald-100 dark:text-gray-300 text-sm">Booking Growth</p>
-            <p className="text-2xl font-bold mt-1">+{stats.bookingsChange}%</p>
-            <p className="text-xs text-emerald-100 dark:text-gray-400 mt-1">vs previous year</p>
-          </div>
-          <div>
-            <p className="text-emerald-100 dark:text-gray-300 text-sm">Vehicle Expansion</p>
-            <p className="text-2xl font-bold mt-1">+{stats.vehiclesChange}%</p>
-            <p className="text-xs text-emerald-100 dark:text-gray-400 mt-1">vs previous year</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-3 sm:mt-0">
+            <div>
+              <p className="text-emerald-100 dark:text-gray-400 text-xs">User Growth</p>
+              <p className="text-lg font-bold mt-0.5">+{stats.usersChange}%</p>
+            </div>
+            <div>
+              <p className="text-emerald-100 dark:text-gray-400 text-xs">Revenue Growth</p>
+              <p className="text-lg font-bold mt-0.5">+{stats.revenueChange}%</p>
+            </div>
+            <div>
+              <p className="text-emerald-100 dark:text-gray-400 text-xs">Booking Growth</p>
+              <p className="text-lg font-bold mt-0.5">+{stats.bookingsChange}%</p>
+            </div>
+            <div>
+              <p className="text-emerald-100 dark:text-gray-400 text-xs">Vehicle Growth</p>
+              <p className="text-lg font-bold mt-0.5">+{stats.vehiclesChange}%</p>
+            </div>
           </div>
         </div>
       </div>
