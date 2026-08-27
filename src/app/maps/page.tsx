@@ -5,13 +5,14 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import dynamic from "next/dynamic";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, LogIn, ArrowLeft, Car } from "lucide-react";
+import { X, LogIn, ArrowLeft, Car, MapPin, Filter } from "lucide-react";
 import Header from "../component/Header";
 import HomeHeader from "../home/HomeHeader";
 import { vehicleService } from "../services/vehicleService";
 import { Vehicle, VehicleType } from "../types/vehicle";
 
 type FilterType = "all" | VehicleType;
+type DistanceFilter = "all" | 1 | 2 | 4 | 8 | 16;
 
 interface UserLocation {
   lat: number;
@@ -38,7 +39,6 @@ function LoginRequiredModal({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -47,7 +47,6 @@ function LoginRequiredModal({
             onClick={onClose}
           />
 
-          {/* Modal */}
           <div className="fixed inset-0 z-[1000] flex items-center justify-center px-4 pointer-events-none">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -57,7 +56,6 @@ function LoginRequiredModal({
               className="relative w-full max-w-sm pointer-events-auto"
             >
               <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl overflow-hidden">
-                {/* Header */}
                 <div className="px-6 pt-5 pb-3 flex items-center justify-between border-b border-gray-100 dark:border-gray-800">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center">
@@ -73,7 +71,6 @@ function LoginRequiredModal({
                   </button>
                 </div>
 
-                {/* Body */}
                 <div className="px-6 py-5">
                   <div className="flex items-start gap-3 mb-5">
                     <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/20 rounded-full flex items-center justify-center flex-shrink-0">
@@ -91,7 +88,6 @@ function LoginRequiredModal({
                     </div>
                   </div>
 
-                  {/* Buttons */}
                   <div className="space-y-2.5">
                     <button
                       onClick={onLogin}
@@ -152,10 +148,20 @@ const typeBadgeColors: Record<VehicleType, string> = {
   cycle: "bg-emerald-50 text-emerald-600 border-emerald-200",
 };
 
+const distanceLabels: Record<DistanceFilter, string> = {
+  all: "All Distances",
+  1: "Within 1 km",
+  2: "Within 2 km",
+  4: "Within 4 km",
+  8: "Within 8 km",
+  16: "Within 16 km",
+};
+
 export default function MapsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [activeDistance, setActiveDistance] = useState<DistanceFilter>("all");
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
@@ -232,6 +238,19 @@ export default function MapsPage() {
     }
   }, [shouldHighlight, highlightVehicleId, highlightLat, highlightLng, vehicles]);
 
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = useCallback((lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }, []);
+
   // Handle rent now click
   const handleRentNow = useCallback((e: React.MouseEvent, vehicleId: number) => {
     e.stopPropagation();
@@ -297,7 +316,22 @@ export default function MapsPage() {
       try {
         setLoading(true);
         const data = await vehicleService.getFeaturedVehicles(0, 50);
-        setVehicles(data);
+
+        // Calculate distance from user for each vehicle
+        const vehiclesWithDistance = data.map((vehicle: Vehicle) => {
+          if (userLocation) {
+            const distance = calculateDistance(
+              userLocation.lat,
+              userLocation.lng,
+              vehicle.lat,
+              vehicle.lng
+            );
+            return { ...vehicle, distanceFromUser: distance };
+          }
+          return vehicle;
+        });
+
+        setVehicles(vehiclesWithDistance);
       } catch (error) {
         console.error('Error fetching vehicles:', error);
         setVehicles([]);
@@ -307,12 +341,52 @@ export default function MapsPage() {
     };
 
     fetchVehicles();
-  }, []);
+  }, [userLocation, calculateDistance]);
 
+  // Filter vehicles by type and distance
   const filteredVehicles = useMemo<Vehicle[]>(() => {
-    if (activeFilter === "all") return vehicles;
-    return vehicles.filter((v) => v.type === activeFilter);
-  }, [vehicles, activeFilter]);
+    let result = vehicles;
+
+    // Filter by type
+    if (activeFilter !== "all") {
+      result = result.filter((v) => v.type === activeFilter);
+    }
+
+    // Filter by distance
+    if (activeDistance !== "all" && userLocation) {
+      const maxDist = activeDistance;
+      result = result.filter((v) => {
+        const distance = v.distanceFromUser || calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          v.lat,
+          v.lng
+        );
+        return distance <= maxDist;
+      });
+    }
+
+    // Sort by distance (closest first)
+    if (userLocation) {
+      result = [...result].sort((a, b) => {
+        const distA = a.distanceFromUser || calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          a.lat,
+          a.lng
+        );
+        const distB = b.distanceFromUser || calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          b.lat,
+          b.lng
+        );
+        return distA - distB;
+      });
+    }
+
+    return result;
+  }, [vehicles, activeFilter, activeDistance, userLocation, calculateDistance]);
 
   const handleSelectVehicle = useCallback((vehicle: Vehicle) => {
     setSelectedVehicle(vehicle);
@@ -322,15 +396,20 @@ export default function MapsPage() {
     });
   }, []);
 
+  const handleDistanceChange = useCallback((distance: number) => {
+    setActiveDistance(distance as DistanceFilter);
+  }, []);
+
   const filters: FilterType[] = ["all", "car", "bike", "scooter", "cycle"];
+  const distanceOptions: DistanceFilter[] = ["all", 1, 2, 4, 8, 16];
 
   const vehicleCounts = useMemo<Record<string, number>>(() => {
-    const counts: Record<string, number> = { all: vehicles.length };
-    vehicles.forEach((v) => {
+    const counts: Record<string, number> = { all: filteredVehicles.length };
+    filteredVehicles.forEach((v) => {
       counts[v.type] = (counts[v.type] || 0) + 1;
     });
     return counts;
-  }, [vehicles]);
+  }, [filteredVehicles]);
 
   if (loading) {
     return (
@@ -397,7 +476,9 @@ export default function MapsPage() {
             <p className="text-gray-400 dark:text-gray-400 text-xs ml-[42px]">
               {userLocation ? 'Near your location' : 'Kathmandu & Lalitpur area'}
             </p>
-            <div className="flex gap-2 mt-5 flex-wrap">
+
+            {/* Type Filters */}
+            <div className="flex gap-2 mt-3 flex-wrap">
               {filters.map((f) => (
                 <button
                   key={f}
@@ -419,6 +500,30 @@ export default function MapsPage() {
                 </button>
               ))}
             </div>
+
+            {/* Distance Filters */}
+            <div className="flex items-center gap-2 mt-3">
+              <MapPin className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Distance:</span>
+              <div className="flex gap-1 flex-wrap">
+                {distanceOptions.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => {
+                      setActiveDistance(d);
+                      setSelectedVehicle(null);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all duration-200
+                      ${activeDistance === d
+                        ? "bg-green-600 text-white border-green-600"
+                        : "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:border-green-300 hover:bg-green-50 dark:hover:bg-green-900/20"
+                      }`}
+                  >
+                    {d === "all" ? "All" : `${d}km`}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Vehicle List */}
@@ -428,10 +533,35 @@ export default function MapsPage() {
                 <div className="text-5xl mb-4">🛵</div>
                 <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">No vehicles found</h3>
                 <p className="text-gray-400 text-sm mt-1">Try adjusting your filters</p>
+                {activeDistance !== "all" && (
+                  <button
+                    onClick={() => setActiveDistance("all")}
+                    className="mt-3 text-sm text-green-600 dark:text-green-400 hover:underline"
+                  >
+                    Show all distances
+                  </button>
+                )}
               </div>
             ) : (
               filteredVehicles.map((vehicle) => {
                 const isSelected = selectedVehicle?.id === vehicle.id;
+                const distance = vehicle.distanceFromUser || (userLocation ? calculateDistance(
+                  userLocation.lat,
+                  userLocation.lng,
+                  vehicle.lat,
+                  vehicle.lng
+                ) : null);
+
+                // Get distance category for badge
+                let distanceBadge = '';
+                if (distance !== null) {
+                  if (distance <= 1) distanceBadge = '🟢 < 1km';
+                  else if (distance <= 2) distanceBadge = '🟢 2km';
+                  else if (distance <= 4) distanceBadge = '🟡 4km';
+                  else if (distance <= 8) distanceBadge = '🟠 8km';
+                  else distanceBadge = '🔴 > 8km';
+                }
+
                 return (
                   <div
                     key={vehicle.id}
@@ -471,11 +601,18 @@ export default function MapsPage() {
                             </svg>
                             {vehicle.range}km
                           </span>
-                          {vehicle.distanceFromUser && (
+                          {distance !== null && (
                             <>
                               <span className="text-xs text-gray-300">•</span>
-                              <span className="text-[10px] text-blue-500 flex items-center gap-0.5">
-                                📍 {vehicle.distanceFromUser.toFixed(1)}km
+                              <span className={`text-[10px] flex items-center gap-0.5 font-medium ${distance <= 2 ? 'text-green-600' :
+                                distance <= 4 ? 'text-yellow-600' :
+                                  distance <= 8 ? 'text-orange-600' :
+                                    'text-red-500'
+                                }`}>
+                                📍 {distance.toFixed(1)}km
+                              </span>
+                              <span className="text-[9px] text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded-full">
+                                {distanceBadge}
                               </span>
                             </>
                           )}
@@ -506,7 +643,10 @@ export default function MapsPage() {
           {/* Footer */}
           <div className="flex-shrink-0 px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800">
             <div className="flex items-center justify-between text-xs text-gray-400">
-              <span>Powered by OpenStreetMap</span>
+              <span className="flex items-center gap-2">
+                <MapPin className="w-3 h-3" />
+                {activeDistance !== "all" ? `Showing within ${activeDistance}km` : 'Showing all distances'}
+              </span>
               <span className="flex items-center gap-1">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 Live
@@ -522,6 +662,8 @@ export default function MapsPage() {
             selectedVehicle={selectedVehicle}
             onSelectVehicle={handleSelectVehicle}
             userLocation={userLocation}
+            maxDistance={activeDistance === "all" ? 16 : activeDistance}
+            onDistanceChange={handleDistanceChange}
           />
         </div>
       </div>

@@ -124,9 +124,22 @@ const getVehicleBookingAvailability = (vehicle: Vehicle, status?: VehicleBooking
     b => b.status?.toUpperCase() === 'AWAITING_RETURN_CONFIRMATION'
   ) || false;
 
-  // Check booking status - if there are ANY active bookings (confirmed or active or awaiting return)
+  // Also check if there are any active bookings (CONFIRMED, ACTIVE, or AWAITING_RETURN_CONFIRMATION)
+  // that overlap with current date/time
+  const now = new Date();
+  const hasOverlappingBooking = status?.activeBookings?.some(b => {
+    const pickupDate = new Date(b.pickupDate);
+    const dropoffDate = new Date(b.dropoffDate);
+    // If status is AWAITING_RETURN_CONFIRMATION, the vehicle is still considered "booked" until owner confirms return
+    if (b.status?.toUpperCase() === 'AWAITING_RETURN_CONFIRMATION') {
+      return true;
+    }
+    return now >= pickupDate && now <= dropoffDate;
+  }) || false;
+
+  // Check booking status - if there are ANY active bookings (confirmed, active, or awaiting return)
   const hasActiveBookings = (status?.totalActiveBookings || 0) > 0;
-  const isCurrentlyBooked = status?.isCurrentlyBooked || hasActiveBookings || false;
+  const isCurrentlyBooked = status?.isCurrentlyBooked || hasActiveBookings || hasOverlappingBooking || false;
 
   return {
     isBooked: isCurrentlyBooked,

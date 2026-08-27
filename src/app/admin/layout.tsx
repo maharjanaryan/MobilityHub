@@ -19,7 +19,8 @@ import {
   Car,
   TrendingUp,
   Menu,
-  X
+  X,
+  GalleryVertical // Added this icon
 } from 'lucide-react';
 import NotificationBell from '../component/NotificationBell';
 import ThemeToggle from '../component/ThemeToggle';
@@ -285,6 +286,19 @@ export default function AdminLayout({
             >
               <FileText className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
               <span>Reports</span>
+            </Link>
+
+            {/* Gallery Link - Added */}
+            <Link
+              href="/admin/gallery"
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive('/admin/gallery')
+                ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}
+            >
+              <GalleryVertical className="w-5 h-5 group-hover:text-emerald-600 transition-colors" />
+              <span>Gallery</span>
             </Link>
 
             <Link

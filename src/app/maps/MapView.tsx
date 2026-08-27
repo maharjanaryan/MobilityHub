@@ -162,21 +162,21 @@ interface MapViewProps {
   selectedVehicle: Vehicle | null;
   onSelectVehicle: (vehicle: Vehicle) => void;
   userLocation: UserLocation | null;
+  maxDistance?: number;
+  onDistanceChange?: (distance: number) => void;
 }
 
-// Route Info Badge - Simplified and Safe
+// Route Info Badge
 function RouteInfoBadge({ distance, duration }: { distance: string; duration: number | null }) {
   const map = useMap();
   const controlRef = useRef<L.Control | null>(null);
 
   useEffect(() => {
-    // Don't proceed if map is not available
     if (!map) {
       console.warn('Map not available for RouteInfoBadge');
       return;
     }
 
-    // Clean up existing control
     const cleanup = () => {
       if (controlRef.current) {
         try {
@@ -190,25 +190,20 @@ function RouteInfoBadge({ distance, duration }: { distance: string; duration: nu
 
     cleanup();
 
-    // Only add control if we have valid data
     if (!distance || !duration) {
       return;
     }
 
-    // Use a timeout to ensure map is ready
     const timeoutId = setTimeout(() => {
       try {
-        // Check if map is still valid
         if (!map || !map.getContainer()) {
           console.warn('Map container not ready');
           return;
         }
 
-        // Create the control
         const CustomControl = L.Control.extend({
           onAdd: function () {
             try {
-              // Create container div safely
               const container = L.DomUtil.create('div', 'route-info-container');
               container.style.cssText = `
                 background: #ffffff;
@@ -222,7 +217,6 @@ function RouteInfoBadge({ distance, duration }: { distance: string; duration: nu
                 user-select: none;
               `;
 
-              // Set inner HTML safely
               container.innerHTML = `
                 <div style="font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
                   Route Info
@@ -254,7 +248,7 @@ function RouteInfoBadge({ distance, duration }: { distance: string; duration: nu
       } catch (error) {
         console.error('Error adding route info badge:', error);
       }
-    }, 150); // Small delay to ensure map is ready
+    }, 150);
 
     return () => {
       clearTimeout(timeoutId);
@@ -270,6 +264,8 @@ export default function MapView({
   selectedVehicle,
   onSelectVehicle,
   userLocation,
+  maxDistance = 16,
+  onDistanceChange,
 }: MapViewProps) {
   const defaultCenter: [number, number] = [27.7172, 85.324];
   const center: [number, number] = userLocation
@@ -281,6 +277,33 @@ export default function MapView({
     distance: string | null;
     duration: number | null;
   }>({ distance: null, duration: null });
+
+  const [tileProviderIndex, setTileProviderIndex] = useState(0);
+
+  // Tile providers - clean and reliable
+  const tileProviders = [
+    {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      name: "OSM Standard"
+    },
+    {
+      url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      name: "OSM HOT"
+    },
+    {
+      url: "https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      name: "OSM BZH"
+    },
+  ];
+
+  const currentProvider = tileProviders[tileProviderIndex % tileProviders.length];
+
+  const handleTileError = useCallback(() => {
+    setTileProviderIndex(prev => (prev + 1) % tileProviders.length);
+  }, []);
 
   const handleRouteFound = useCallback(
     (coords: RouteCoords, distance: string | null, duration: number | null) => {
@@ -296,15 +319,23 @@ export default function MapView({
       zoom={14}
       className="w-full h-full"
       zoomControl={false}
-      style={{ background: "#f8fafc" }}
-      whenReady={() => {
-        // Map is ready
-        console.log('Map is ready');
+      style={{
+        background: "#f0f2f5",
+        width: "100%",
+        height: "100%",
       }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        key={currentProvider.url}
+        attribution={currentProvider.attribution}
+        url={currentProvider.url}
+        eventHandlers={{
+          tileerror: handleTileError,
+        }}
+        crossOrigin={true}
+        keepBuffer={2}
+        updateWhenIdle={true}
+        updateWhenZooming={false}
       />
 
       <FlyToVehicleAndRoute
@@ -317,17 +348,16 @@ export default function MapView({
         <>
           <Polyline
             positions={routeCoords}
-            pathOptions={{ color: "#000000", weight: 7, opacity: 0.15 }}
+            pathOptions={{ color: "#000000", weight: 6, opacity: 0.1 }}
           />
           <Polyline
             positions={routeCoords}
             pathOptions={{
-              color: "#16a34a",
-              weight: 5,
-              opacity: 0.85,
+              color: "#22c55e",
+              weight: 4,
+              opacity: 0.8,
               lineCap: "round",
               lineJoin: "round",
-              dashArray: "12, 8",
             }}
           />
         </>
@@ -419,6 +449,10 @@ export default function MapView({
                         fontSize: "12px",
                         fontWeight: 600,
                         cursor: "pointer",
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Handle rent now
                       }}
                     >
                       Rent Now →

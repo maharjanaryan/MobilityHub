@@ -1,175 +1,146 @@
 // app/components/LandingGallery.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X, Maximize2, Heart, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Maximize2, Heart, Share2, Check, Link } from 'lucide-react';
 import Header from '../component/Header';
 import Footer from '../component/Footer';
 
-// Static gallery images - Vehicle themed
-const GALLERY_IMAGES = [
-  {
-    id: 1,
-    title: 'Luxury Sports Car',
-    category: 'Car',
-    imageUrl: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&h=600&fit=crop',
-    description: 'Sleek sports car on the open road'
-  },
-  {
-    id: 2,
-    title: 'Off-Road SUV',
-    category: 'SUV',
-    imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop',
-    description: 'Powerful SUV conquering rough terrain'
-  },
-  {
-    id: 3,
-    title: 'Classic Motorcycle',
-    category: 'Bike',
-    imageUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=800&h=600&fit=crop',
-    description: 'Vintage motorcycle in all its glory'
-  },
-  {
-    id: 4,
-    title: 'Mountain Bike Adventure',
-    category: 'Cycle',
-    imageUrl: 'https://images.unsplash.com/photo-1511994298241-608e28f14fde?w=800&h=600&fit=crop',
-    description: 'Mountain bike on a scenic trail'
-  },
-  {
-    id: 5,
-    title: 'Electric SUV',
-    category: 'SUV',
-    imageUrl: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&h=600&fit=crop',
-    description: 'Modern electric SUV with sleek design'
-  },
-  {
-    id: 6,
-    title: 'Sport Bike',
-    category: 'Bike',
-    imageUrl: 'https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?w=800&h=600&fit=crop',
-    description: 'High-performance sport bike on the track'
-  },
-  {
-    id: 7,
-    title: 'Urban Commuter Cycle',
-    category: 'Cycle',
-    imageUrl: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800&h=600&fit=crop',
-    description: 'City cycle perfect for commuting'
-  },
-  {
-    id: 8,
-    title: 'Luxury Sedan',
-    category: 'Car',
-    imageUrl: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&h=600&fit=crop',
-    description: 'Premium sedan with elegance'
-  },
-  {
-    id: 9,
-    title: 'Adventure SUV',
-    category: 'SUV',
-    imageUrl: 'https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800&h=600&fit=crop',
-    description: 'SUV ready for off-road adventures'
-  },
-  {
-    id: 10,
-    title: 'Cruiser Motorcycle',
-    category: 'Bike',
-    imageUrl: 'https://images.unsplash.com/photo-1583484875421-a8f44ccb1a76?w=800&h=600&fit=crop',
-    description: 'Classic cruiser on the highway'
-  },
-  {
-    id: 11,
-    title: 'Road Bike',
-    category: 'Cycle',
-    imageUrl: 'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=800&h=600&fit=crop',
-    description: 'Aerodynamic road bike in action'
-  },
-  {
-    id: 12,
-    title: 'Supercar Performance',
-    category: 'Car',
-    imageUrl: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800&h=600&fit=crop',
-    description: 'Supercar pushing performance limits'
-  },
-  {
-    id: 13,
-    title: 'Family SUV',
-    category: 'SUV',
-    imageUrl: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?w=800&h=600&fit=crop',
-    description: 'Spacious SUV for family adventures'
-  },
-  {
-    id: 14,
-    title: 'Dirt Bike',
-    category: 'Bike',
-    imageUrl: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?w=800&h=600&fit=crop',
-    description: 'Dirt bike tackling rough trails'
-  },
-  {
-    id: 15,
-    title: 'Electric Cycle',
-    category: 'Cycle',
-    imageUrl: 'https://images.unsplash.com/photo-1511994298241-608e28f14fde?w=800&h=600&fit=crop',
-    description: 'E-bike for effortless riding'
-  },
-  {
-    id: 16,
-    title: 'Vintage Car',
-    category: 'Car',
-    imageUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&h=600&fit=crop',
-    description: 'Classic vintage car restoration'
-  }
-];
+interface GalleryImage {
+  id: number;
+  title: string;
+  category: string;
+  imageUrl: string;
+  description: string;
+  createdAt: string;
+}
+
+interface PaginatedResponse {
+  content: GalleryImage[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
 
 const categories = ['All', 'Car', 'SUV', 'Bike', 'Cycle'];
 
-const Gallery: React.FC = () => {
+export default function LandingGallery() {
+  const [images, setImages] = useState<GalleryImage[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedImage, setSelectedImage] = useState<typeof GALLERY_IMAGES[0] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [showSharePopup, setShowSharePopup] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
-  // Filter images based on selected category
-  const filteredImages = selectedCategory === 'All'
-    ? GALLERY_IMAGES
-    : GALLERY_IMAGES.filter(img => img.category === selectedCategory);
+  useEffect(() => {
+    fetchImages();
+  }, [selectedCategory]);
 
-  // Lightbox navigation
-  const nextImage = () => {
-    setCurrentIndex((prev) => (prev + 1) % filteredImages.length);
+  const fetchImages = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: '0',
+        size: '50'
+      });
+      if (selectedCategory !== 'All') {
+        params.append('category', selectedCategory);
+      }
+
+      const response = await fetch(`http://localhost:8080/api/gallery/public?${params}`);
+      if (response.ok) {
+        const data: PaginatedResponse = await response.json();
+        setImages(data.content);
+      } else {
+        console.error('Failed to fetch images:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching gallery images:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const prevImage = () => {
-    setCurrentIndex((prev) => (prev - 1 + filteredImages.length) % filteredImages.length);
-  };
-
-  const openLightbox = (image: typeof GALLERY_IMAGES[0]) => {
-    const index = filteredImages.findIndex(img => img.id === image.id);
+  const openLightbox = (image: GalleryImage) => {
+    const index = images.findIndex(img => img.id === image.id);
     setSelectedImage(image);
     setCurrentIndex(index);
     setIsLightboxOpen(true);
     document.body.style.overflow = 'hidden';
+    setShowSharePopup(false);
   };
 
   const closeLightbox = () => {
     setIsLightboxOpen(false);
     document.body.style.overflow = 'auto';
+    setShowSharePopup(false);
   };
 
-  // Keyboard navigation
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isLightboxOpen) {
-        if (e.key === 'Escape') closeLightbox();
-        if (e.key === 'ArrowRight') nextImage();
-        if (e.key === 'ArrowLeft') prevImage();
+  const nextImage = () => {
+    const nextIndex = (currentIndex + 1) % images.length;
+    setCurrentIndex(nextIndex);
+    setSelectedImage(images[nextIndex]);
+    setShowSharePopup(false);
+  };
+
+  const prevImage = () => {
+    const prevIndex = (currentIndex - 1 + images.length) % images.length;
+    setCurrentIndex(prevIndex);
+    setSelectedImage(images[prevIndex]);
+    setShowSharePopup(false);
+  };
+
+  const handleShare = async (image: GalleryImage) => {
+    const shareUrl = image.imageUrl;
+
+    // Check if Web Share API is available (mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: image.title,
+          text: `Check out this ${image.category}: ${image.title}`,
+          url: shareUrl,
+        });
+        return;
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error sharing:', error);
+        }
       }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isLightboxOpen]);
+    }
+
+    // Fallback: Copy to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setShareCopied(true);
+      setShowSharePopup(true);
+      setTimeout(() => {
+        setShareCopied(false);
+        setShowSharePopup(false);
+      }, 3000);
+    } catch (error) {
+      // If clipboard fails, show the link in a prompt
+      const userInput = prompt('Copy this link to share:', shareUrl);
+      if (userInput !== null) {
+        setShowSharePopup(true);
+        setTimeout(() => setShowSharePopup(false), 2000);
+      }
+    }
+  };
+
+  const handleShareLightbox = async () => {
+    if (!selectedImage) return;
+    await handleShare(selectedImage);
+  };
+
+  const handleLike = (image: GalleryImage) => {
+    // You can implement like functionality here
+    console.log('Liked:', image.title);
+  };
 
   return (
     <>
@@ -182,8 +153,8 @@ const Gallery: React.FC = () => {
             transition={{ duration: 0.6 }}
             className="text-center mb-12"
           >
-            <span className="inline-block px-4 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-semibold mb-4">
-              🚗 Our Vehicle Gallery
+            <span className="inline-block px-4 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-sm font-semibold mb-4">
+              Our Vehicle Gallery
             </span>
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
               Wheels of the World
@@ -206,8 +177,8 @@ const Gallery: React.FC = () => {
                 key={category}
                 onClick={() => setSelectedCategory(category)}
                 className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${selectedCategory === category
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/30'
-                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-sm border border-gray-200 dark:border-gray-700'
+                  ? 'bg-green-600 text-white shadow-lg shadow-green-200 dark:shadow-green-900/30'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 shadow-sm border border-gray-200 dark:border-gray-700'
                   }`}
               >
                 {category}
@@ -216,46 +187,81 @@ const Gallery: React.FC = () => {
           </motion.div>
 
           {/* Gallery Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredImages.map((image, index) => (
-              <motion.div
-                key={image.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
-                whileHover={{ y: -8 }}
-                className="group relative rounded-2xl overflow-hidden bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
-                onClick={() => openLightbox(image)}
-              >
-                <div className="aspect-[4/3] overflow-hidden bg-gray-200 dark:bg-gray-700">
-                  <img
-                    src={image.imageUrl}
-                    alt={image.title}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    loading="lazy"
-                  />
-                </div>
-
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-white font-semibold text-lg">{image.title}</h3>
-                      <span className="text-white/80 text-sm">{image.category}</span>
-                    </div>
-                    <button className="p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-all">
-                      <Maximize2 className="w-4 h-4 text-white" />
-                    </button>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : images.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-gray-500 dark:text-gray-400">No images found in this category</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {images.map((image, index) => (
+                <motion.div
+                  key={image.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                  whileHover={{ y: -8 }}
+                  className="group relative rounded-2xl overflow-hidden bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer"
+                  onClick={() => openLightbox(image)}
+                >
+                  <div className="aspect-[4/3] overflow-hidden bg-gray-200 dark:bg-gray-700">
+                    <img
+                      src={image.imageUrl}
+                      alt={image.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = '/placeholder-image.jpg';
+                        e.currentTarget.onerror = null;
+                      }}
+                    />
                   </div>
-                </div>
 
-                {/* Category Badge */}
-                <div className="absolute top-3 left-3 px-3 py-1 bg-black/50 backdrop-blur-sm rounded-full">
-                  <span className="text-white text-xs font-medium">{image.category}</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-white font-semibold text-lg">{image.title}</h3>
+                        <span className="text-white/80 text-sm">{image.category}</span>
+                      </div>
+                      <button
+                        className="p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-all"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleShare(image);
+                        }}
+                      >
+                        <Share2 className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="absolute top-3 left-3 px-3 py-1 bg-black/50 backdrop-blur-sm rounded-full">
+                    <span className="text-white text-xs font-medium">{image.category}</span>
+                  </div>
+
+                  {/* Share Popup */}
+                  {showSharePopup && (
+                    <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 z-20">
+                      {shareCopied ? (
+                        <>
+                          <Check className="w-4 h-4 text-green-400" />
+                          Link copied!
+                        </>
+                      ) : (
+                        <>
+                          <Link className="w-4 h-4" />
+                          Share link copied!
+                        </>
+                      )}
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          )}
 
           {/* Description Section */}
           <motion.div
@@ -265,7 +271,7 @@ const Gallery: React.FC = () => {
             className="mt-16 text-center max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg border border-gray-100 dark:border-gray-700"
           >
             <div className="flex items-center justify-center gap-2 mb-4">
-              <span className="text-3xl">🚙</span>
+              <span className="text-3xl"></span>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Through the Windshield</h3>
             </div>
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
@@ -274,7 +280,7 @@ const Gallery: React.FC = () => {
               Join us as we explore the world from behind the wheel and handlebars.
             </p>
             <p className="text-gray-600 dark:text-gray-300 mt-4 font-medium">
-              Ready for the ride of your life? 🏍️
+              Ready for the ride of your life?
             </p>
           </motion.div>
 
@@ -288,7 +294,6 @@ const Gallery: React.FC = () => {
                 className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
                 onClick={closeLightbox}
               >
-                {/* Close Button */}
                 <button
                   onClick={closeLightbox}
                   className="absolute top-4 right-4 p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-all z-10"
@@ -296,7 +301,6 @@ const Gallery: React.FC = () => {
                   <X className="w-8 h-8" />
                 </button>
 
-                {/* Navigation Buttons */}
                 <button
                   onClick={(e) => { e.stopPropagation(); prevImage(); }}
                   className="absolute left-4 p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-all z-10"
@@ -310,7 +314,6 @@ const Gallery: React.FC = () => {
                   <ChevronRight className="w-8 h-8" />
                 </button>
 
-                {/* Image */}
                 <motion.div
                   initial={{ scale: 0.9, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
@@ -320,32 +323,47 @@ const Gallery: React.FC = () => {
                 >
                   <div className="relative bg-black rounded-2xl overflow-hidden">
                     <img
-                      src={filteredImages[currentIndex].imageUrl}
-                      alt={filteredImages[currentIndex].title}
+                      src={selectedImage.imageUrl}
+                      alt={selectedImage.title}
                       className="w-full max-h-[80vh] object-contain"
+                      onError={(e) => {
+                        e.currentTarget.src = '/placeholder-image.jpg';
+                        e.currentTarget.onerror = null;
+                      }}
                     />
 
-                    {/* Image Info */}
                     <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="text-white text-xl font-semibold">
-                            {filteredImages[currentIndex].title}
+                            {selectedImage.title}
                           </h3>
                           <p className="text-white/70 text-sm">
-                            {filteredImages[currentIndex].category}
+                            {selectedImage.category}
                           </p>
-                          {filteredImages[currentIndex].description && (
+                          {selectedImage.description && (
                             <p className="text-white/60 text-sm mt-1 max-w-lg">
-                              {filteredImages[currentIndex].description}
+                              {selectedImage.description}
                             </p>
                           )}
                         </div>
                         <div className="flex gap-2">
-                          <button className="p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-all">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLike(selectedImage);
+                            }}
+                            className="p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-all"
+                          >
                             <Heart className="w-5 h-5 text-white" />
                           </button>
-                          <button className="p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-all">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareLightbox();
+                            }}
+                            className="p-2 bg-white/20 backdrop-blur-sm rounded-full hover:bg-white/30 transition-all"
+                          >
                             <Share2 className="w-5 h-5 text-white" />
                           </button>
                         </div>
@@ -353,10 +371,26 @@ const Gallery: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Image Counter */}
                   <div className="absolute bottom-24 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/50 backdrop-blur-sm rounded-full text-white text-sm">
-                    {currentIndex + 1} / {filteredImages.length}
+                    {currentIndex + 1} / {images.length}
                   </div>
+
+                  {/* Share Popup in Lightbox */}
+                  {showSharePopup && (
+                    <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-sm text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+                      {shareCopied ? (
+                        <>
+                          <Check className="w-4 h-4 text-green-400" />
+                          Link copied!
+                        </>
+                      ) : (
+                        <>
+                          <Link className="w-4 h-4" />
+                          Share link copied!
+                        </>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               </motion.div>
             )}
@@ -366,6 +400,4 @@ const Gallery: React.FC = () => {
       <Footer />
     </>
   );
-};
-
-export default Gallery;
+}
