@@ -26,7 +26,11 @@ import {
   Gauge,
   Fuel,
   Loader2,
-  FileText
+  FileText,
+  Zap,
+  Umbrella,
+  Lock,
+  Wrench
 } from 'lucide-react';
 import HomeHeader from '../../home/HomeHeader';
 import Footer from '../../component/Footer';
@@ -112,7 +116,7 @@ function NotificationPopup({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className={`max-w-md w-full mx-4 ${getBgColor()} border rounded-2xl shadow-2xl p-6 transform animate-in zoom-in-95 duration-200`}>
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0">
@@ -266,7 +270,9 @@ export default function AddVehiclePage() {
     terms: ''
   });
 
+  // Added features for cars, bikes, and cycles
   const availableFeatures = [
+    // General/Car Features
     { id: 'ac', label: 'Air Conditioning', icon: Snowflake },
     { id: 'gps', label: 'GPS Navigation', icon: MapPin },
     { id: 'bluetooth', label: 'Bluetooth', icon: Wifi },
@@ -278,7 +284,31 @@ export default function AddVehiclePage() {
     { id: 'usbPorts', label: 'USB Ports', icon: Smartphone },
     { id: 'premiumSound', label: 'Premium Sound', icon: Music },
     { id: 'keylessEntry', label: 'Keyless Entry', icon: Shield },
-    { id: 'childSeat', label: 'Child Seat Available', icon: Users }
+    { id: 'childSeat', label: 'Child Seat Available', icon: Users },
+
+    // Motorcycle / Bike Features
+    { id: 'helmets', label: 'Helmets Provided', icon: Shield },
+    { id: 'sideMirrors', label: 'Side Mirrors', icon: Users },
+    { id: 'luggageRack', label: 'Luggage Rack', icon: Wrench },
+    { id: 'windshield', label: 'Windshield', icon: Umbrella },
+    { id: 'engineGuard', label: 'Engine Guard', icon: Zap },
+    { id: 'abs', label: 'ABS Brakes', icon: AlertCircle },
+    { id: 'tractionControl', label: 'Traction Control', icon: Gauge },
+
+    // Electric Vehicle / Scooter Features
+    { id: 'fastCharging', label: 'Fast Charging', icon: Zap },
+    { id: 'remoteStart', label: 'Remote Start', icon: Smartphone },
+    { id: 'batteryRange', label: 'High Battery Range', icon: Fuel },
+    { id: 'regenerativeBraking', label: 'Regenerative Braking', icon: Gauge },
+
+    // Bicycle / Cycle Features
+    { id: 'helmet', label: 'Helmet Included', icon: Shield },
+    { id: 'gears', label: 'Multi-Speed Gears', icon: Gauge },
+    { id: 'basket', label: 'Front Basket', icon: Users },
+    { id: 'lock', label: 'Bike Lock', icon: Lock },
+    { id: 'pump', label: 'Tire Pump', icon: Wrench },
+    { id: 'lights', label: 'Lights & Reflectors', icon: Zap },
+    { id: 'bottleHolder', label: 'Water Bottle Holder', icon: Coffee },
   ];
 
   const fuelTypes = [
@@ -286,7 +316,7 @@ export default function AddVehiclePage() {
     { value: 'diesel', label: 'Diesel' },
     { value: 'electric', label: 'Electric' },
     { value: 'hybrid', label: 'Hybrid' },
-    { value: 'manpower', label: 'Manpower' }
+    { value: 'manpower', label: 'Manpower / Pedal Power' }
   ];
 
   const transmissionTypes = [
@@ -852,7 +882,7 @@ export default function AddVehiclePage() {
             </div>
           </div>
 
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 backdrop-blur-sm">
             <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-2xl max-w-md w-full mx-4 text-center">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${kycStatus === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/20' :
                 kycStatus === 'rejected' ? 'bg-red-100 dark:bg-red-900/20' :
@@ -896,8 +926,8 @@ export default function AddVehiclePage() {
     <>
       <HomeHeader />
       <div className="min-h-screen bg-gradient-to-br from-gray-50 dark:from-gray-950 to-gray-100 dark:to-gray-900">
-        {/* Header */}
-        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20">
+        {/* Header - FIXED Z-INDEX TO z-[1000] */}
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-[1000]">
           <div className="max-w-7xl mx-auto px-4 py-6">
             <div className="flex items-center justify-between">
               <div>
@@ -962,7 +992,7 @@ export default function AddVehiclePage() {
                       value={formData.brand}
                       onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-                      placeholder="e.g., Toyota, Honda, BMW"
+                      placeholder="e.g., Toyota, Honda, BMW, Trek, Giant"
                     />
                   </div>
                   <div>
@@ -973,7 +1003,7 @@ export default function AddVehiclePage() {
                       value={formData.model}
                       onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-                      placeholder="e.g., Camry, CR-V, X5"
+                      placeholder="e.g., Camry, CR-V, X5, FX 750, Domane"
                     />
                   </div>
                   <div>
@@ -1001,28 +1031,28 @@ export default function AddVehiclePage() {
                       value={formData.color}
                       onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-                      placeholder="e.g., Black, White, Red"
+                      placeholder="e.g., Black, White, Red, Green"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">License Plate *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">License Plate / Serial No. *</label>
                     <input
                       type="text"
                       required
                       value={formData.licensePlate}
                       onChange={(e) => setFormData({ ...formData, licensePlate: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-                      placeholder="License plate number"
+                      placeholder="License plate or frame number"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">VIN</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">VIN / Frame No.</label>
                     <input
                       type="text"
                       value={formData.vin}
                       onChange={(e) => setFormData({ ...formData, vin: e.target.value })}
                       className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-                      placeholder="17-character VIN"
+                      placeholder="17-character VIN or frame number"
                     />
                   </div>
                 </div>
@@ -1035,7 +1065,7 @@ export default function AddVehiclePage() {
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-6">Vehicle Details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fuel Type *</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Fuel / Power Type *</label>
                     <select
                       value={formData.fuelType}
                       onChange={(e) => setFormData({ ...formData, fuelType: e.target.value })}
@@ -1088,12 +1118,12 @@ export default function AddVehiclePage() {
                         }
                       }}
                       className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-                      min="2"
+                      min="0"
                       max="5"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Luggage Capacity</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Luggage / Storage Capacity</label>
                     <input
                       type="number"
                       value={formData.luggageCapacity}
@@ -1118,7 +1148,7 @@ export default function AddVehiclePage() {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-                    placeholder="Describe your vehicle..."
+                    placeholder="Describe your vehicle (e.g., 'Bike with good brakes', '5-seater sedan with sunroof', 'Mountain bike with 21 gears')..."
                   />
                 </div>
               </div>

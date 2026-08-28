@@ -391,7 +391,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 
   if (loading) {
     return (
-      <nav className="bg-gray-100 dark:bg-gray-900 sticky top-0 z-50 shadow-sm">
+      // UPDATED: Changed z-50 to z-[1000]
+      <nav className="bg-gray-100 dark:bg-gray-900 sticky top-0 z-[1000] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <img src="/logo.png" alt="Logo" className="w-10 h-10 rounded-full object-cover" />
@@ -406,7 +407,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
   }
 
   return (
-    <nav className="bg-gray-100 dark:bg-gray-900 sticky top-0 z-50 shadow-sm">
+    // UPDATED: Changed z-50 to z-[1000]
+    <nav className="bg-gray-100 dark:bg-gray-900 sticky top-0 z-[1000] shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
 
         {/* LEFT: Logo */}
@@ -482,7 +484,8 @@ const HomeHeader: React.FC<HomeHeaderProps> = ({
 
             {/* Dropdown Menu */}
             {isDropdownOpen && (
-              <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 max-h-[90vh] overflow-y-auto">
+              // UPDATED: Changed z-50 to z-[1001]
+              <div className="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden z-[1001] animate-in fade-in slide-in-from-top-2 duration-200 max-h-[90vh] overflow-y-auto">
                 {/* User Info Section */}
                 <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-gray-50 dark:from-green-900/30 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center space-x-3">

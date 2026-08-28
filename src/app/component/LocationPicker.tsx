@@ -32,9 +32,6 @@ const Popup = dynamic(
   { ssr: false }
 );
 
-// We'll import useMapEvents using a different approach
-// Instead, we'll use the useMap hook and handle events manually
-
 interface LocationPickerProps {
   onLocationSelect: (lat: number, lng: number, address: string) => void;
   initialLat?: number | string;
@@ -51,11 +48,9 @@ function LocationMarker({
   setPosition,
   readOnly
 }: any) {
-  // Use the useMap hook directly
   const { useMap } = require("react-leaflet");
   const map = useMap();
 
-  // Handle map click
   useEffect(() => {
     if (!map || readOnly) return;
 
@@ -75,7 +70,6 @@ function LocationMarker({
     };
   }, [map, readOnly, setPosition, onLocationSelect]);
 
-  // Fly to position when it changes
   useEffect(() => {
     if (position && map) {
       try {
@@ -154,11 +148,9 @@ export default function LocationPicker({
   const [isMounted, setIsMounted] = useState(false);
   const [leafletLoaded, setLeafletLoaded] = useState(false);
 
-  // Initialize position and handle client-side mounting
   useEffect(() => {
     setIsMounted(true);
 
-    // Fix Leaflet icon issue on client side
     if (typeof window !== 'undefined' && !leafletLoaded) {
       import('leaflet').then((L) => {
         // @ts-ignore
@@ -173,7 +165,6 @@ export default function LocationPicker({
     }
   }, [leafletLoaded]);
 
-  // Set initial position
   useEffect(() => {
     if (!position && initialLat && initialLng) {
       const lat = typeof initialLat === 'string' ? parseFloat(initialLat) : initialLat;
@@ -239,7 +230,25 @@ export default function LocationPicker({
     onLocationSelect(lat, lng, addr);
   };
 
-  // Don't render on server side
+  // Tile providers - using OpenStreetMap (no API key required)
+  const tileProviders = [
+    {
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    {
+      url: "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+    {
+      url: "https://tile.openstreetmap.bzh/br/{z}/{x}/{y}.png",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    },
+  ];
+
+  // Use the first provider (OSM Standard)
+  const tileProvider = tileProviders[0];
+
   if (!isMounted) {
     return (
       <div
@@ -316,8 +325,12 @@ export default function LocationPicker({
           style={{ background: "#f8fafc" }}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            attribution={tileProvider.attribution}
+            url={tileProvider.url}
+            crossOrigin={true}
+            keepBuffer={2}
+            updateWhenIdle={true}
+            updateWhenZooming={false}
           />
 
           <LocationMarker

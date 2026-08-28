@@ -7,7 +7,7 @@ import {
   Loader2, Filter, ArrowUpDown, Calendar, Users, Wallet,
   CheckCircle, XCircle, Clock as ClockIcon, AlertCircle,
   Eye, TrendingUp, Search, Info, FileText, ShieldCheck, ZoomIn,
-  Play, Flag
+  Play, Flag, ChevronDown as ChevronDownIcon // Added for show more
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import HomeHeader from "@/app/home/HomeHeader";
@@ -370,6 +370,10 @@ export default function MyBookingsPage() {
   const [tripAction, setTripAction] = useState<'start' | 'end' | null>(null);
   const [tripBookingId, setTripBookingId] = useState<number | null>(null);
 
+  // NEW: State for Pagination / Show More
+  const [visibleCount, setVisibleCount] = useState(6);
+  const BOOKINGS_PER_PAGE = 6;
+
   // Result modal state
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultModalData, setResultModalData] = useState<{
@@ -568,6 +572,25 @@ export default function MyBookingsPage() {
 
     return result;
   }, [bookings, searchQuery, statusFilter, sortBy]);
+
+  // NEW: Reset visibleCount when filters/search changes
+  useEffect(() => {
+    setVisibleCount(BOOKINGS_PER_PAGE);
+  }, [searchQuery, statusFilter, sortBy]);
+
+  // NEW: Slice the filtered bookings for display
+  const displayedBookings = useMemo(() => {
+    return filteredBookings.slice(0, visibleCount);
+  }, [filteredBookings, visibleCount]);
+
+  const handleShowMore = () => {
+    setVisibleCount(prev => Math.min(prev + BOOKINGS_PER_PAGE, filteredBookings.length));
+  };
+
+  const handleShowLess = () => {
+    setVisibleCount(BOOKINGS_PER_PAGE);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const canCancel = (pickupDate: string) => {
     const now = new Date();
@@ -801,7 +824,7 @@ export default function MyBookingsPage() {
                 My <span className="text-emerald-300">Bookings</span>
               </h1>
               <p className="text-white/70 text-sm mt-1">
-                {bookings.length} booking{bookings.length !== 1 ? "s" : ""} found
+                Showing {displayedBookings.length} of {filteredBookings.length} booking{filteredBookings.length !== 1 ? "s" : ""}
               </p>
             </div>
             <button
@@ -924,7 +947,8 @@ export default function MyBookingsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredBookings.map((booking, index) => {
+            {/* NEW: Render only displayedBookings */}
+            {displayedBookings.map((booking, index) => {
               const status = booking.status?.toUpperCase() || '';
               const isPending = status === 'PENDING';
               const isRejected = status === 'REJECTED';
@@ -1068,6 +1092,30 @@ export default function MyBookingsPage() {
                 </motion.div>
               );
             })}
+
+            {/* NEW: Show More / Show Less Buttons */}
+            {filteredBookings.length > BOOKINGS_PER_PAGE && (
+              <div className="flex justify-center pt-6">
+                {visibleCount < filteredBookings.length ? (
+                  <button
+                    onClick={handleShowMore}
+                    className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm transition font-medium"
+                  >
+                    <ChevronDownIcon className="w-5 h-5" />
+                    Show More ({filteredBookings.length - visibleCount} remaining)
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleShowLess}
+                    className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm transition font-medium"
+                  >
+                    <ChevronDownIcon className="w-5 h-5 rotate-180" />
+                    Show Less
+                  </button>
+                )}
+              </div>
+            )}
+
           </div>
         )}
       </main>
