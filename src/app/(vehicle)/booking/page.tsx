@@ -733,8 +733,8 @@ export default function OwnerBookingsPage() {
                 <button
                   onClick={() => setFilterStatus('all')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === 'all'
-                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                 >
                   All Bookings
@@ -742,8 +742,8 @@ export default function OwnerBookingsPage() {
                 <button
                   onClick={() => setFilterStatus('PENDING')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === 'PENDING'
-                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                 >
                   Pending
@@ -751,8 +751,8 @@ export default function OwnerBookingsPage() {
                 <button
                   onClick={() => setFilterStatus('CONFIRMED')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === 'CONFIRMED'
-                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                 >
                   Confirmed
@@ -760,8 +760,8 @@ export default function OwnerBookingsPage() {
                 <button
                   onClick={() => setFilterStatus('REJECTED')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === 'REJECTED'
-                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                 >
                   Rejected
@@ -769,8 +769,8 @@ export default function OwnerBookingsPage() {
                 <button
                   onClick={() => setFilterStatus('COMPLETED')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === 'COMPLETED'
-                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                    ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                     }`}
                 >
                   Completed
