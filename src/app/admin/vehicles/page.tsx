@@ -627,7 +627,7 @@ export default function VehicleManagement() {
                   <div className="flex items-center space-x-1">
                     <Star className="w-4 h-4 text-yellow-400 fill-current" />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{vehicle.averageRating || 0}</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">({vehicle.totalRentals || 0} trips)</span>
+                    {/* <span className="text-xs text-gray-500 dark:text-gray-400">({vehicle.totalRentals || 0} trips)</span> */}
                   </div>
                 </div>
                 <div className="flex space-x-2 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">

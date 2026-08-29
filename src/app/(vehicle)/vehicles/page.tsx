@@ -28,6 +28,7 @@ interface Vehicle {
   img: string;
   pricePerDay: number;
   rating: number;
+  totalRatings: number;
   range: string;
   charge: number;
   location: string;
@@ -227,12 +228,10 @@ export default function VehiclesPage() {
    * Get owner name from vehicle data with proper fallbacks
    */
   const getOwnerName = (v: any): string => {
-    // Check if ownerName is directly available (from backend)
     if (v.ownerName && v.ownerName.trim() !== "" && v.ownerName !== "null" && v.ownerName !== "undefined") {
       return v.ownerName.trim();
     }
 
-    // Check if owner object exists with username or fullName
     if (v.owner) {
       if (v.owner.fullName && v.owner.fullName.trim() !== "") {
         return v.owner.fullName.trim();
@@ -242,12 +241,10 @@ export default function VehiclesPage() {
       }
     }
 
-    // Check if ownerId exists but no name - use a generic name
     if (v.ownerId) {
       return "Vehicle Owner";
     }
 
-    // Ultimate fallback
     return "Vehicle Owner";
   };
 
@@ -263,7 +260,8 @@ export default function VehiclesPage() {
       category: mapCategory(v.seats),
       img: v.photos?.[0] || PLACEHOLDER_IMAGE,
       pricePerDay: v.pricePerDay || 0,
-      rating: v.averageRating || 4.5,
+      rating: v.averageRating || 0,
+      totalRatings: v.totalRatings || 0,
       range: getRangeByFuelType(v.fuelType),
       charge: getChargeByFuelType(v.fuelType),
       location: displayLocation,
@@ -417,17 +415,14 @@ export default function VehiclesPage() {
         const isRenterVerified = renterStatus === "VERIFIED" || renterStatus === "APPROVED";
 
         if (isRenterVerified) {
-          // KYC is verified, proceed to vehicle details
           router.push(`/vehicles/${vehicleId}`);
           return;
         } else {
-          // KYC is not verified - show modal
           setSelectedVehicleForKyc(vehicleId);
           setShowKycModal(true);
           return;
         }
       } else {
-        // API error - check local storage as fallback
         const user = getUserData();
         if (user) {
           const isRenterVerified = user.renterKycStatus === "VERIFIED" || user.renterKycStatus === "APPROVED";
@@ -436,13 +431,11 @@ export default function VehiclesPage() {
             return;
           }
         }
-        // Not verified - show modal
         setSelectedVehicleForKyc(vehicleId);
         setShowKycModal(true);
       }
     } catch (error) {
       console.error("Error checking KYC:", error);
-      // On network error, show modal
       setSelectedVehicleForKyc(vehicleId);
       setShowKycModal(true);
     } finally {
@@ -458,17 +451,38 @@ export default function VehiclesPage() {
     checkKycAndNavigate(vehicleId);
   };
 
-  // Handle redirect to KYC page
   const handleRedirectToKyc = () => {
     setShowKycModal(false);
     const returnUrl = selectedVehicleForKyc ? `/vehicles/${selectedVehicleForKyc}` : '/vehicles';
     router.push(`/kyc/user?returnUrl=${encodeURIComponent(returnUrl)}`);
   };
 
-  // Handle close modal (go back)
   const handleCloseKycModal = () => {
     setShowKycModal(false);
     setSelectedVehicleForKyc(null);
+  };
+
+  // Render simplified rating - SINGLE star with number
+  const renderRating = (rating: number, totalRatings: number) => {
+    if (totalRatings === 0) {
+      return (
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          No ratings yet
+        </span>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1.5">
+        <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          {rating.toFixed(1)}
+        </span>
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          ({totalRatings})
+        </span>
+      </div>
+    );
   };
 
   const filtered = useMemo(() => {
@@ -835,9 +849,9 @@ export default function VehiclesPage() {
                   )}
                 </div>
 
-                {/* Content - FIXED ALIGNMENT */}
+                {/* Content */}
                 <div className="p-5">
-                  {/* Top Row: Title & Price - Properly aligned */}
+                  {/* Top Row: Title & Price */}
                   <div className="flex justify-between items-start gap-2 mb-1">
                     <div className="flex-1 min-w-0">
                       <h3
@@ -853,13 +867,10 @@ export default function VehiclesPage() {
                     </div>
                   </div>
 
-                  {/* Rating & Location Row */}
+                  {/* Rating & Location Row - SINGLE STAR with number */}
                   <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                      <span className={`text-sm font-semibold ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        {v.rating}
-                      </span>
+                    <div className="flex items-center">
+                      {renderRating(v.rating, v.totalRatings)}
                     </div>
                     <span className={isDarkMode ? 'text-gray-600' : 'text-gray-300'}>•</span>
                     <div className={`flex items-center gap-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-sm truncate`}>
@@ -868,7 +879,7 @@ export default function VehiclesPage() {
                     </div>
                   </div>
 
-                  {/* Owner Name - New row for better spacing */}
+                  {/* Owner Name */}
                   {v.ownerName && (
                     <p className={`text-xs ${isDarkMode ? 'text-gray-500' : 'text-gray-400'} mt-1 truncate`}>
                       Owner: {v.ownerName}
@@ -941,7 +952,7 @@ export default function VehiclesPage() {
 
       <Footer />
 
-      {/* KYC Verification Modal - Green Theme */}
+      {/* KYC Verification Modal */}
       <AnimatePresence>
         {showKycModal && (
           <motion.div
@@ -962,7 +973,7 @@ export default function VehiclesPage() {
               className={`relative max-w-md w-full ${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-2xl overflow-hidden`}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header with icon - Green Theme */}
+              {/* Header with icon */}
               <div className={`p-6 ${isDarkMode ? 'bg-gray-700/50' : 'bg-emerald-50'} border-b ${isDarkMode ? 'border-gray-700' : 'border-emerald-100'}`}>
                 <div className="flex items-center gap-3">
                   <div className={`p-2.5 rounded-full ${isDarkMode ? 'bg-emerald-900/30' : 'bg-emerald-100'}`}>
@@ -979,7 +990,7 @@ export default function VehiclesPage() {
                 </div>
               </div>
 
-              {/* Body - Green Theme */}
+              {/* Body */}
               <div className="p-6">
                 <div className={`flex items-start gap-3 p-4 rounded-xl mb-4 ${isDarkMode ? 'bg-emerald-900/20 border border-emerald-800/30' : 'bg-emerald-50 border border-emerald-200'}`}>
                   <AlertCircle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
@@ -1010,7 +1021,7 @@ export default function VehiclesPage() {
                 </div>
               </div>
 
-              {/* Actions - Green Theme */}
+              {/* Actions */}
               <div className={`p-6 pt-0 flex flex-col sm:flex-row gap-3 ${isDarkMode ? 'border-t border-gray-700' : ''}`}>
                 <button
                   onClick={handleCloseKycModal}

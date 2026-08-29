@@ -100,7 +100,17 @@ export default function OwnerEarningsPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (summaryRes.ok) {
-        setSummary(await summaryRes.json());
+        const data = await summaryRes.json();
+        setSummary({
+          totalEarnings: data.totalEarnings || 0,
+          currentMonthEarnings: data.currentMonthEarnings || 0,
+          currentWeekEarnings: data.currentWeekEarnings || 0,
+          pendingPayout: data.pendingPayout || 0,
+          totalWithdrawn: data.totalWithdrawn || 0,
+          totalBookings: data.totalBookings || 0,
+          completedBookings: data.completedBookings || 0,
+          averageRating: data.averageRating || 0,
+        });
       }
 
       // Fetch transactions
@@ -265,97 +275,97 @@ export default function OwnerEarningsPage() {
 
         {/* Summary Cards */}
         {summary && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Earnings</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(summary.totalEarnings)}</p>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Earnings</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(summary.totalEarnings)}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                    <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
                 </div>
-                <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">This Month</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(summary.currentMonthEarnings)}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Pending Payout</p>
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{formatCurrency(summary.pendingPayout)}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Bookings</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{summary.totalBookings}</p>
+                    <p className="text-xs text-gray-400">{summary.completedBookings} completed</p>
+                  </div>
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">This Month</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(summary.currentMonthEarnings)}</p>
-                </div>
-                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            {/* Secondary Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                    <Star className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Average Rating</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{summary.averageRating?.toFixed(1) || '0.0'} ⭐</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Pending Payout</p>
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{formatCurrency(summary.pendingPayout)}</p>
-                </div>
-                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-rose-100 dark:bg-rose-900/30 rounded-lg flex items-center justify-center">
+                    <Wallet className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Total Withdrawn</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCurrency(summary.totalWithdrawn || 0)}</p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Bookings</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{summary.totalBookings}</p>
-                  <p className="text-xs text-gray-400">{summary.completedBookings} completed</p>
-                </div>
-                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                  <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Secondary Stats */}
-        {summary && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                  <Star className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Average Rating</p>
-                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{summary.averageRating.toFixed(1)} ⭐</p>
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">This Week</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCurrency(summary.currentWeekEarnings || 0)}</p>
+                  </div>
                 </div>
               </div>
             </div>
-
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-rose-100 dark:bg-rose-900/30 rounded-lg flex items-center justify-center">
-                  <Wallet className="w-5 h-5 text-rose-600 dark:text-rose-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Withdrawn</p>
-                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCurrency(summary.totalWithdrawn)}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-lg flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-teal-600 dark:text-teal-400" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">This Week</p>
-                  <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCurrency(summary.currentWeekEarnings)}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          </>
         )}
 
         {/* Filters */}
@@ -431,9 +441,9 @@ export default function OwnerEarningsPage() {
         </div>
 
         {/* Chart Section */}
-        {chartData && chartData.labels.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-4 mb-6">
-            <div className="flex items-center justify-between mb-4">
+        {chartData && chartData.labels && chartData.labels.length > 0 && (
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-700 p-6 mb-6">
+            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-5 h-5 text-gray-500" />
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">Earnings Overview</h3>
@@ -444,8 +454,8 @@ export default function OwnerEarningsPage() {
                     key={period}
                     onClick={() => setSelectedPeriod(period)}
                     className={`px-3 py-1 text-xs rounded-lg transition ${selectedPeriod === period
-                      ? "bg-emerald-600 text-white"
-                      : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        ? "bg-emerald-600 text-white"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
                       }`}
                   >
                     {period === "3months" ? "3M" : period === "6months" ? "6M" : "12M"}
@@ -454,30 +464,79 @@ export default function OwnerEarningsPage() {
               </div>
             </div>
 
-            <div className="h-64 flex items-end gap-2">
-              {chartData.labels.map((label, index) => {
-                const maxEarnings = Math.max(...chartData.earnings, 1);
-                const height = (chartData.earnings[index] / maxEarnings) * 100;
-                const barColor = chartData.earnings[index] > 0 ? "bg-emerald-500" : "bg-gray-300 dark:bg-gray-600";
+            {/* Bar Chart */}
+            <div className="h-80 w-full relative">
+              {/* Y-axis labels */}
+              <div className="absolute left-0 top-0 bottom-8 flex flex-col justify-between text-xs text-gray-400 dark:text-gray-500 pr-2">
+                {(() => {
+                  const maxEarnings = Math.max(...chartData.earnings, 1);
+                  const steps = 5;
+                  const stepSize = maxEarnings / steps;
+                  return Array.from({ length: steps + 1 }, (_, i) => {
+                    const value = i * stepSize;
+                    return (
+                      <span key={i} className="text-right">
+                        {Math.round(value)}
+                      </span>
+                    );
+                  });
+                })()}
+              </div>
 
-                return (
-                  <div key={index} className="flex-1 flex flex-col items-center">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                      {chartData.earnings[index] > 0 ? `Rs.${Math.round(chartData.earnings[index])}` : ""}
+              {/* Bars */}
+              <div className="ml-12 h-full flex items-end gap-2">
+                {chartData.labels.map((label, index) => {
+                  const maxEarnings = Math.max(...chartData.earnings, 1);
+                  const heightPercent = (chartData.earnings[index] / maxEarnings) * 100;
+                  const hasValue = chartData.earnings[index] > 0;
+
+                  return (
+                    <div key={index} className="flex-1 flex flex-col items-center h-full justify-end">
+                      <span className={`text-xs font-medium mb-1 ${hasValue ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`}>
+                        {hasValue ? `Rs.${Math.round(chartData.earnings[index])}` : '0'}
+                      </span>
+                      <div className="w-full max-w-[60px] relative group" style={{ height: `${Math.max(heightPercent, 4)}%`, minHeight: '4px' }}>
+                        <div
+                          className={`w-full rounded-t transition-all duration-700 cursor-pointer relative ${hasValue
+                              ? 'bg-gradient-to-t from-emerald-600 to-emerald-400 dark:from-emerald-500 dark:to-emerald-300 hover:from-emerald-700 hover:to-emerald-500'
+                              : 'bg-gray-200 dark:bg-gray-700'
+                            }`}
+                          style={{
+                            height: '100%',
+                            minHeight: '4px',
+                            opacity: hasValue ? 1 : 0.4
+                          }}
+                        >
+                          {hasValue && (
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg z-10 pointer-events-none border border-gray-700">
+                              <div className="font-semibold">{formatCurrency(chartData.earnings[index])}</div>
+                              <div className="text-gray-300">{chartData.counts[index]} booking{chartData.counts[index] !== 1 ? 's' : ''}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-2 truncate w-full text-center">
+                        {label}
+                      </span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                        ({chartData.counts[index]})
+                      </span>
                     </div>
-                    <div
-                      className={`w-full max-w-[40px] rounded-t transition-all duration-500 ${barColor}`}
-                      style={{ height: `${Math.max(height, 5)}%` }}
-                    />
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate w-full text-center">
-                      {label}
-                    </div>
-                    <div className="text-[10px] text-gray-400 dark:text-gray-500">
-                      ({chartData.counts[index]})
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-gradient-to-t from-emerald-600 to-emerald-400"></div>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Earnings</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-gray-300 dark:bg-gray-600"></div>
+                <span className="text-xs text-gray-500 dark:text-gray-400">No Earnings</span>
+              </div>
             </div>
           </div>
         )}
@@ -579,8 +638,8 @@ export default function OwnerEarningsPage() {
                       </td>
                       <td className="py-3 px-4">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${transaction.type === "RENTAL" ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300" :
-                          transaction.type === "WITHDRAWAL" ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300" :
-                            "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                            transaction.type === "WITHDRAWAL" ? "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300" :
+                              "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                           }`}>
                           {transaction.type}
                         </span>

@@ -13,7 +13,10 @@ import {
   Inbox,
   RefreshCw,
   Filter,
-  Calendar
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  ChevronDown as ChevronDownIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import HomeHeader from '../home/HomeHeader';
@@ -37,6 +40,12 @@ export default function NotificationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(8);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set());
+
+  const INITIAL_DISPLAY = 8;
+  const LOAD_MORE_COUNT = 8;
 
   const getToken = () => {
     if (typeof window !== 'undefined') {
@@ -66,6 +75,9 @@ export default function NotificationsPage() {
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
       const data = await res.json();
       setNotifications(Array.isArray(data) ? data : []);
+      setVisibleCount(INITIAL_DISPLAY);
+      setIsExpanded(false);
+      setExpandedMessages(new Set());
     } catch (e) {
       console.error('Error fetching notifications:', e);
       setError('Failed to load notifications');
@@ -146,6 +158,18 @@ export default function NotificationsPage() {
     }
   };
 
+  const toggleMessageExpand = (id: number) => {
+    setExpandedMessages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'KYC_APPROVED':
@@ -156,6 +180,21 @@ export default function NotificationsPage() {
         return { icon: Clock, color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/30' };
       case 'KYC_PENDING_ADMIN':
         return { icon: AlertCircle, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' };
+      case 'BOOKING_CONFIRMED':
+      case 'BOOKING_REQUEST':
+      case 'BOOKING_SUBMITTED':
+        return { icon: CheckCircle, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' };
+      case 'BOOKING_REJECTED':
+      case 'BOOKING_CANCELLED':
+        return { icon: XCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' };
+      case 'VEHICLE_RETURN_CONFIRMED':
+        return { icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' };
+      case 'DROPOFF_REMINDER':
+        return { icon: Clock, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/30' };
+      case 'LATE_RETURN_WARNING':
+        return { icon: AlertCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' };
+      case 'TRIP_ENDED_AWAITING_CONFIRMATION':
+        return { icon: Clock, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/30' };
       default:
         return { icon: Bell, color: 'text-gray-600 dark:text-gray-400', bg: 'bg-gray-50 dark:bg-gray-800' };
     }
@@ -182,8 +221,31 @@ export default function NotificationsPage() {
       router.push('/kyc/status');
     } else if (notification.type === 'KYC_PENDING_ADMIN') {
       router.push('/admin/kyc/pending');
+    } else if (notification.type === 'BOOKING_CONFIRMED' ||
+      notification.type === 'BOOKING_REQUEST' ||
+      notification.type === 'BOOKING_SUBMITTED' ||
+      notification.type === 'BOOKING_REJECTED' ||
+      notification.type === 'BOOKING_CANCELLED') {
+      router.push(`/bookings/${notification.relatedId}`);
+    } else if (notification.type === 'VEHICLE_RETURN_CONFIRMED') {
+      router.push(`/trips/${notification.relatedId}`);
     } else {
       router.push('/notifications');
+    }
+  };
+
+  const handleLoadMore = () => {
+    const newCount = visibleCount + LOAD_MORE_COUNT;
+    setVisibleCount(newCount);
+    setIsExpanded(true);
+  };
+
+  const handleShowLess = () => {
+    setVisibleCount(INITIAL_DISPLAY);
+    setIsExpanded(false);
+    const notificationsContainer = document.getElementById('notifications-list');
+    if (notificationsContainer) {
+      notificationsContainer.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -192,6 +254,10 @@ export default function NotificationsPage() {
     if (filter === 'read') return n.status === 'READ';
     return true;
   });
+
+  const visibleNotifications = filteredNotifications.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredNotifications.length;
+  const hasMoreThanInitial = filteredNotifications.length > INITIAL_DISPLAY;
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-950">
@@ -245,7 +311,7 @@ export default function NotificationsPage() {
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex gap-2 mt-6 border-b border-gray-200 dark:border-gray-800 pb-2">
+            <div className="flex gap-2 mt-6 border-b border-gray-200 dark:border-gray-800 pb-2 overflow-x-auto">
               {[
                 { value: 'all', label: 'All', count: notifications.length },
                 { value: 'unread', label: 'Unread', count: unreadCount },
@@ -253,17 +319,22 @@ export default function NotificationsPage() {
               ].map((tab) => (
                 <button
                   key={tab.value}
-                  onClick={() => setFilter(tab.value as any)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === tab.value
-                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  onClick={() => {
+                    setFilter(tab.value as any);
+                    setVisibleCount(INITIAL_DISPLAY);
+                    setIsExpanded(false);
+                    setExpandedMessages(new Set());
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${filter === tab.value
+                    ? 'bg-emerald-600 dark:bg-emerald-500 text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                 >
                   {tab.label}
                   {tab.count > 0 && (
                     <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${filter === tab.value
-                        ? 'bg-emerald-500/30 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      ? 'bg-emerald-500/30 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                       }`}>
                       {tab.count}
                     </span>
@@ -274,132 +345,201 @@ export default function NotificationsPage() {
           </motion.div>
 
           {/* Notifications List */}
-          <AnimatePresence mode="wait">
-            {isLoading ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="flex flex-col items-center justify-center py-16 bg-white dark:bg-gray-900 rounded-xl shadow-sm"
-              >
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 dark:border-emerald-400" />
-                <p className="text-gray-500 dark:text-gray-400 mt-4">Loading notifications...</p>
-              </motion.div>
-            ) : error ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center py-16 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-red-200 dark:border-red-800"
-              >
-                <XCircle className="w-12 h-12 text-red-500 dark:text-red-400 mb-3" />
-                <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
-                <button
-                  onClick={fetchNotifications}
-                  className="mt-4 px-6 py-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-600 text-white rounded-lg transition-colors"
+          <div id="notifications-list">
+            <AnimatePresence mode="wait">
+              {isLoading ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center justify-center py-16 bg-white dark:bg-gray-900 rounded-xl shadow-sm"
                 >
-                  Try Again
-                </button>
-              </motion.div>
-            ) : filteredNotifications.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex flex-col items-center justify-center py-16 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800"
-              >
-                <Inbox className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
-                <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300">No notifications</h3>
-                <p className="text-gray-400 dark:text-gray-500 mt-2">
-                  {filter === 'all'
-                    ? 'You\'re all caught up!'
-                    : filter === 'unread'
-                      ? 'No unread notifications'
-                      : 'No read notifications'}
-                </p>
-                {filter !== 'all' && (
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 dark:border-emerald-400" />
+                  <p className="text-gray-500 dark:text-gray-400 mt-4">Loading notifications...</p>
+                </motion.div>
+              ) : error ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center py-16 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-red-200 dark:border-red-800"
+                >
+                  <XCircle className="w-12 h-12 text-red-500 dark:text-red-400 mb-3" />
+                  <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
                   <button
-                    onClick={() => setFilter('all')}
-                    className="mt-4 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 text-sm font-medium"
+                    onClick={fetchNotifications}
+                    className="mt-4 px-6 py-2 bg-emerald-600 dark:bg-emerald-500 hover:bg-emerald-700 dark:hover:bg-emerald-600 text-white rounded-lg transition-colors"
                   >
-                    View all notifications →
+                    Try Again
                   </button>
-                )}
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="space-y-3"
-              >
-                {filteredNotifications.map((notification, index) => {
-                  const { icon: Icon, color, bg } = getNotificationIcon(notification.type);
-                  const isUnread = notification.status === 'UNREAD';
-
-                  return (
-                    <motion.div
-                      key={notification.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ scale: 1.01 }}
-                      onClick={() => handleClick(notification)}
-                      className={`group relative cursor-pointer rounded-xl border transition-all bg-white dark:bg-gray-900 shadow-sm hover:shadow-md ${isUnread
-                          ? 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-300 dark:hover:border-emerald-700'
-                          : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
-                        }`}
+                </motion.div>
+              ) : filteredNotifications.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center justify-center py-16 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800"
+                >
+                  <Inbox className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300">No notifications</h3>
+                  <p className="text-gray-400 dark:text-gray-500 mt-2">
+                    {filter === 'all'
+                      ? "You're all caught up!"
+                      : filter === 'unread'
+                        ? 'No unread notifications'
+                        : 'No read notifications'}
+                  </p>
+                  {filter !== 'all' && (
+                    <button
+                      onClick={() => setFilter('all')}
+                      className="mt-4 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 text-sm font-medium"
                     >
-                      <div className="flex items-start gap-4 p-5">
-                        {/* Icon */}
-                        <div className={`flex-shrink-0 w-12 h-12 rounded-xl ${bg} flex items-center justify-center`}>
-                          <Icon className={`w-6 h-6 ${color}`} />
-                        </div>
+                      View all notifications →
+                    </button>
+                  )}
+                </motion.div>
+              ) : (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-3"
+                  >
+                    {visibleNotifications.map((notification, index) => {
+                      const { icon: Icon, color, bg } = getNotificationIcon(notification.type);
+                      const isUnread = notification.status === 'UNREAD';
+                      const isExpandedMessage = expandedMessages.has(notification.id);
+                      const messageLength = notification.message?.length || 0;
+                      const shouldShowExpand = messageLength > 150;
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className={`text-sm font-medium ${isUnread
-                                  ? 'text-gray-900 dark:text-gray-100'
-                                  : 'text-gray-600 dark:text-gray-400'
-                                }`}>
-                                {notification.title}
-                              </p>
-                              <p className={`text-sm mt-1 line-clamp-2 ${isUnread
-                                  ? 'text-gray-700 dark:text-gray-300'
-                                  : 'text-gray-500 dark:text-gray-500'
-                                }`}>
-                                {notification.message}
-                              </p>
+                      return (
+                        <motion.div
+                          key={notification.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: Math.min(index * 0.05, 0.5) }}
+                          whileHover={{ scale: 1.01 }}
+                          className={`group relative rounded-xl border transition-all bg-white dark:bg-gray-900 shadow-sm hover:shadow-md ${isUnread
+                              ? 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-300 dark:hover:border-emerald-700'
+                              : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
+                            }`}
+                        >
+                          <div className="flex items-start gap-4 p-5">
+                            {/* Icon - Clickable */}
+                            <div
+                              onClick={() => handleClick(notification)}
+                              className={`flex-shrink-0 w-12 h-12 rounded-xl ${bg} flex items-center justify-center cursor-pointer hover:scale-105 transition-transform`}
+                            >
+                              <Icon className={`w-6 h-6 ${color}`} />
                             </div>
-                            {isUnread && (
-                              <span className="flex-shrink-0 w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 mt-1.5" />
-                            )}
-                          </div>
 
-                          <div className="flex items-center gap-4 mt-3">
-                            <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
-                              <Calendar className="w-3 h-3" />
-                              <span>{getTimeAgo(notification.createdAt)}</span>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-3">
+                                <div
+                                  className="cursor-pointer flex-1"
+                                  onClick={() => handleClick(notification)}
+                                >
+                                  <p className={`text-sm font-medium ${isUnread
+                                      ? 'text-gray-900 dark:text-gray-100'
+                                      : 'text-gray-600 dark:text-gray-400'
+                                    }`}>
+                                    {notification.title}
+                                  </p>
+                                </div>
+                                {isUnread && (
+                                  <span className="flex-shrink-0 w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 mt-1.5" />
+                                )}
+                              </div>
+
+                              {/* Message with expand/collapse */}
+                              <div className="mt-1">
+                                <p
+                                  className={`text-sm ${isUnread
+                                      ? 'text-gray-700 dark:text-gray-300'
+                                      : 'text-gray-500 dark:text-gray-500'
+                                    } ${!isExpandedMessage ? 'line-clamp-3' : ''}`}
+                                >
+                                  {notification.message}
+                                </p>
+
+                                {shouldShowExpand && (
+                                  <button
+                                    onClick={() => toggleMessageExpand(notification.id)}
+                                    className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium mt-1 flex items-center gap-1 hover:underline"
+                                  >
+                                    {isExpandedMessage ? (
+                                      <>Show less <ChevronUp className="w-3 h-3" /></>
+                                    ) : (
+                                      <>Read more <ChevronDownIcon className="w-3 h-3" /></>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-4 mt-3">
+                                <div className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>{getTimeAgo(notification.createdAt)}</span>
+                                </div>
+                                {isUnread && (
+                                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-medium">
+                                    New
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            {isUnread && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 font-medium">
-                                New
-                              </span>
-                            )}
-                          </div>
-                        </div>
 
-                        {/* Chevron */}
-                        <ChevronRight className={`w-5 h-5 flex-shrink-0 ${isUnread
-                            ? 'text-emerald-500 dark:text-emerald-400'
-                            : 'text-gray-300 dark:text-gray-600'
-                          } opacity-0 group-hover:opacity-100 transition-opacity`} />
-                      </div>
+                            {/* Chevron - Clickable */}
+                            <ChevronRight
+                              onClick={() => handleClick(notification)}
+                              className={`w-5 h-5 flex-shrink-0 cursor-pointer ${isUnread
+                                  ? 'text-emerald-500 dark:text-emerald-400'
+                                  : 'text-gray-300 dark:text-gray-600'
+                                } opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110`}
+                            />
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </motion.div>
+
+                  {/* Show More / Show Less */}
+                  {hasMoreThanInitial && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-6 flex justify-center"
+                    >
+                      {hasMore ? (
+                        <button
+                          onClick={handleLoadMore}
+                          className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl transition-all border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md group"
+                        >
+                          <ChevronDown className="w-5 h-5 text-emerald-500 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                          <span className="font-medium">
+                            Show {Math.min(LOAD_MORE_COUNT, filteredNotifications.length - visibleCount)} more
+                          </span>
+                          <span className="text-sm text-gray-400 dark:text-gray-500">
+                            ({visibleCount} of {filteredNotifications.length})
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleShowLess}
+                          className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-xl transition-all border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md group"
+                        >
+                          <ChevronUp className="w-5 h-5 text-emerald-500 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                          <span className="font-medium">Show less</span>
+                          <span className="text-sm text-gray-400 dark:text-gray-500">
+                            ({visibleCount} shown)
+                          </span>
+                        </button>
+                      )}
                     </motion.div>
-                  );
-                })}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  )}
+                </>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* Back Button */}
           <div className="mt-8 text-center">

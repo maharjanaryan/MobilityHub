@@ -13,7 +13,7 @@ import {
   Fingerprint, Globe, Moon, Sun,
   Monitor, AlertTriangle,
   Key, Save, ChevronRight,
-  Sparkles, Palette
+  Sparkles, Palette, Edit3
 } from "lucide-react";
 
 // Types
@@ -67,6 +67,15 @@ interface PaymentMethod {
   last4?: string;
   expiry?: string;
   isDefault: boolean;
+}
+
+interface UserProfile {
+  id: number;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  avatarUrl?: string;
+  role: string;
 }
 
 const API_BASE_URL = "http://localhost:8080";
@@ -215,6 +224,134 @@ const ChangePasswordModal = ({ isOpen, onClose, onChangePassword, loading }: {
   );
 };
 
+const EditProfileModal = ({ isOpen, onClose, onSave, profile, loading }: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: { fullName: string; phoneNumber: string }) => Promise<void>;
+  profile: UserProfile | null;
+  loading: boolean;
+}) => {
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.fullName || '');
+      setPhoneNumber(profile.phoneNumber || '');
+    }
+  }, [profile]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!fullName.trim()) {
+      setError('Full name is required');
+      return;
+    }
+    await onSave({ fullName, phoneNumber });
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Edit Profile">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Full Name</label>
+          <input
+            type="text"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-gray-50/50 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 focus:bg-white dark:focus:bg-gray-800"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Phone Number</label>
+          <input
+            type="tel"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+            className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-gray-50/50 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 focus:bg-white dark:focus:bg-gray-800"
+            placeholder="+977 98XXXXXXXX"
+          />
+        </div>
+        {error && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+            <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
+          </div>
+        )}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-500 dark:to-emerald-500 text-white font-semibold py-2.5 rounded-xl hover:from-green-700 hover:to-emerald-700 dark:hover:from-green-600 dark:hover:to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-md"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {loading ? 'Saving...' : 'Save Changes'}
+        </button>
+      </form>
+    </Modal>
+  );
+};
+
+const SuccessModal = ({ isOpen, onClose, title, message, onConfirm }: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  message: string;
+  onConfirm?: () => void;
+}) => {
+  if (!isOpen) return null;
+
+  const handleConfirm = () => {
+    if (onConfirm) {
+      onConfirm();
+    }
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60]"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: "spring", duration: 0.4, bounce: 0.3 }}
+            className="fixed inset-0 z-[60] flex items-center justify-center px-4 pointer-events-none"
+          >
+            <div className="relative bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full shadow-2xl pointer-events-auto overflow-hidden border border-gray-100 dark:border-gray-800">
+              <div className="p-6 text-center">
+                <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">{message}</p>
+              </div>
+              <div className="p-6 bg-gray-50 dark:bg-gray-800/50">
+                <button
+                  onClick={handleConfirm}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-500 dark:to-emerald-500 text-white font-semibold py-3 rounded-xl hover:from-green-700 hover:to-emerald-700 dark:hover:from-green-600 dark:hover:to-emerald-600 transition-all shadow-lg shadow-green-500/25"
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+
 const AddPaymentModal = ({ isOpen, onClose, onAdd, loading }: {
   isOpen: boolean;
   onClose: () => void;
@@ -310,8 +447,12 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('account');
   const [loading, setLoading] = useState(false);
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [editProfileModalOpen, setEditProfileModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successModalData, setSuccessModalData] = useState({ title: '', message: '' });
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   // Settings states
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
@@ -343,6 +484,27 @@ export default function SettingsPage() {
     return null;
   }, []);
 
+  // Fetch user profile
+  const fetchProfile = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  }, [getAccessToken]);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
   const handleChangePassword = async (data: ChangePasswordFormData) => {
     const token = getAccessToken();
     if (!token) return;
@@ -354,14 +516,50 @@ export default function SettingsPage() {
         body: JSON.stringify(data),
       });
       if (response.ok) {
-        setToast({ message: 'Password changed successfully!', type: 'success' });
         setPasswordModalOpen(false);
-        setTimeout(() => {
-          localStorage.removeItem('accessToken');
-          router.push('/signin');
-        }, 2000);
+        // Show success modal first
+        setSuccessModalData({
+          title: 'Password Changed Successfully!',
+          message: 'Your password has been updated. You will be redirected to sign in.'
+        });
+        setSuccessModalOpen(true);
       } else {
-        setToast({ message: 'Failed to change password', type: 'error' });
+        const errorData = await response.json();
+        setToast({ message: errorData.message || 'Failed to change password', type: 'error' });
+      }
+    } catch (error) {
+      setToast({ message: 'Network error', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSuccessModalConfirm = () => {
+    setSuccessModalOpen(false);
+    // Clear tokens and redirect to sign in
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    router.push('/signin');
+  };
+
+  const handleUpdateProfile = async (data: { fullName: string; phoneNumber: string }) => {
+    const token = getAccessToken();
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(data),
+      });
+      if (response.ok) {
+        setToast({ message: 'Profile updated successfully!', type: 'success' });
+        setEditProfileModalOpen(false);
+        fetchProfile();
+      } else {
+        const errorData = await response.json();
+        setToast({ message: errorData.message || 'Failed to update profile', type: 'error' });
       }
     } catch (error) {
       setToast({ message: 'Network error', type: 'error' });
@@ -400,7 +598,17 @@ export default function SettingsPage() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <HomeHeader />
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      <SuccessModal
+        isOpen={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        title={successModalData.title}
+        message={successModalData.message}
+        onConfirm={handleSuccessModalConfirm}
+      />
+
       <ChangePasswordModal isOpen={passwordModalOpen} onClose={() => setPasswordModalOpen(false)} onChangePassword={handleChangePassword} loading={loading} />
+      <EditProfileModal isOpen={editProfileModalOpen} onClose={() => setEditProfileModalOpen(false)} onSave={handleUpdateProfile} profile={profile} loading={loading} />
       <AddPaymentModal isOpen={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} onAdd={handleAddPaymentMethod} loading={loading} />
 
       <main className="flex-1 max-w-screen-xl mx-auto px-4 py-8 sm:px-6 lg:px-12 w-full">
@@ -414,7 +622,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar - Fixed width to prevent layout shift */}
+          {/* Sidebar */}
           <div className="lg:w-72 flex-shrink-0">
             <div className="sticky top-8 bg-white dark:bg-gray-900 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 overflow-hidden">
               <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-gray-800 dark:to-gray-800">
@@ -441,7 +649,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Main Content - Fixed height container to prevent jumping */}
+          {/* Main Content */}
           <div className="flex-1 min-h-[600px]">
             <AnimatePresence mode="wait">
               {activeSection === 'account' && (
@@ -451,26 +659,62 @@ export default function SettingsPage() {
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your personal account information</p>
                   </div>
                   <div className="p-6 space-y-4">
+                    {/* Name Section */}
                     <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center"><Key className="w-5 h-5 text-blue-600 dark:text-blue-400" /></div>
-                        <div><p className="font-semibold text-gray-900 dark:text-gray-100">Change Password</p><p className="text-sm text-gray-500 dark:text-gray-400">Update your password regularly</p></div>
+                        <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                          <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">Full Name</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{profile?.fullName || 'Not provided'}</p>
+                        </div>
                       </div>
-                      <button onClick={() => setPasswordModalOpen(true)} className="px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-xl hover:bg-green-700 dark:hover:bg-green-600 transition-all flex items-center gap-2 shadow-md">Change</button>
+                      <button onClick={() => setEditProfileModalOpen(true)} className="text-green-600 dark:text-green-400 text-sm font-semibold hover:underline">Edit</button>
                     </div>
+
+                    {/* Change Password */}
+                    <button
+                      onClick={() => setPasswordModalOpen(true)}
+                      className="flex items-center justify-between w-full p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                          <Key className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">Change Password</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Update your password regularly</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400 transition" />
+                    </button>
+
+                    {/* Email Address - Read Only */}
                     <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center"><Mail className="w-5 h-5 text-purple-600 dark:text-purple-400" /></div>
-                        <div><p className="font-semibold text-gray-900 dark:text-gray-100">Email Address</p><p className="text-sm text-gray-500 dark:text-gray-400">user@example.com</p></div>
+                        <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
+                          <Mail className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">Email Address</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{profile?.email || 'user@example.com'}</p>
+                        </div>
                       </div>
-                      <button className="text-green-600 dark:text-green-400 text-sm font-semibold">Update</button>
+                      <span className="text-xs px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full font-medium">Verified</span>
                     </div>
+
+                    {/* Phone Number */}
                     <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center"><Phone className="w-5 h-5 text-orange-600 dark:text-orange-400" /></div>
-                        <div><p className="font-semibold text-gray-900 dark:text-gray-100">Phone Number</p><p className="text-sm text-gray-500 dark:text-gray-400">+977 98XXXXXXXX</p></div>
+                        <div className="w-10 h-10 bg-teal-100 dark:bg-teal-900/30 rounded-xl flex items-center justify-center">
+                          <Phone className="w-5 h-5 text-teal-600 dark:text-teal-400" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900 dark:text-gray-100">Phone Number</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{profile?.phoneNumber || 'Not provided'}</p>
+                        </div>
                       </div>
-                      <button className="text-green-600 dark:text-green-400 text-sm font-semibold">Update</button>
                     </div>
                   </div>
                 </motion.div>

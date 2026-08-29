@@ -7,7 +7,7 @@ import {
   Loader2, Filter, ArrowUpDown, Calendar, Users, Wallet,
   CheckCircle, XCircle, Clock as ClockIcon, AlertCircle,
   Eye, TrendingUp, Search, Info, FileText, ShieldCheck, ZoomIn,
-  Play, Flag, ChevronDown as ChevronDownIcon // Added for show more
+  Play, Flag, ChevronDown as ChevronDownIcon, Star
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import HomeHeader from "@/app/home/HomeHeader";
@@ -41,6 +41,23 @@ interface Booking {
   damageNotes?: string;
   securityDepositReturned?: boolean;
   securityDepositReturnedAmount?: number;
+  averageRating?: number;
+  totalRatings?: number;
+}
+
+// Rating interface
+interface Rating {
+  id: number;
+  bookingId: number;
+  vehicleId: number;
+  vehicleName: string;
+  vehicleBrand: string;
+  vehicleModel: string;
+  renterId: number;
+  renterName: string;
+  rating: number;
+  review: string;
+  createdAt: string;
 }
 
 const statusConfig: Record<string, any> = {
@@ -60,10 +77,6 @@ const statusConfig: Record<string, any> = {
 
 const defaultStatus = { color: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600", icon: AlertCircle, label: "Unknown" };
 const getStatusConfig = (status: string) => statusConfig[status?.toUpperCase()?.trim() || 'PENDING'] || defaultStatus;
-
-// ─────────────────────────────────────────────
-// SORT & FILTER OPTIONS
-// ─────────────────────────────────────────────
 
 const sortOptions = [
   { label: "Newest First", icon: Calendar },
@@ -135,6 +148,210 @@ const formatDateShort = (date: string) => {
     const d = new Date(date);
     return isNaN(d.getTime()) ? 'Invalid Date' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   } catch { return 'Invalid Date'; }
+};
+
+// ─────────────────────────────────────────────
+// STAR RATING COMPONENT
+// ─────────────────────────────────────────────
+
+const StarRating = ({
+  rating,
+  onRatingChange,
+  size = 28,
+  disabled = false,
+  readonly = false
+}: {
+  rating: number;
+  onRatingChange?: (rating: number) => void;
+  size?: number;
+  disabled?: boolean;
+  readonly?: boolean;
+}) => {
+  const [hoverRating, setHoverRating] = useState<number>(0);
+
+  const handleClick = (value: number) => {
+    if (disabled || readonly) return;
+    onRatingChange?.(value);
+  };
+
+  const handleMouseEnter = (value: number) => {
+    if (disabled || readonly) return;
+    setHoverRating(value);
+  };
+
+  const handleMouseLeave = () => {
+    if (disabled || readonly) return;
+    setHoverRating(0);
+  };
+
+  const displayRating = hoverRating || rating || 0;
+
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((star) => {
+        const isFilled = star <= displayRating;
+        return (
+          <button
+            key={star}
+            type="button"
+            onClick={() => handleClick(star)}
+            onMouseEnter={() => handleMouseEnter(star)}
+            onMouseLeave={handleMouseLeave}
+            disabled={disabled || readonly}
+            className={`transition-transform ${!disabled && !readonly ? 'hover:scale-110 cursor-pointer' : 'cursor-default'}`}
+          >
+            <Star
+              size={size}
+              className={`
+                ${isFilled ? 'fill-yellow-400 text-yellow-400' : 'fill-gray-200 dark:fill-gray-600 text-gray-200 dark:text-gray-600'}
+                transition-colors
+                ${!disabled && !readonly ? 'hover:text-yellow-300' : ''}
+              `}
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// RATING MODAL
+// ─────────────────────────────────────────────
+
+const RatingModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  booking,
+  loading = false,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (rating: number, review: string) => void;
+  booking: Booking | null;
+  loading?: boolean;
+}) => {
+  const [selectedRating, setSelectedRating] = useState<number>(0);
+  const [review, setReview] = useState<string>("");
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedRating(0);
+      setReview("");
+      setError("");
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !booking) return null;
+
+  const handleSubmit = () => {
+    if (selectedRating === 0) {
+      setError("Please select a rating");
+      return;
+    }
+    onConfirm(selectedRating, review);
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[80] flex items-center justify-center p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.9, y: 20 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+                  ⭐ Rate Your Experience
+                </h3>
+                <button
+                  onClick={onClose}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition"
+                >
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+
+              <div className="mb-4 text-center">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <img
+                    src={booking.vehicleImage}
+                    alt={booking.vehicleName}
+                    className="w-16 h-16 rounded-xl object-cover"
+                    onError={(e) => (e.target as HTMLImageElement).src = '/car-placeholder.jpg'}
+                  />
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-800 dark:text-gray-100">{booking.vehicleName}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{booking.vehicleBrand} {booking.vehicleModel}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  How was your experience with this vehicle?
+                </p>
+              </div>
+
+              <div className="flex justify-center py-4">
+                <StarRating
+                  rating={selectedRating}
+                  onRatingChange={setSelectedRating}
+                  size={40}
+                />
+              </div>
+
+              {error && (
+                <p className="text-sm text-red-500 text-center mb-2">{error}</p>
+              )}
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Your Review (Optional)
+                </label>
+                <textarea
+                  value={review}
+                  onChange={(e) => setReview(e.target.value)}
+                  placeholder="Share your experience with this vehicle..."
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-400 rounded-xl focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition resize-none"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={onClose}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={loading || selectedRating === 0}
+                  className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Submit Rating"
+                  )}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 };
 
 // ─────────────────────────────────────────────
@@ -370,7 +587,14 @@ export default function MyBookingsPage() {
   const [tripAction, setTripAction] = useState<'start' | 'end' | null>(null);
   const [tripBookingId, setTripBookingId] = useState<number | null>(null);
 
-  // NEW: State for Pagination / Show More
+  // Rating states
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingBooking, setRatingBooking] = useState<Booking | null>(null);
+  const [ratingLoading, setRatingLoading] = useState(false);
+  const [existingRating, setExistingRating] = useState<Rating | null>(null);
+  const [hasRated, setHasRated] = useState<{ [key: number]: boolean }>({});
+
+  // Pagination states
   const [visibleCount, setVisibleCount] = useState(6);
   const BOOKINGS_PER_PAGE = 6;
 
@@ -527,11 +751,64 @@ export default function MyBookingsPage() {
         const mapped = (Array.isArray(content) ? content : []).map((b: any) => mapBooking(b));
         mapped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         setBookings(mapped);
+
+        // Check for ratings on completed bookings
+        await checkRatingsForCompletedBookings(mapped);
       }
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Check if completed bookings have ratings
+  const checkRatingsForCompletedBookings = async (bookingsList: Booking[]) => {
+    const token = getToken();
+    if (!token) return;
+
+    const completedBookings = bookingsList.filter(
+      b => b.status?.toUpperCase() === 'COMPLETED'
+    );
+
+    for (const booking of completedBookings) {
+      try {
+        const res = await fetch(`http://localhost:8080/api/bookings/${booking.id}/rating`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const rating = await res.json();
+          setHasRated(prev => ({ ...prev, [booking.id]: true }));
+          setExistingRating(rating);
+        }
+      } catch (error) {
+        // Rating doesn't exist or error
+        console.log('No rating found for booking:', booking.id);
+      }
+    }
+  };
+
+  // Check if a booking has been rated
+  const checkIfRated = async (bookingId: number): Promise<boolean> => {
+    if (hasRated[bookingId]) return true;
+
+    try {
+      const token = getToken();
+      if (!token) return false;
+
+      const res = await fetch(`http://localhost:8080/api/bookings/${bookingId}/rating`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const rating = await res.json();
+        setHasRated(prev => ({ ...prev, [bookingId]: true }));
+        setExistingRating(rating);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
     }
   };
 
@@ -573,12 +850,10 @@ export default function MyBookingsPage() {
     return result;
   }, [bookings, searchQuery, statusFilter, sortBy]);
 
-  // NEW: Reset visibleCount when filters/search changes
   useEffect(() => {
     setVisibleCount(BOOKINGS_PER_PAGE);
   }, [searchQuery, statusFilter, sortBy]);
 
-  // NEW: Slice the filtered bookings for display
   const displayedBookings = useMemo(() => {
     return filteredBookings.slice(0, visibleCount);
   }, [filteredBookings, visibleCount]);
@@ -796,6 +1071,94 @@ export default function MyBookingsPage() {
   };
 
   // ─────────────────────────────────────────────
+  // RATING FUNCTIONS
+  // ─────────────────────────────────────────────
+
+  const openRatingModal = (booking: Booking) => {
+    if (!booking) return;
+
+    // Check if already rated
+    checkIfRated(booking.id).then(isRated => {
+      if (isRated) {
+        setResultModalData({
+          title: 'Already Rated',
+          message: 'You have already rated this vehicle. Thank you for your feedback!',
+          type: 'success',
+          icon: CheckCircle
+        });
+        setShowResultModal(true);
+        return;
+      }
+      setRatingBooking(booking);
+      setShowRatingModal(true);
+    });
+  };
+
+  const handleSubmitRating = async (rating: number, review: string) => {
+    if (!ratingBooking) return;
+
+    setRatingLoading(true);
+    try {
+      const token = getToken();
+      if (!token) { router.push('/signin'); return; }
+
+      const response = await fetch(`http://localhost:8080/api/bookings/${ratingBooking.id}/rate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          bookingId: ratingBooking.id,
+          rating: rating,
+          review: review
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShowRatingModal(false);
+        setRatingBooking(null);
+        setHasRated(prev => ({ ...prev, [ratingBooking.id]: true }));
+        setExistingRating(data);
+
+        setResultModalData({
+          title: '⭐ Thank You!',
+          message: `You rated ${ratingBooking.vehicleName} ${rating} stars. Your feedback helps our community grow!`,
+          type: 'success',
+          icon: Star
+        });
+        setShowResultModal(true);
+
+        // Refresh bookings to update any rating data
+        await fetchBookings();
+      } else {
+        const text = await response.text();
+        let msg = 'Failed to submit rating';
+        try { const data = JSON.parse(text); msg = data.message || data.error || msg; } catch { msg = text || msg; }
+
+        setResultModalData({
+          title: 'Failed to Submit Rating',
+          message: msg,
+          type: 'error',
+          icon: AlertCircle
+        });
+        setShowResultModal(true);
+      }
+    } catch (error) {
+      setResultModalData({
+        title: 'Network Error',
+        message: 'Please check your connection and try again.',
+        type: 'error',
+        icon: AlertCircle
+      });
+      setShowResultModal(true);
+    } finally {
+      setRatingLoading(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────
 
@@ -947,7 +1310,6 @@ export default function MyBookingsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* NEW: Render only displayedBookings */}
             {displayedBookings.map((booking, index) => {
               const status = booking.status?.toUpperCase() || '';
               const isPending = status === 'PENDING';
@@ -956,8 +1318,10 @@ export default function MyBookingsPage() {
               const isConfirmed = status === 'CONFIRMED' || status === 'APPROVED';
               const isActive = status === 'ACTIVE';
               const isAwaitingReturn = status === 'AWAITING_RETURN_CONFIRMATION';
+              const isCompleted = status === 'COMPLETED';
               const cancelCheck = isPending ? canCancel(booking.pickupDate) : null;
               const isPickupDateArrived = new Date() >= new Date(booking.pickupDate);
+              const hasRatedBooking = hasRated[booking.id] || false;
 
               return (
                 <motion.div
@@ -971,13 +1335,24 @@ export default function MyBookingsPage() {
                   <div className="p-4 md:p-6">
                     <div className="flex flex-col md:flex-row gap-4">
                       {/* Vehicle Image */}
-                      <div className="md:w-40 h-32 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                      <div className="md:w-40 h-32 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0 relative">
                         <img
                           src={booking.vehicleImage}
                           alt={booking.vehicleName}
                           className="w-full h-full object-cover"
                           onError={(e) => (e.target as HTMLImageElement).src = '/car-placeholder.jpg'}
                         />
+                        {/* Rating badge on completed bookings */}
+                        {isCompleted && (
+                          <div className="absolute bottom-1 right-1 px-2 py-0.5 bg-black/70 text-white text-xs rounded-full flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                            {hasRatedBooking ? (
+                              <span>Rated</span>
+                            ) : (
+                              <span>Rate Now</span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -1013,7 +1388,7 @@ export default function MyBookingsPage() {
                           </span>
                         </div>
 
-                        {/* Awaiting Return Notice - Renter sees this but no action button */}
+                        {/* Awaiting Return Notice */}
                         {isAwaitingReturn && (
                           <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg text-sm text-orange-700 dark:text-orange-400 flex items-center gap-2">
                             <Clock className="w-4 h-4 flex-shrink-0" />
@@ -1084,7 +1459,32 @@ export default function MyBookingsPage() {
                             </button>
                           )}
 
-                          {/* NO CONFIRM RETURN BUTTON - This is for owners only */}
+                          {/* Rate Vehicle Button - Show for completed bookings that haven't been rated */}
+                          {isCompleted && !hasRatedBooking && (
+                            <button
+                              onClick={() => openRatingModal(booking)}
+                              className="flex items-center gap-1.5 px-4 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-medium transition"
+                            >
+                              <Star className="w-3.5 h-3.5 fill-current" /> Rate Vehicle
+                            </button>
+                          )}
+
+                          {isCompleted && hasRatedBooking && (
+                            <button
+                              onClick={() => {
+                                setResultModalData({
+                                  title: '⭐ Already Rated',
+                                  message: `You rated this vehicle ${existingRating?.rating || ''} stars. Thank you for your feedback!`,
+                                  type: 'success',
+                                  icon: Star
+                                });
+                                setShowResultModal(true);
+                              }}
+                              className="flex items-center gap-1.5 px-4 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-lg text-sm font-medium transition cursor-default"
+                            >
+                              <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" /> Rated
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1093,7 +1493,7 @@ export default function MyBookingsPage() {
               );
             })}
 
-            {/* NEW: Show More / Show Less Buttons */}
+            {/* Show More / Show Less Buttons */}
             {filteredBookings.length > BOOKINGS_PER_PAGE && (
               <div className="flex justify-center pt-6">
                 {visibleCount < filteredBookings.length ? (
@@ -1115,7 +1515,6 @@ export default function MyBookingsPage() {
                 )}
               </div>
             )}
-
           </div>
         )}
       </main>
@@ -1251,6 +1650,15 @@ export default function MyBookingsPage() {
         }
       />
 
+      {/* Rating Modal */}
+      <RatingModal
+        isOpen={showRatingModal}
+        onClose={() => { setShowRatingModal(false); setRatingBooking(null); }}
+        onConfirm={handleSubmitRating}
+        booking={ratingBooking}
+        loading={ratingLoading}
+      />
+
       {/* Result Modal */}
       <ResultModal
         isOpen={showResultModal}
@@ -1334,7 +1742,7 @@ export default function MyBookingsPage() {
                   </div>
                 )}
 
-                {/* Security Deposit Info - Renter sees this */}
+                {/* Security Deposit Info */}
                 {selectedBooking.status?.toUpperCase() === 'COMPLETED' && (
                   <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <p className="text-sm text-gray-500 dark:text-gray-400">Security Deposit</p>
@@ -1423,7 +1831,9 @@ export default function MyBookingsPage() {
                     const isPending = status === 'PENDING';
                     const isConfirmed = status === 'CONFIRMED' || status === 'APPROVED';
                     const isActive = status === 'ACTIVE';
+                    const isCompleted = status === 'COMPLETED';
                     const isPickupDateArrived = new Date() >= new Date(selectedBooking.pickupDate);
+                    const hasRatedBooking = hasRated[selectedBooking.id] || false;
 
                     return (
                       <>
@@ -1466,9 +1876,35 @@ export default function MyBookingsPage() {
                           </button>
                         )}
 
+                        {isCompleted && !hasRatedBooking && (
+                          <button
+                            onClick={() => { setShowDetailModal(false); openRatingModal(selectedBooking); }}
+                            className="flex-1 px-4 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-2"
+                          >
+                            <Star className="w-4 h-4 fill-current" /> Rate Vehicle
+                          </button>
+                        )}
+
+                        {isCompleted && hasRatedBooking && (
+                          <button
+                            onClick={() => {
+                              setResultModalData({
+                                title: '⭐ Already Rated',
+                                message: `You rated this vehicle ${existingRating?.rating || ''} stars. Thank you for your feedback!`,
+                                type: 'success',
+                                icon: Star
+                              });
+                              setShowResultModal(true);
+                            }}
+                            className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-xl font-medium transition cursor-default flex items-center justify-center gap-2"
+                          >
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" /> Rated
+                          </button>
+                        )}
+
                         <button
                           onClick={() => setShowDetailModal(false)}
-                          className={`${(isPending && canCancel(selectedBooking.pickupDate).allowed) || isConfirmed || isActive ? 'flex-1' : 'w-full'
+                          className={`${(isPending && canCancel(selectedBooking.pickupDate).allowed) || isConfirmed || isActive || (isCompleted && !hasRatedBooking) ? 'flex-1' : 'w-full'
                             } px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition`}
                         >
                           Close

@@ -53,7 +53,7 @@ interface EditVehicleModalProps {
   onSuccess: () => void;
 }
 
-// Image compression utility (same as add-vehicle page)
+// Image compression utility
 const compressImage = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.7): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -118,6 +118,15 @@ const filesToBase64 = async (files: File[]): Promise<string[]> => {
   return await Promise.all(base64Promises);
 };
 
+// Generate a unique VIN
+const generateUniqueVIN = (id: number, brand: string, model: string, year: number): string => {
+  const prefix = brand.substring(0, 3).toUpperCase();
+  const suffix = model.substring(0, 3).toUpperCase();
+  const yearStr = year.toString().slice(-2);
+  const uniqueId = `${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000)}`;
+  return `${prefix}${suffix}${yearStr}${id}${uniqueId}`.substring(0, 17).toUpperCase();
+};
+
 export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }: EditVehicleModalProps) {
   const [formData, setFormData] = useState({
     brand: '',
@@ -135,7 +144,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
     zipCode: '',
     description: '',
     photos: [] as string[],
-    existingBluebookDocuments: [] as string[], // URLs of existing bluebook images
+    existingBluebookDocuments: [] as string[],
   });
 
   // New photo uploads
@@ -166,7 +175,6 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
 
   useEffect(() => {
     if (vehicle) {
-      // Ensure bluebookDocuments is always an array
       const bluebookDocs = vehicle.bluebookDocuments || [];
 
       setFormData({
@@ -188,7 +196,6 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
         existingBluebookDocuments: bluebookDocs,
       });
 
-      // Clear new uploads
       setNewPhotos([]);
       setNewPhotoPreviews([]);
       setNewBluebookFiles([]);
@@ -215,25 +222,21 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
 
       const newFiles = Array.from(files);
 
-      // Validate total count
       if (newPhotos.length + newFiles.length > 5) {
         setError('Maximum 5 photos allowed');
         setIsCompressingPhoto(false);
         return;
       }
 
-      // Compress images
       const compressedFiles = await Promise.all(
         newFiles.map(file => compressImage(file, 1200, 1200, 0.7))
       );
 
-      // Create previews
       const newPreviews = compressedFiles.map(file => URL.createObjectURL(file));
 
       setNewPhotos(prev => [...prev, ...compressedFiles]);
       setNewPhotoPreviews(prev => [...prev, ...newPreviews]);
 
-      // Clear file input
       if (photoInputRef.current) {
         photoInputRef.current.value = '';
       }
@@ -270,25 +273,21 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
 
       const newFiles = Array.from(files);
 
-      // Validate total count (front + back = max 2)
       if (newBluebookFiles.length + newFiles.length > 2) {
         setError('You can upload up to 2 images (front and back of the bluebook)');
         setIsCompressingBluebook(false);
         return;
       }
 
-      // Compress images
       const compressedFiles = await Promise.all(
         newFiles.map(file => compressImage(file, 1600, 1600, 0.75))
       );
 
-      // Create previews
       const newPreviews = compressedFiles.map(file => URL.createObjectURL(file));
 
       setNewBluebookFiles(prev => [...prev, ...compressedFiles]);
       setNewBluebookPreviews(prev => [...prev, ...newPreviews]);
 
-      // Clear file input
       if (bluebookInputRef.current) {
         bluebookInputRef.current.value = '';
       }
@@ -334,18 +333,20 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
       return;
     }
 
-    if (formData.existingBluebookDocuments.length === 0 && newBluebookFiles.length === 0) {
-      setError('At least one bluebook document is required');
-      return;
-    }
+    // REMOVED: Bluebook validation - now optional
+    // if (formData.existingBluebookDocuments.length === 0 && newBluebookFiles.length === 0) {
+    //   setError('At least one bluebook document is required');
+    //   return;
+    // }
 
     if (formData.pricePerDay <= 0) {
       setError('Price per day must be greater than 0');
       return;
     }
 
-    if (formData.seats < 2) {
-      setError('Vehicle must have at least 2 seats');
+    // Allow 1 or more seats (for motorcycles, bicycles, etc.)
+    if (formData.seats < 1) {
+      setError('Vehicle must have at least 1 seat');
       return;
     }
 
@@ -365,20 +366,26 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
         newBluebookBase64 = await filesToBase64(newBluebookFiles);
       }
 
-      // Combine existing bluebook URLs with new base64 images
       const allBluebookDocuments = [
         ...formData.existingBluebookDocuments,
         ...newBluebookBase64
       ];
 
-      // Build the complete payload
+      // Handle VIN properly to avoid duplicate key constraint
+      let vin = vehicle?.vin || '';
+
+      // If VIN is empty, null, 'N/A', or 'null', generate a unique one
+      if (!vin || vin === 'N/A' || vin === 'null' || vin.trim() === '') {
+        vin = generateUniqueVIN(vehicle.id, formData.brand, formData.model, formData.year);
+      }
+
       const payload = {
         brand: formData.brand,
         model: formData.model,
         year: formData.year,
         color: formData.color,
         licensePlate: formData.licensePlate,
-        vin: vehicle?.vin || 'N/A',
+        vin: vin,
         fuelType: formData.fuelType,
         transmission: formData.transmission,
         seats: formData.seats,
@@ -405,7 +412,11 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
         bluebookDocuments: allBluebookDocuments,
       };
 
-      console.log('Sending payload:', { ...payload, bluebookDocuments: `${allBluebookDocuments.length} documents` });
+      console.log('Sending payload:', {
+        ...payload,
+        bluebookDocuments: `${allBluebookDocuments.length} documents`,
+        vin: vin
+      });
 
       const response = await fetch(`http://localhost:8080/api/vehicles/${vehicle.id}`, {
         method: 'PUT',
@@ -438,7 +449,12 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
         } catch {
           errorMessage = text || 'Failed to update vehicle';
         }
-        setError(errorMessage);
+
+        if (errorMessage.includes('Duplicate') && errorMessage.includes('vin')) {
+          setError('VIN conflict detected. Please try again with a different VIN.');
+        } else {
+          setError(errorMessage);
+        }
       }
     } catch (err) {
       setError('Network error. Please check your connection.');
@@ -449,7 +465,6 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
 
   if (!isOpen || !vehicle) return null;
 
-  // Count total bluebook documents (existing + new)
   const totalBluebookCount = formData.existingBluebookDocuments.length + newBluebookFiles.length;
 
   return (
@@ -474,7 +489,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
-                      <Edit3 className="w-5 h-5 text-blue-500" />
+                      <Edit3 className="w-5 h-5 text-emerald-500" />
                       Edit Vehicle
                     </h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -510,7 +525,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                       type="text"
                       value={formData.brand}
                       onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                       placeholder="e.g., Toyota"
                       required
                     />
@@ -523,7 +538,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                       type="text"
                       value={formData.model}
                       onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                       placeholder="e.g., Camry"
                       required
                     />
@@ -539,7 +554,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                       type="number"
                       value={formData.year}
                       onChange={(e) => setFormData(prev => ({ ...prev, year: parseInt(e.target.value) || 0 }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                       min={1900}
                       max={new Date().getFullYear() + 1}
                       required
@@ -553,7 +568,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                       type="text"
                       value={formData.color}
                       onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                       placeholder="e.g., Red"
                       required
                     />
@@ -569,7 +584,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                       type="text"
                       value={formData.licensePlate}
                       onChange={(e) => setFormData(prev => ({ ...prev, licensePlate: e.target.value.toUpperCase() }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition uppercase"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition uppercase"
                       placeholder="e.g., KA01AB1234"
                       required
                     />
@@ -582,7 +597,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                       type="text"
                       value={formData.city}
                       onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                       placeholder="e.g., Mumbai"
                       required
                     />
@@ -599,7 +614,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                       type="text"
                       value={formData.address}
                       onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                       placeholder="e.g., 123 Main St"
                       required
                     />
@@ -612,7 +627,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                       type="text"
                       value={formData.state}
                       onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                       placeholder="e.g., Karnataka"
                       required
                     />
@@ -627,7 +642,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                     type="text"
                     value={formData.zipCode}
                     onChange={(e) => setFormData(prev => ({ ...prev, zipCode: e.target.value }))}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                     placeholder="e.g., 560001"
                     required
                   />
@@ -642,12 +657,13 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                     <select
                       value={formData.fuelType}
                       onChange={(e) => setFormData(prev => ({ ...prev, fuelType: e.target.value }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                     >
                       <option value="PETROL">Petrol</option>
                       <option value="DIESEL">Diesel</option>
                       <option value="ELECTRIC">Electric</option>
                       <option value="HYBRID">Hybrid</option>
+                      <option value="MAN_POWER">Man Power</option>
                     </select>
                   </div>
                   <div>
@@ -657,7 +673,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                     <select
                       value={formData.transmission}
                       onChange={(e) => setFormData(prev => ({ ...prev, transmission: e.target.value }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                     >
                       <option value="MANUAL">Manual</option>
                       <option value="AUTOMATIC">Automatic</option>
@@ -673,9 +689,9 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                     <input
                       type="number"
                       value={formData.seats}
-                      onChange={(e) => setFormData(prev => ({ ...prev, seats: parseInt(e.target.value) || 2 }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
-                      min={2}
+                      onChange={(e) => setFormData(prev => ({ ...prev, seats: parseInt(e.target.value) || 1 }))}
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
+                      min={1}
                       max={20}
                       required
                     />
@@ -688,7 +704,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                       type="number"
                       value={formData.pricePerDay}
                       onChange={(e) => setFormData(prev => ({ ...prev, pricePerDay: parseFloat(e.target.value) || 0 }))}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                       min={0}
                       step={100}
                       required
@@ -704,22 +720,21 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm resize-y min-h-[100px] focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition"
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm resize-y min-h-[100px] focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none transition"
                     placeholder="Describe your vehicle features, condition, and any special notes..."
                     rows={4}
                   />
                 </div>
 
-                {/* Bluebook Documents Section */}
+                {/* Bluebook Documents Section - Optional now */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Bluebook / Vehicle Registration Document <span className="text-red-500">*</span>
+                    Bluebook / Vehicle Registration Document <span className="text-gray-400">(Optional)</span>
                   </label>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    Upload clear photos of your vehicle's bluebook (front and back). At least one document is required.
+                    Upload clear photos of your vehicle's bluebook (front and back). This is optional and not required for all vehicles.
                   </p>
 
-                  {/* Existing Bluebook Documents */}
                   {formData.existingBluebookDocuments.length > 0 && (
                     <div className="mb-3">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Existing Documents:</p>
@@ -743,7 +758,6 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                     </div>
                   )}
 
-                  {/* New Bluebook Uploads */}
                   <div className="flex flex-wrap gap-3 mb-3">
                     {newBluebookPreviews.map((preview, index) => (
                       <div key={`new-${index}`} className="relative w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden group">
@@ -785,8 +799,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                   </div>
 
                   <p className="text-xs text-gray-400 dark:text-gray-500">
-                    {totalBluebookCount} of 2 bluebook images uploaded
-                    {totalBluebookCount === 0 && <span className="text-red-400 ml-1">(Required)</span>}
+                    {totalBluebookCount} of 2 bluebook images uploaded (Optional)
                   </p>
                 </div>
 
@@ -796,7 +809,6 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                     Vehicle Photos
                   </label>
 
-                  {/* Existing Photos */}
                   {formData.photos.length > 0 && (
                     <div className="mb-3">
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Existing Photos:</p>
@@ -817,7 +829,6 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                     </div>
                   )}
 
-                  {/* New Photo Uploads */}
                   <div className="flex flex-wrap gap-2">
                     {newPhotoPreviews.map((preview, index) => (
                       <div key={`new-photo-${index}`} className="relative w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden group">
@@ -861,8 +872,8 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                 </div>
 
                 {/* Info Section */}
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <p className="text-sm text-blue-700 dark:text-blue-400 flex items-start gap-2">
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                  <p className="text-sm text-emerald-700 dark:text-emerald-400 flex items-start gap-2">
                     <span className="text-lg">ℹ️</span>
                     <span>
                       <strong>Note:</strong> Your vehicle details will be updated immediately.
@@ -883,7 +894,7 @@ export default function EditVehicleModal({ vehicle, isOpen, onClose, onSuccess }
                   <button
                     type="submit"
                     disabled={loading || isCompressingPhoto || isCompressingBluebook}
-                    className="flex-1 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-2 disabled:opacity-50"
                   >
                     {loading ? (
                       <>

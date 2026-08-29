@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Car, Shield, Plus, Loader2, CheckCircle, Clock, AlertCircle,
-  XCircle, Users, MapPin, Eye, ChevronRight, Navigation, X, Edit3
+  XCircle, Users, MapPin, Eye, ChevronRight, Navigation, X, Edit3, Star
 } from 'lucide-react';
 import EditVehicleModal from './EditVehicleModal';
 
@@ -50,6 +50,8 @@ interface Vehicle {
   ownerName?: string;
   ownerPhone?: string;
   ownerEmail?: string;
+  averageRating?: number;
+  totalRatings?: number;
 }
 
 interface BookingSummary {
@@ -101,6 +103,29 @@ const getVehicleStatusColor = (vehicle: Vehicle) => {
     return 'border-green-200 dark:border-green-800';
   }
   return 'border-gray-200 dark:border-gray-700';
+};
+
+// Render rating - single star with number
+const renderRating = (rating: number, totalRatings: number) => {
+  if (totalRatings === 0) {
+    return (
+      <span className="text-xs text-gray-400 dark:text-gray-500">
+        No ratings
+      </span>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
+      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+        {rating.toFixed(1)}
+      </span>
+      <span className="text-[10px] text-gray-400 dark:text-gray-500">
+        ({totalRatings})
+      </span>
+    </div>
+  );
 };
 
 const getVehicleBookingAvailability = (vehicle: Vehicle, status?: VehicleBookingStatus) => {
@@ -488,6 +513,10 @@ export default function MyVehiclesTab({
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {vehicle.year} • {vehicle.color}
                     </p>
+                    {/* Rating display - single star with number */}
+                    <div className="mt-1">
+                      {renderRating(vehicle.averageRating || 0, vehicle.totalRatings || 0)}
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className={`text-lg font-bold ${isRejected ? 'text-gray-400 dark:text-gray-500' : 'text-green-600 dark:text-green-400'}`}>

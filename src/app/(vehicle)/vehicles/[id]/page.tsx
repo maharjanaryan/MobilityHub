@@ -35,6 +35,7 @@ interface Vehicle {
   pricePerMonth?: number;
   securityDeposit?: number;
   rating: number;
+  totalRatings: number;
   range: string;
   charge: number;
   location: string;
@@ -544,7 +545,8 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
       pricePerWeek: data.pricePerWeek,
       pricePerMonth: data.pricePerMonth,
       securityDeposit: data.securityDeposit,
-      rating: data.averageRating || 4.5,
+      rating: data.averageRating || 0,
+      totalRatings: data.totalRatings || 0,
       range: data.range || (data.fuelType === "Electric" ? "400 km" : "600 km"),
       charge: data.charge || 80,
       location: [data.city, data.state].filter(Boolean).join(", ") || "Unknown Location",
@@ -609,6 +611,29 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
     const total = rentalSubtotal + insuranceTotal + commission + deposit;
 
     return { rentalSubtotal, insuranceTotal, commission, deposit, total };
+  };
+
+  // ─── RENDER RATING FUNCTION (Single Star with Number) ───
+  const renderRating = (rating: number, totalRatings: number) => {
+    if (totalRatings === 0) {
+      return (
+        <span className="text-sm text-gray-400 dark:text-gray-500">
+          No ratings yet
+        </span>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-1.5">
+        <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+          {rating.toFixed(1)}
+        </span>
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          ({totalRatings} {totalRatings === 1 ? 'rating' : 'ratings'})
+        </span>
+      </div>
+    );
   };
 
   const handleLocationSelect = (lat: number, lng: number, address: string) => {
@@ -849,8 +874,9 @@ export default function VehicleDetailPage({ params }: { params: Promise<{ id: st
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{vehicle.name}</h1>
                 <div className="flex items-center gap-4 mt-1.5 text-sm text-gray-500 dark:text-gray-400">
-                  <span className="flex items-center gap-1 text-yellow-600 dark:text-yellow-300 font-semibold">
-                    <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />{vehicle.rating}
+                  {/* UPDATED: Show actual rating with single star */}
+                  <span className="flex items-center gap-1">
+                    {renderRating(vehicle.rating, vehicle.totalRatings)}
                   </span>
                   <span className="text-gray-300 dark:text-gray-600">|</span>
                   <span>{vehicle.host?.trips || 124} trips completed</span>
