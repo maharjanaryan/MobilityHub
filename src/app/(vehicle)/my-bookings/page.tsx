@@ -7,11 +7,13 @@ import {
   Loader2, Filter, ArrowUpDown, Calendar, Users, Wallet,
   CheckCircle, XCircle, Clock as ClockIcon, AlertCircle,
   Eye, TrendingUp, Search, Info, FileText, ShieldCheck, ZoomIn,
-  Play, Flag, ChevronDown as ChevronDownIcon, Star
+  Play, Flag, ChevronDown as ChevronDownIcon, Star, FileSignature,
+  Download
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import HomeHeader from "@/app/home/HomeHeader";
 import Footer from "@/app/component/Footer";
+import ContractSignatureModal from "@/app/component/ContractSignatureModal";
 
 interface Booking {
   id: number;
@@ -43,6 +45,7 @@ interface Booking {
   securityDepositReturnedAmount?: number;
   averageRating?: number;
   totalRatings?: number;
+  contractSigned?: boolean;
 }
 
 // Rating interface
@@ -58,6 +61,26 @@ interface Rating {
   rating: number;
   review: string;
   createdAt: string;
+}
+
+// Contract interface
+interface Contract {
+  id: number;
+  contractReference: string;
+  bookingId: number;
+  vehicleName: string;
+  ownerName: string;
+  renterName: string;
+  ownerSigned: boolean;
+  ownerSignedAt: string | null;
+  renterSigned: boolean;
+  renterSignedAt: string | null;
+  contractStatus: string;
+  contractText: string;
+  ownerSignatureData: string | null;
+  renterSignatureData: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const statusConfig: Record<string, any> = {
@@ -587,6 +610,12 @@ export default function MyBookingsPage() {
   const [tripAction, setTripAction] = useState<'start' | 'end' | null>(null);
   const [tripBookingId, setTripBookingId] = useState<number | null>(null);
 
+  // ─── CONTRACT STATES ───
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [contractData, setContractData] = useState<Contract | null>(null);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [contractUserRole, setContractUserRole] = useState<'owner' | 'renter'>('renter');
+
   // Rating states
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingBooking, setRatingBooking] = useState<Booking | null>(null);
@@ -725,7 +754,8 @@ export default function MyBookingsPage() {
       vehicleDamaged: b.vehicleDamaged || false,
       damageNotes: b.damageNotes || null,
       securityDepositReturned: b.securityDepositReturned || false,
-      securityDepositReturnedAmount: b.securityDepositReturnedAmount || 0
+      securityDepositReturnedAmount: b.securityDepositReturnedAmount || 0,
+      contractSigned: b.contractSigned || false
     };
   };
 
@@ -761,6 +791,192 @@ export default function MyBookingsPage() {
       setLoading(false);
     }
   };
+
+  // ─── CONTRACT DOWNLOAD FUNCTION ───
+
+  const handleDownloadContract = async (bookingId: number) => {
+    try {
+      const token = getToken();
+      if (!token) {
+        alert('Please login to download the contract');
+        return;
+      }
+
+      // Show loading state
+      setActionLoading(bookingId);
+
+      const response = await fetch(`http://localhost:8080/api/contracts/${bookingId}/download-pdf`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Failed to download contract');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `contract_booking_${bookingId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      setResultModalData({
+        title: '✅ Download Successful!',
+        message: 'Your contract has been downloaded successfully.',
+        type: 'success',
+        icon: CheckCircle
+      });
+      setShowResultModal(true);
+
+    } catch (error) {
+      console.error('Error downloading contract:', error);
+      setResultModalData({
+        title: 'Download Failed',
+        message: error instanceof Error ? error.message : 'Failed to download contract. Please try again.',
+        type: 'error',
+        icon: AlertCircle
+      });
+      setShowResultModal(true);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // ─── CONTRACT FUNCTIONS ───
+
+  const fetchContract = async (bookingId: number, role: 'owner' | 'renter') => {
+    try {
+      const token = getToken();
+      if (!token) return;
+
+      const res = await fetch(`http://localhost:8080/api/contracts/booking/${bookingId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setContractData(data);
+        setContractUserRole(role);
+        setShowContractModal(true);
+      } else {
+        setResultModalData({
+          title: 'Contract Not Found',
+          message: 'No contract found for this booking. Please contact support.',
+          type: 'error',
+          icon: AlertCircle
+        });
+        setShowResultModal(true);
+      }
+    } catch (error) {
+      console.error('Error fetching contract:', error);
+      setResultModalData({
+        title: 'Error',
+        message: 'Failed to load contract. Please try again.',
+        type: 'error',
+        icon: AlertCircle
+      });
+      setShowResultModal(true);
+    }
+  };
+
+  // ✅ FIXED: Accept signatureData as parameter
+  const handleSignContract = async (signatureData: string) => {
+    if (!contractData) return;
+
+    console.log('📝 Signing contract with signature data:', {
+      length: signatureData?.length || 0,
+      preview: signatureData?.substring(0, 50) || 'null',
+      contractId: contractData.id,
+      role: contractUserRole
+    });
+
+    setContractLoading(true);
+    try {
+      const token = getToken();
+      if (!token) {
+        router.push('/signin');
+        return;
+      }
+
+      const endpoint = contractUserRole === 'owner'
+        ? `${contractData.id}/sign/owner`
+        : `${contractData.id}/sign/renter`;
+
+      // ✅ USE THE SIGNATURE DATA PARAMETER
+      const requestBody = {
+        signatureData: signatureData,
+        userAgent: navigator.userAgent
+      };
+
+      console.log('📤 Sending request to:', endpoint);
+      console.log('📤 Request body:', { ...requestBody, signatureData: requestBody.signatureData.substring(0, 50) + '...' });
+
+      const res = await fetch(`http://localhost:8080/api/contracts/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        console.log('✅ Contract updated:', updated);
+        setContractData(updated);
+
+        const isFullySigned = updated.contractStatus === 'FULLY_SIGNED';
+
+        setResultModalData({
+          title: isFullySigned ? '✅ Contract Fully Signed!' : '✅ Contract Signed!',
+          message: isFullySigned
+            ? 'Both parties have signed the contract. You can now start your trip! 🚗'
+            : `You have signed the contract. Waiting for ${contractUserRole === 'owner' ? 'renter' : 'owner'} to sign.`,
+          type: 'success',
+          icon: isFullySigned ? CheckCircle : FileSignature
+        });
+        setShowResultModal(true);
+
+        if (isFullySigned) {
+          setTimeout(() => {
+            setShowContractModal(false);
+          }, 2000);
+        }
+
+        // Refresh bookings to get updated contract status
+        await fetchBookings();
+      } else {
+        const error = await res.json();
+        console.error('❌ API Error:', error);
+        setResultModalData({
+          title: 'Failed to Sign Contract',
+          message: error.message || 'Failed to sign contract. Please try again.',
+          type: 'error',
+          icon: AlertCircle
+        });
+        setShowResultModal(true);
+      }
+    } catch (error) {
+      console.error('❌ Error signing contract:', error);
+      setResultModalData({
+        title: 'Network Error',
+        message: 'Please check your connection and try again.',
+        type: 'error',
+        icon: AlertCircle
+      });
+      setShowResultModal(true);
+    } finally {
+      setContractLoading(false);
+    }
+  };
+
+  // ─── RATING FUNCTIONS ───
 
   // Check if completed bookings have ratings
   const checkRatingsForCompletedBookings = async (bookingsList: Booking[]) => {
@@ -974,6 +1190,19 @@ export default function MyBookingsPage() {
         setShowResultModal(true);
         return;
       }
+
+      // ✅ Check if contract is signed before allowing trip start
+      if (!booking.contractSigned) {
+        setResultModalData({
+          title: 'Contract Not Signed',
+          message: 'You cannot start the trip until both parties have signed the rental contract. Please sign the contract first.',
+          type: 'error',
+          icon: FileSignature
+        });
+        setShowResultModal(true);
+        return;
+      }
+
       const pickupDate = new Date(booking.pickupDate);
       if (new Date() < pickupDate) {
         setResultModalData({
@@ -1322,6 +1551,8 @@ export default function MyBookingsPage() {
               const cancelCheck = isPending ? canCancel(booking.pickupDate) : null;
               const isPickupDateArrived = new Date() >= new Date(booking.pickupDate);
               const hasRatedBooking = hasRated[booking.id] || false;
+              const isContractSigned = booking.contractSigned || false;
+              const isContractReady = isConfirmed && !isContractSigned;
 
               return (
                 <motion.div
@@ -1342,6 +1573,19 @@ export default function MyBookingsPage() {
                           className="w-full h-full object-cover"
                           onError={(e) => (e.target as HTMLImageElement).src = '/car-placeholder.jpg'}
                         />
+                        {/* Contract Status Badge */}
+                        {isContractSigned && isConfirmed && (
+                          <div className="absolute top-1 left-1 px-2 py-0.5 bg-green-600/90 text-white text-[10px] rounded-full flex items-center gap-1">
+                            <FileSignature className="w-3 h-3" />
+                            <span>Signed</span>
+                          </div>
+                        )}
+                        {isContractReady && (
+                          <div className="absolute top-1 left-1 px-2 py-0.5 bg-yellow-600/90 text-white text-[10px] rounded-full flex items-center gap-1">
+                            <FileSignature className="w-3 h-3" />
+                            <span>Pending</span>
+                          </div>
+                        )}
                         {/* Rating badge on completed bookings */}
                         {isCompleted && (
                           <div className="absolute bottom-1 right-1 px-2 py-0.5 bg-black/70 text-white text-xs rounded-full flex items-center gap-1">
@@ -1386,6 +1630,13 @@ export default function MyBookingsPage() {
                           <span className={`font-medium flex items-center gap-1 ${getPaymentStatusColor(booking.paymentStatus)}`}>
                             <Wallet className="w-3.5 h-3.5" /> {booking.paymentStatus || 'PENDING'}
                           </span>
+                          {/* Contract Status */}
+                          {isConfirmed && (
+                            <span className={`flex items-center gap-1 text-xs ${isContractSigned ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                              <FileSignature className="w-3.5 h-3.5" />
+                              {isContractSigned ? 'Contract Signed ✓' : 'Contract Pending'}
+                            </span>
+                          )}
                         </div>
 
                         {/* Awaiting Return Notice */}
@@ -1429,7 +1680,33 @@ export default function MyBookingsPage() {
                             </button>
                           )}
 
-                          {isConfirmed && isPickupDateArrived && (
+                          {/* ✅ SIGN CONTRACT BUTTON - Show for confirmed bookings without signed contract */}
+                          {isConfirmed && !isContractSigned && (
+                            <button
+                              onClick={() => fetchContract(booking.id, 'renter')}
+                              className="flex items-center gap-1.5 px-4 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-medium transition"
+                            >
+                              <FileSignature className="w-3.5 h-3.5" /> Sign Contract
+                            </button>
+                          )}
+
+                          {/* ✅ DOWNLOAD CONTRACT BUTTON - Show for confirmed bookings with signed contract */}
+                          {isConfirmed && isContractSigned && (
+                            <button
+                              onClick={() => handleDownloadContract(booking.id)}
+                              disabled={actionLoading === booking.id}
+                              className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition disabled:opacity-50"
+                            >
+                              {actionLoading === booking.id ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                <Download className="w-3.5 h-3.5" />
+                              )}
+                              Download Contract
+                            </button>
+                          )}
+
+                          {isConfirmed && isContractSigned && isPickupDateArrived && (
                             <button
                               onClick={() => openTripModal(booking.id, 'start')}
                               disabled={actionLoading === booking.id}
@@ -1518,6 +1795,16 @@ export default function MyBookingsPage() {
           </div>
         )}
       </main>
+
+      {/* Contract Signature Modal */}
+      <ContractSignatureModal
+        isOpen={showContractModal}
+        onClose={() => setShowContractModal(false)}
+        contract={contractData}
+        userRole={contractUserRole}
+        onSign={handleSignContract}
+        loading={contractLoading}
+      />
 
       {/* Cancel Booking Modal */}
       <AnimatePresence>
@@ -1727,6 +2014,17 @@ export default function MyBookingsPage() {
                   <div><p className="text-sm text-gray-500 dark:text-gray-400">Total Amount</p><p className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">Rs. {selectedBooking.totalAmount?.toLocaleString()}</p></div>
                   <div><p className="text-sm text-gray-500 dark:text-gray-400">Payment</p><p className={`font-medium ${getPaymentStatusColor(selectedBooking.paymentStatus)}`}>{selectedBooking.paymentStatus || 'PENDING'}</p></div>
                   <div className="col-span-2"><p className="text-sm text-gray-500 dark:text-gray-400">Booked On</p><p className="font-medium text-gray-800 dark:text-gray-200">{formatDate(selectedBooking.createdAt)}</p></div>
+
+                  {/* Contract Status in Detail Modal */}
+                  {selectedBooking.status?.toUpperCase() === 'CONFIRMED' && (
+                    <div className="col-span-2">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Contract Status</p>
+                      <p className={`font-medium flex items-center gap-2 ${selectedBooking.contractSigned ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                        <FileSignature className="w-4 h-4" />
+                        {selectedBooking.contractSigned ? '✅ Fully Signed' : '⏳ Pending Signature'}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {selectedBooking.tripStartedAt && (
@@ -1834,6 +2132,7 @@ export default function MyBookingsPage() {
                     const isCompleted = status === 'COMPLETED';
                     const isPickupDateArrived = new Date() >= new Date(selectedBooking.pickupDate);
                     const hasRatedBooking = hasRated[selectedBooking.id] || false;
+                    const isContractSigned = selectedBooking.contractSigned || false;
 
                     return (
                       <>
@@ -1846,7 +2145,36 @@ export default function MyBookingsPage() {
                           </button>
                         )}
 
-                        {isConfirmed && isPickupDateArrived && (
+                        {/* ✅ Sign Contract Button in Detail Modal */}
+                        {isConfirmed && !isContractSigned && (
+                          <button
+                            onClick={() => { setShowDetailModal(false); fetchContract(selectedBooking.id, 'renter'); }}
+                            className="flex-1 px-4 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-2"
+                          >
+                            <FileSignature className="w-4 h-4" /> Sign Contract
+                          </button>
+                        )}
+
+                        {/* ✅ Download Contract Button in Detail Modal */}
+                        {isConfirmed && isContractSigned && (
+                          <button
+                            onClick={() => {
+                              setShowDetailModal(false);
+                              handleDownloadContract(selectedBooking.id);
+                            }}
+                            disabled={actionLoading === selectedBooking.id}
+                            className="flex-1 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
+                            {actionLoading === selectedBooking.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
+                            Download Contract
+                          </button>
+                        )}
+
+                        {isConfirmed && isContractSigned && isPickupDateArrived && (
                           <button
                             onClick={() => { setShowDetailModal(false); openTripModal(selectedBooking.id, 'start'); }}
                             disabled={actionLoading === selectedBooking.id}

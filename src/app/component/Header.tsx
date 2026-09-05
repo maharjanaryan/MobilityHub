@@ -56,7 +56,9 @@ const Header: React.FC = () => {
           >
             Sign in
           </button>
-          <button className="border dark:border-green-700 rounded-2xl px-4 py-2 bg-green-700 text-white hover:bg-green-600 transition-colors">
+          <button className="border dark:border-green-700 rounded-2xl px-4 py-2 bg-green-700 text-white hover:bg-green-600 transition-colors"
+            onClick={() => navigateTo("/signin")}
+          >
             Rent Now
           </button>
         </div>

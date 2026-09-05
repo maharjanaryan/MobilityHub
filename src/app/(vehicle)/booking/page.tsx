@@ -17,9 +17,13 @@ import {
   ThumbsUp,
   ThumbsDown,
   RefreshCw,
+  FileSignature,
+  Info,
+  FileText
 } from "lucide-react";
 import HomeHeader from "../../home/HomeHeader";
 import Footer from "../../component/Footer";
+import ContractSignatureModal from "../../component/ContractSignatureModal";
 
 // Types
 interface Booking {
@@ -47,6 +51,7 @@ interface Booking {
   rejectionReason: string | null;
   createdAt: string;
   approvedAt: string | null;
+  contractSigned?: boolean;
 }
 
 interface KYCStatusResponse {
@@ -59,6 +64,26 @@ interface KYCStatusResponse {
   canBook: boolean;
   canList: boolean;
   hasOwnerPrivileges: boolean;
+}
+
+// Contract interface
+interface Contract {
+  id: number;
+  contractReference: string;
+  bookingId: number;
+  vehicleName: string;
+  ownerName: string;
+  renterName: string;
+  ownerSigned: boolean;
+  ownerSignedAt: string | null;
+  renterSigned: boolean;
+  renterSignedAt: string | null;
+  contractStatus: string;
+  contractText: string;
+  ownerSignatureData: string | null;
+  renterSignatureData: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Helper functions
@@ -78,6 +103,18 @@ const formatDate = (dateString: string) => {
   if (!dateString) return "Not set";
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+};
+
+const formatDateTime = (dateString: string) => {
+  if (!dateString) return "Not set";
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 };
 
 const getStatusBadge = (status: string) => {
@@ -117,6 +154,55 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
       {type === 'error' && <AlertCircle className="w-5 h-5" />}
       {type === 'info' && <AlertCircle className="w-5 h-5" />}
       {message}
+    </div>
+  );
+};
+
+// Result Modal Component
+const ResultModal = ({
+  isOpen,
+  onClose,
+  title,
+  message,
+  type = 'success',
+  icon: Icon,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  message: string;
+  type?: 'success' | 'error';
+  icon?: any;
+}) => {
+  if (!isOpen) return null;
+
+  const isSuccess = type === 'success';
+  const bgColor = isSuccess ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20';
+  const borderColor = isSuccess ? 'border-emerald-200 dark:border-emerald-800' : 'border-red-200 dark:border-red-800';
+  const iconColor = isSuccess ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400';
+  const iconBg = isSuccess ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-red-100 dark:bg-red-900/40';
+  const titleColor = isSuccess ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300';
+  const messageColor = isSuccess ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400';
+  const buttonBg = isSuccess ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600';
+
+  const DefaultIcon = isSuccess ? CheckCircle : XCircle;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] flex items-center justify-center p-4" onClick={onClose}>
+      <div className={`bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full shadow-2xl border ${borderColor} overflow-hidden`} onClick={e => e.stopPropagation()}>
+        <div className={`p-6 text-center ${bgColor}`}>
+          <div className={`w-20 h-20 rounded-full ${iconBg} flex items-center justify-center mx-auto mb-4`}>
+            {Icon ? <Icon className={`w-10 h-10 ${iconColor}`} /> : <DefaultIcon className={`w-10 h-10 ${iconColor}`} />}
+          </div>
+          <h3 className={`text-2xl font-bold ${titleColor} mb-2`}>{title}</h3>
+          <p className={`text-sm ${messageColor}`}>{message}</p>
+        </div>
+        <div className="p-6 bg-gray-50 dark:bg-gray-800/50">
+          <button onClick={onClose} className={`w-full px-6 py-3 ${buttonBg} text-white rounded-xl font-medium transition shadow-lg`}>
+            Got it
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -225,14 +311,18 @@ function ActionModal({
 function BookingCard({
   booking,
   onApprove,
-  onReject
+  onReject,
+  onSignContract
 }: {
   booking: Booking;
   onApprove: (booking: Booking) => void;
   onReject: (booking: Booking) => void;
+  onSignContract: (booking: Booking) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const isPending = booking.bookingStatus?.toUpperCase() === 'PENDING';
+  const isConfirmed = booking.bookingStatus?.toUpperCase() === 'CONFIRMED';
+  const isContractSigned = booking.contractSigned || false;
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-lg transition-all overflow-hidden">
@@ -253,7 +343,15 @@ function BookingCard({
               <p className="text-xs text-gray-500 dark:text-gray-400">Booking #{booking.bookingReference}</p>
             </div>
           </div>
-          {getStatusBadge(booking.bookingStatus)}
+          <div className="flex items-center gap-2">
+            {isConfirmed && (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${isContractSigned ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'}`}>
+                <FileSignature className="w-3 h-3 mr-1" />
+                {isContractSigned ? 'Signed' : 'Pending'}
+              </span>
+            )}
+            {getStatusBadge(booking.bookingStatus)}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
@@ -302,6 +400,15 @@ function BookingCard({
                 <p className="text-xs text-gray-500 dark:text-gray-400">Daily Rate</p>
                 <p className="font-medium text-gray-700 dark:text-gray-300">{formatCurrency(booking.dailyRate)}</p>
               </div>
+              {isConfirmed && (
+                <div className="col-span-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Contract Status</p>
+                  <p className={`font-medium flex items-center gap-2 ${isContractSigned ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
+                    <FileSignature className="w-4 h-4" />
+                    {isContractSigned ? '✅ Fully Signed' : '⏳ Awaiting Signatures'}
+                  </p>
+                </div>
+              )}
             </div>
             {booking.rejectionReason && (
               <div className="mt-3 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
@@ -312,10 +419,10 @@ function BookingCard({
           </div>
         )}
 
-        <div className="flex gap-2 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1"
+            className="flex-1 min-w-[80px] px-3 py-2 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-1"
           >
             <Eye className="w-4 h-4" />
             {expanded ? 'Show Less' : 'View Details'}
@@ -325,19 +432,39 @@ function BookingCard({
             <>
               <button
                 onClick={() => onApprove(booking)}
-                className="flex-1 px-3 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-700 dark:hover:bg-green-600 transition-colors flex items-center justify-center gap-1"
+                className="flex-1 min-w-[80px] px-3 py-2 bg-green-600 dark:bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-700 dark:hover:bg-green-600 transition-colors flex items-center justify-center gap-1"
               >
                 <ThumbsUp className="w-4 h-4" />
                 Approve
               </button>
               <button
                 onClick={() => onReject(booking)}
-                className="flex-1 px-3 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-700 dark:hover:bg-red-600 transition-colors flex items-center justify-center gap-1"
+                className="flex-1 min-w-[80px] px-3 py-2 bg-red-600 dark:bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-700 dark:hover:bg-red-600 transition-colors flex items-center justify-center gap-1"
               >
                 <ThumbsDown className="w-4 h-4" />
                 Reject
               </button>
             </>
+          )}
+
+          {isConfirmed && !isContractSigned && (
+            <button
+              onClick={() => onSignContract(booking)}
+              className="flex-1 min-w-[80px] px-3 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1"
+            >
+              <FileSignature className="w-4 h-4" />
+              Sign Contract
+            </button>
+          )}
+
+          {isConfirmed && isContractSigned && (
+            <button
+              disabled
+              className="flex-1 min-w-[80px] px-3 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium cursor-default flex items-center justify-center gap-1"
+            >
+              <CheckCircle className="w-4 h-4" />
+              Contract Signed
+            </button>
           )}
         </div>
       </div>
@@ -359,6 +486,23 @@ export default function OwnerBookingsPage() {
   const [isAuthorized, setIsAuthorized] = useState(true);
   const [kycStatus, setKycStatus] = useState<KYCStatusResponse | null>(null);
   const [checkingKyc, setCheckingKyc] = useState(true);
+
+  // ─── CONTRACT STATES ───
+  const [showContractModal, setShowContractModal] = useState(false);
+  const [contractData, setContractData] = useState<Contract | null>(null);
+  const [contractLoading, setContractLoading] = useState(false);
+  const [contractUserRole, setContractUserRole] = useState<'owner' | 'renter'>('owner');
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [resultModalData, setResultModalData] = useState<{
+    title: string;
+    message: string;
+    type: 'success' | 'error';
+    icon?: any;
+  }>({
+    title: '',
+    message: '',
+    type: 'success'
+  });
 
   // Check owner KYC status
   const checkOwnerKycStatus = useCallback(async () => {
@@ -390,7 +534,6 @@ export default function OwnerBookingsPage() {
       const data: KYCStatusResponse = await response.json();
       setKycStatus(data);
 
-      // Check if user has owner privileges (ownerKycStatus === 'VERIFIED')
       const hasAccess = data.ownerKycStatus === 'VERIFIED' || data.hasOwnerPrivileges === true;
 
       if (!hasAccess) {
@@ -484,6 +627,121 @@ export default function OwnerBookingsPage() {
     }
   }, [fetchBookings, isAuthorized, checkingKyc, filterStatus]);
 
+  // ─── CONTRACT FUNCTIONS ───
+
+  const fetchContract = async (bookingId: number, role: 'owner' | 'renter') => {
+    try {
+      const token = getAuthToken();
+      if (!token) return;
+
+      const res = await fetch(`http://localhost:8080/api/contracts/booking/${bookingId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setContractData(data);
+        setContractUserRole(role);
+        setShowContractModal(true);
+      } else {
+        setResultModalData({
+          title: 'Contract Not Found',
+          message: 'No contract found for this booking. Please try again.',
+          type: 'error',
+          icon: AlertCircle
+        });
+        setShowResultModal(true);
+      }
+    } catch (error) {
+      console.error('Error fetching contract:', error);
+      setResultModalData({
+        title: 'Error',
+        message: 'Failed to load contract. Please try again.',
+        type: 'error',
+        icon: AlertCircle
+      });
+      setShowResultModal(true);
+    }
+  };
+
+  const handleSignContract = async () => {
+    if (!contractData) return;
+
+    setContractLoading(true);
+    try {
+      const token = getAuthToken();
+      if (!token) { router.push('/signin'); return; }
+
+      const endpoint = contractUserRole === 'owner'
+        ? `${contractData.id}/sign/owner`
+        : `${contractData.id}/sign/renter`;
+
+      const res = await fetch(`http://localhost:8080/api/contracts/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          signatureData: contractData.ownerSignatureData || contractData.renterSignatureData,
+          userAgent: navigator.userAgent
+        })
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setContractData(updated);
+
+        const isFullySigned = updated.contractStatus === 'FULLY_SIGNED';
+
+        setResultModalData({
+          title: isFullySigned ? '✅ Contract Fully Signed!' : '✅ Contract Signed!',
+          message: isFullySigned
+            ? 'Both parties have signed the contract. The renter can now start the trip! 🚗'
+            : `You have signed the contract. Waiting for ${contractUserRole === 'owner' ? 'renter' : 'owner'} to sign.`,
+          type: 'success',
+          icon: isFullySigned ? CheckCircle : FileSignature
+        });
+        setShowResultModal(true);
+
+        if (isFullySigned) {
+          setTimeout(() => {
+            setShowContractModal(false);
+          }, 2000);
+        }
+
+        // Refresh bookings to get updated contract status
+        await fetchBookings();
+      } else {
+        const error = await res.json();
+        setResultModalData({
+          title: 'Failed to Sign Contract',
+          message: error.message || 'Failed to sign contract. Please try again.',
+          type: 'error',
+          icon: AlertCircle
+        });
+        setShowResultModal(true);
+      }
+    } catch (error) {
+      console.error('Error signing contract:', error);
+      setResultModalData({
+        title: 'Network Error',
+        message: 'Please check your connection and try again.',
+        type: 'error',
+        icon: AlertCircle
+      });
+      setShowResultModal(true);
+    } finally {
+      setContractLoading(false);
+    }
+  };
+
+  const openContractModal = (booking: Booking) => {
+    fetchContract(booking.id, 'owner');
+  };
+
+  // ─── APPROVE / REJECT ───
+
   const handleApprove = async (booking: Booking, rejectionReason?: string, ownerNotes?: string) => {
     const token = getAuthToken();
     if (!token) return;
@@ -512,7 +770,7 @@ export default function OwnerBookingsPage() {
         throw new Error(error.message || 'Failed to approve booking');
       }
 
-      setToast({ message: `Booking ${booking.bookingReference} approved successfully!`, type: 'success' });
+      setToast({ message: `Booking ${booking.bookingReference} approved successfully! Contract created.`, type: 'success' });
       await fetchBookings();
     } catch (error) {
       console.error('Error approving booking:', error);
@@ -688,7 +946,7 @@ export default function OwnerBookingsPage() {
         <div className="max-w-7xl mx-auto px-4 py-8">
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 mb-8">
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -721,6 +979,23 @@ export default function OwnerBookingsPage() {
                 </div>
                 <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
                   <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Contracts Pending</p>
+                  <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+                    {bookings.filter(b =>
+                      b.bookingStatus?.toUpperCase() === 'CONFIRMED' &&
+                      !b.contractSigned
+                    ).length}
+                  </p>
+                </div>
+                <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
+                  <FileSignature className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
                 </div>
               </div>
             </div>
@@ -793,6 +1068,7 @@ export default function OwnerBookingsPage() {
                     booking={booking}
                     onApprove={(b) => openActionModal(b, 'approve')}
                     onReject={(b) => openActionModal(b, 'reject')}
+                    onSignContract={openContractModal}
                   />
                 ))}
               </div>
@@ -823,6 +1099,7 @@ export default function OwnerBookingsPage() {
                     booking={booking}
                     onApprove={(b) => openActionModal(b, 'approve')}
                     onReject={(b) => openActionModal(b, 'reject')}
+                    onSignContract={openContractModal}
                   />
                 ))}
               </div>
@@ -851,6 +1128,26 @@ export default function OwnerBookingsPage() {
           loading={actionLoading}
         />
       )}
+
+      {/* Contract Signature Modal */}
+      <ContractSignatureModal
+        isOpen={showContractModal}
+        onClose={() => setShowContractModal(false)}
+        contract={contractData}
+        userRole={contractUserRole}
+        onSign={handleSignContract}
+        loading={contractLoading}
+      />
+
+      {/* Result Modal */}
+      <ResultModal
+        isOpen={showResultModal}
+        onClose={() => setShowResultModal(false)}
+        title={resultModalData.title}
+        message={resultModalData.message}
+        type={resultModalData.type}
+        icon={resultModalData.icon}
+      />
 
       {/* Toast Notifications */}
       {toast && (
